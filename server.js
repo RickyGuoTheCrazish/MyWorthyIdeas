@@ -1,9 +1,15 @@
 const express = require("express");
+require("dotenv").config();
+const authProtecter = require("./middlewares/auth");
+
+const ideaRouter = require("./routes/ideaRouter");
+const userRouter = require("./routes/userRouter");
+
 const app = express();
 const cors = require("cors");
 
 
-require("dotenv").config();
+
 const port = process.env.PORT || 6001;
 const path = require("path")
 const corsOptions = {
@@ -15,8 +21,10 @@ app.use(cors(corsOptions))
 app.use(express.json());
 
 // get driver connection
+app.use("/api/ideas", authProtecter, ideaRouter);
 
- 
+app.use("/api/users", authProtecter, userRouter);
+
 app.use(express.static(path.join(__dirname, "client", "build")))
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "build", "index.html"));
