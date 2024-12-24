@@ -1,7 +1,16 @@
+// /middlewares/authProtecter.js
 const jwt = require("jsonwebtoken");
 
 const authProtecter = (req, res, next) => {
-  const token = req.header("Authorization")?.replace("Bearer ", "");
+  // 1) Try to read from 'token' cookie first
+  const tokenFromCookie = req.cookies?.token;
+
+  // 2) Or fallback to Authorization header if needed
+  let token = tokenFromCookie;
+  if (!token) {
+    // fallback: check Authorization header if your design still supports it
+    token = req.header("Authorization")?.replace("Bearer ", "");
+  }
 
   if (!token) {
     return res.status(401).json({ message: "No token, authorization denied" });

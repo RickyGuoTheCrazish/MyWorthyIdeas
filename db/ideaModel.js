@@ -1,52 +1,48 @@
-// /models/Idea.js
-const mongoose = require("mongoose");
-const db = mongoose.connection.useDb("IdeasForce");
+// /db/ideaModel.js
+
+const { mongoose } = require("./connection");
 
 const ideaSchema = new mongoose.Schema(
   {
-    title: {
+    title: { type: String, required: true },
+    preview: { type: String, required: true },
+
+    /**
+     * The raw editor data (JSON) from a WYSIWYG if you want
+     * to restore the user's formatting exactly.
+     */
+    contentRaw: {
+      type: mongoose.Schema.Types.Mixed, // or { type: Object, default: {} }
+      default: {},
+    },
+
+    /**
+     * The pre-rendered HTML version (if you want to quickly display it).
+     * Might be sanitized or already safe to inject in the frontend.
+     */
+    contentHtml: {
       type: String,
-      required: true,
+      default: "",
     },
-    preview: {
-      type: String,
-      required: true,
-    },
-    content: {
-      // store your text content (potentially with markup for bold, italic, new lines, etc.)
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
+
+    price: { type: Number, required: true },
     creator: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    isSold: {
-      type: Boolean,
-      default: false,
-    },
-    thumbnailImage: {
-      type: String,
-      default: "",
-    },
-    contentImages: [
-      {
-        type: String, // each is an S3 URL
-      },
-    ],
-    rating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: null,
-    },
+    isSold: { type: Boolean, default: false },
+    buyer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    boughtAt: { type: Date, default: null },
+
+    thumbnailImage: { type: String, default: "" },
+    contentImages: [{ type: String }],
+
+    rating: { type: Number, min: 0, max: 5, default: null },
+    category: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-module.exports = db.model("Idea", ideaSchema);
+const IdeaModel = mongoose.model("Idea", ideaSchema);
+module.exports = IdeaModel;

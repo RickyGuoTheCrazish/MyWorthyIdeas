@@ -1,66 +1,54 @@
-// /models/User.js
-
-const mongoose = require("mongoose");
-const db = mongoose.connection.useDb("IdeasForce");
+// /db/userModel.js
+const { mongoose } = require("./connection");
 
 const userSchema = new mongoose.Schema(
   {
-    username: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    passwordHash: {
-      type: String,
-      required: true,
-    },
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    passwordHash: { type: String, required: true },
     subscription: {
       type: String,
       enum: ["none", "buyer", "seller", "premium"],
       default: "none",
     },
+
     /**
-     * For a seller, track all ideas the user has posted.
-     * You can populate these to retrieve the Idea docs.
+     * postedIdeas => for sellers to track ideas they've created
      */
     postedIdeas: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Idea",
-      },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Idea" },
     ],
+
     /**
-     * For a buyer, track all ideas the user has purchased,
-     * and optionally store the rating they gave each idea.
+     * boughtIdeas => for buyers to track ideas they've purchased
      */
     boughtIdeas: [
-      {
-        idea: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Idea",
-        },
-        rating: {
-          type: Number,
-          min: 0,
-          max: 5,
-          default: null, // null or undefined if not rated yet
-        },
-      },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Idea" },
     ],
 
     /**
      * AWS S3 profile image link
      */
-    profileImage: {
-      type: String,
-      default: "",
+    profileImage: { type: String, default: "" },
+
+    /**
+     * credits => how many credits the user (as a buyer) has
+     */
+    credits: {
+      type: Number,
+      default: 0,
+    },
+
+    /**
+     * earnings => how much this user (as a seller) has earned
+     */
+    earnings: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
 );
 
-module.exports = db.model("User", userSchema);
+const UserModel = mongoose.model("User", userSchema);
+module.exports = UserModel;

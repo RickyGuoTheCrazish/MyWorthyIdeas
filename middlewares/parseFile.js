@@ -70,7 +70,7 @@ const parseFile = async (req, folderName, prefix, maxFiles = 1) => {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: s3Key,
             Body: uploadStream,
-            ACL: "public-read", // or remove if you want a private file
+            // ACL: "public-read", // or remove if you want a private file
           },
           queueSize: 5, // how many parts can be uploaded concurrently
           partSize: 10 * 1024 * 1024, // 10 MB
