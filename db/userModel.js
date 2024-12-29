@@ -11,44 +11,52 @@ const userSchema = new mongoose.Schema(
       enum: ["none", "buyer", "seller", "premium"],
       default: "none",
     },
-
-    /**
-     * postedIdeas => for sellers to track ideas they've created
-     */
+    isVerified: { type: Boolean, default: false },
+    verificationToken: { type: String, default: "" },
+    verificationTokenExp: { type: Date }, // expires in 10 min
+    lastVerificationSentAt: { type: Date }, // track the last time we sent
     postedIdeas: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Idea" },
     ],
-
-    /**
-     * boughtIdeas => for buyers to track ideas they've purchased
-     */
     boughtIdeas: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Idea" },
     ],
-
-    /**
-     * AWS S3 profile image link
-     */
     profileImage: { type: String, default: "" },
-
-    /**
-     * credits => how many credits the user (as a buyer) has
-     */
-    credits: {
-      type: Number,
-      default: 0,
-    },
-
-    /**
-     * earnings => how much this user (as a seller) has earned
-     */
-    earnings: {
-      type: Number,
-      default: 0,
-    },
+    credits: { type: Number, default: 0 },
+    earnings: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
+
+/**
+ * Virtual: averageRating
+ * We'll compute the average rating from the user's postedIdeas
+ * (which each have a 'rating' field).
+ *
+ * NOTE: This only works if postedIdeas are already populated
+ * with their rating fields. e.g.:
+ *    await user.populate({ path: 'postedIdeas', select: 'rating' });
+ * Then user.averageRating can be used in code or JSON output.
+ */
+userSchema.virtual("averageRating").get(function() {
+  if (!this.postedIdeas || this.postedIdeas.length === 0) {
+    return 0;
+  }
+
+  let sum = 0;
+  let count = 0;
+  for (const idea of this.postedIdeas) {
+    if (idea.rating != null) {
+      sum += idea.rating;
+      count++;
+    }
+  }
+  return count === 0 ? 0 : (sum / count);
+});
+
+// If you want the virtual to appear in JSON output, enable it:
+userSchema.set("toObject", { virtuals: true });
+userSchema.set("toJSON", { virtuals: true });
 
 const UserModel = mongoose.model("User", userSchema);
 module.exports = UserModel;

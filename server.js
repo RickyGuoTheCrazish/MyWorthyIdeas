@@ -2,6 +2,7 @@ const express = require("express");
 require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const authProtecter = require("./middlewares/auth");
+const { globalLimiter } = require("./middlewares/rateLimiter");
 
 const ideaRouter = require("./routes/ideaRouter");
 const userRouter = require("./routes/userRouter");
@@ -22,6 +23,9 @@ app.use(cors(corsOptions))
 app.use(express.json());
 
 app.use(cookieParser());
+
+// Apply global rate limiter to all routes
+app.use(globalLimiter);
 
 // get driver connection
 app.use("/api/ideas", authProtecter, ideaRouter);
