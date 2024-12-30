@@ -1,0 +1,189 @@
+.layout {
+    display: flex;
+    min-height: 100vh;
+    background: #fff;
+}
+
+.mainContent {
+    flex: 1;
+    margin-left: 250px; /* Width of sidebar */
+    min-height: 100vh;
+    background: #fff;
+}
+
+.header {
+    height: 64px;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 200px 1fr auto;
+    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+}
+
+.searchContainer {
+    position: relative;
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    justify-self: center;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 1.1em;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px 12px 8px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    font-size: 0.95em;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.searchInput:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}
+
+.userSection {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-self: end;
+}
+
+.credits {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-radius: 16px;
+    font-weight: 500;
+}
+
+.creditsIcon {
+    color: #f4b400;
+    font-size: 1.1em;
+}
+
+.userInfo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.userName {
+    font-weight: 500;
+    color: #333;
+}
+
+.userAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.logoutButton {
+    padding: 6px 16px;
+    border: none;
+    background: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: color 0.2s;
+}
+
+.logoutButton:hover {
+    color: #1a73e8;
+}
+
+.userMenuButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 20px;
+    transition: background-color 0.2s;
+}
+
+.userMenuButton:hover {
+    background: #f5f5f5;
+}
+
+.chevron {
+    font-size: 0.8em;
+    color: #666;
+    transition: transform 0.2s;
+}
+
+.chevronUp {
+    transform: rotate(180deg);
+}
+
+.userMenu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 8px 0;
+    min-width: 200px;
+    z-index: 1000;
+}
+
+.userMenu button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    color: #333;
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.userMenu button:hover {
+    background: #f5f5f5;
+}
+
+.userMenu button svg {
+    color: #666;
+    font-size: 1.1em;
+}
+
+.content {
+    padding: 24px;
+}

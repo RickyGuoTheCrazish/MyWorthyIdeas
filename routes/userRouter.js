@@ -49,36 +49,73 @@ function validatePassword(password) {
 router.post("/register", authLimiter, async (req, res) => {
   try {
     const { username, email, password, subscription } = req.body;
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "Missing required fields." });
+    if (!username || !email || !password || !subscription) {
+      return res.status(422).json({ 
+        message: "Missing required fields.",
+        errorType: "MISSING_FIELDS",
+        field: !username ? "username" : !email ? "email" : !password ? "password" : "subscription"
+      });
+    }
+
+    // Validate subscription type
+    if (!['buyer', 'seller'].includes(subscription)) {
+      return res.status(422).json({ 
+        message: "Invalid subscription type. Must be either 'buyer' or 'seller'.",
+        errorType: "INVALID_SUBSCRIPTION",
+        field: "subscription"
+      });
     }
 
     // Validate username & password
     if (!validateUsername(username)) {
-      return res.status(400).json({
+      return res.status(422).json({
         message: "Invalid username. Must be >=6 chars, letters/digits/_- plus optional space.",
+        errorType: "INVALID_USERNAME",
+        field: "username"
       });
     }
     if (!validatePassword(password)) {
-      return res.status(400).json({
+      return res.status(422).json({
         message: "Invalid password. Min 6 chars, must include letter + digit/symbol.",
+        errorType: "INVALID_PASSWORD",
+        field: "password"
       });
     }
 
-    // Check uniqueness
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "Username or email is already in use." });
+    // Check uniqueness - check username and email separately for better error messages
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(409).json({ 
+        message: "This username is already in use. Please choose a different username.",
+        errorType: "USERNAME_EXISTS",
+        field: "username"
+      });
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(409).json({ 
+        message: "This email is already registered. Please use a different email or try logging in.",
+        errorType: "EMAIL_EXISTS",
+        field: "email"
+      });
     }
 
     // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    let passwordHash;
+    try {
+      const saltRounds = 10;
+      passwordHash = await bcrypt.hash(password, saltRounds);
+    } catch (hashError) {
+      console.error("Password hashing error:", hashError);
+      return res.status(500).json({ 
+        message: "Error processing password. Please try again.",
+        errorType: "PASSWORD_HASH_ERROR"
+      });
+    }
 
     // Generate verification token & set expiration
-    const verificationToken = crypto.randomBytes(20).toString("hex"); // 40 chars
+    const verificationToken = crypto.randomBytes(20).toString("hex");
     const now = new Date();
     const verificationTokenExp = new Date(now.getTime() + TEN_MINUTES);
 
@@ -87,42 +124,64 @@ router.post("/register", authLimiter, async (req, res) => {
       username,
       email,
       passwordHash,
-      subscription: subscription || "none",
+      subscription,
       isVerified: false,
       verificationToken,
-      verificationTokenExp,      // 10-min validity
-      lastVerificationSentAt: now // track the time we sent it
+      verificationTokenExp,
+      lastVerificationSentAt: now
     });
 
     // Save user
-    await newUserDoc.save();
-
-    // Build verify link
-    const verifyUrl = `http://localhost:6001/api/users/verify-email?token=${verificationToken}`;
+    try {
+      await newUserDoc.save();
+    } catch (saveError) {
+      console.error("User save error:", saveError);
+      if (saveError.code === 11000) {
+        return res.status(409).json({ 
+          message: "This username or email is already in use.",
+          errorType: "DUPLICATE_KEY_ERROR",
+          field: Object.keys(saveError.keyPattern)[0]
+        });
+      }
+      return res.status(503).json({ 
+        message: "Error creating user account. Please try again.",
+        errorType: "USER_SAVE_ERROR"
+      });
+    }
 
     // Send verification email
     try {
+      const verifyUrl = `http://localhost:6001/api/users/verify-email?token=${verificationToken}`;
       await sendMail(
         email,
         "Verify Your Email",
         `Hello ${username},\n\nPlease verify your email within 10 minutes by clicking:\n${verifyUrl}\n\nBest,\nTeam`
       );
-    } catch (mailErr) {
-      console.error("Error sending verification email:", mailErr);
-      // optionally remove user
-      await User.findByIdAndDelete(newUserDoc._id);
-      return res.status(500).json({
-        message: "Failed to send verification email. Please retry.",
+    } catch (mailError) {
+      console.error("Error sending verification email:", mailError);
+      // Delete the user if email fails
+      try {
+        await User.findByIdAndDelete(newUserDoc._id);
+      } catch (deleteError) {
+        console.error("Error deleting user after email failure:", deleteError);
+      }
+      return res.status(502).json({
+        message: "Failed to send verification email. Please try again.",
+        errorType: "EMAIL_SEND_ERROR"
       });
     }
 
-    return res.status(200).json({
+    return res.status(201).json({
       message: "Verification email sent. Please check your inbox.",
       userId: newUserDoc._id,
     });
   } catch (error) {
     console.error("Error in register route:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      message: "An unexpected error occurred. Please try again.",
+      errorType: "SERVER_ERROR",
+      error: error.message 
+    });
   }
 });
 
@@ -276,6 +335,7 @@ router.post("/login", async (req, res) => {
       userId: user._id,
       username: user.username,
       subscription: user.subscription,
+      token
     });
   } catch (error) {
     console.error("Error in login route:", error);
@@ -321,7 +381,7 @@ router.post("/:userId/profile-image", authProtecter, uploadProfileImages, async 
 });
 
 /*
-  6) GET PAGINATED POSTED IDEAS
+  6) GET PAGINATED POSTED IDEAS (UNSOLD)
   GET /users/:userId/posted-ideas
 */
 router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
@@ -334,6 +394,7 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
 
     const user = await User.findById(userId).populate({
       path: "postedIdeas",
+      match: { isSold: false },  // Only get unsold ideas
       select: "title preview price thumbnailImage rating category isSold createdAt",
       options: {
         skip,
@@ -359,13 +420,13 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
         currentPage: page,
         totalPages,
         pageSize: limit,
-        totalCount: totalPostedIdeas,
+        totalItems: totalPostedIdeas,
       },
-      postedIdeas: user.postedIdeas,
+      ideas: user.postedIdeas,
     });
   } catch (error) {
     console.error("Error fetching posted ideas:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ message: "Error fetching posted ideas." });
   }
 });
 
@@ -409,12 +470,70 @@ router.get("/:userId/bought-ideas", authProtecter, async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching bought ideas:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ message: "Error fetching bought ideas" });
   }
 });
 
 /*
-  8) CHANGE PASSWORD
+  8) GET PAGINATED SOLD IDEAS
+  GET /users/:userId/sold-ideas
+*/
+router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    let { page, limit } = req.query;
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 12;
+    const skip = (page - 1) * limit;
+
+    const user = await User.findById(userId).populate({
+      path: "postedIdeas",
+      match: { isSold: true },  // Only get sold ideas
+      select: "title preview price thumbnailImage rating category isSold createdAt",
+      options: {
+        skip,
+        limit,
+        sort: { createdAt: -1 },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const actualCount = await User.aggregate([
+      { $match: { _id: user._id } },
+      { $project: { soldCount: { 
+        $size: { 
+          $filter: { 
+            input: "$postedIdeas",
+            as: "idea",
+            cond: { $eq: ["$$idea.isSold", true] }
+          }
+        }
+      } } },
+    ]);
+    const totalSoldIdeas = actualCount?.[0]?.soldCount || 0;
+    const totalPages = Math.ceil(totalSoldIdeas / limit);
+
+    return res.status(200).json({
+      message: "Sold ideas fetched successfully",
+      pagination: {
+        currentPage: page,
+        totalPages,
+        pageSize: limit,
+        totalItems: totalSoldIdeas,
+      },
+      ideas: user.postedIdeas,
+    });
+  } catch (error) {
+    console.error("Error fetching sold ideas:", error);
+    return res.status(500).json({ message: "Error fetching sold ideas." });
+  }
+});
+
+/*
+  9) CHANGE PASSWORD
   PUT /users/:userId/change-password
 */
 router.put("/:userId/change-password", authProtecter, async (req, res) => {
@@ -470,6 +589,39 @@ router.put("/:userId/change-password", authProtecter, async (req, res) => {
     console.error("Error in change-password route:", error);
     return res.status(500).json({ error: error.message });
   }
+});
+
+// Get user's sold ideas
+router.get('/:userId/sold-ideas', authProtecter, async (req, res) => {
+    try {
+        const userId = req.params.userId;
+      
+        // Verify user is requesting their own data
+        if (req.user._id !== userId) {
+            return res.status(403).json({ message: 'Unauthorized access to user data' });
+        }
+
+        const ideas = await Idea.find({
+            creator: userId,
+            isSold: true
+        }).select('title description price rating createdAt updatedAt isSold thumbnailImage');
+
+        const user = await User.findById(userId).select('username');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ 
+            ideas: ideas.map(idea => ({
+                ...idea.toObject(),
+                sellerName: user.username
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching sold ideas:', error);
+        res.status(500).json({ message: 'Error fetching sold ideas' });
+    }
 });
 
 module.exports = router;

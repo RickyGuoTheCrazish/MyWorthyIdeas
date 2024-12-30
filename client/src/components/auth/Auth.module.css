@@ -1,0 +1,185 @@
+.authForm {
+    padding: 2rem;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.authForm h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #333;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.formGroup input,
+.formGroup select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+/* Make form inputs slightly faded when disabled but still visible */
+.formGroup input:disabled,
+.formGroup select:disabled {
+    background-color: rgba(245, 245, 245, 0.5);
+    color: rgba(0, 0, 0, 0.7);
+    cursor: not-allowed;
+}
+
+.formGroup input:focus {
+    border-color: #4CAF50;
+    outline: none;
+}
+
+.formGroup.valid input {
+    border-color: #4CAF50;
+}
+
+.validationIcon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4CAF50;
+}
+
+.hint {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.error {
+    color: #f44336;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.success {
+    color: #4CAF50;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+}
+
+.submitButton {
+    width: 100%;
+    padding: 1rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+/* Slightly darker green when disabled */
+.submitButton:disabled {
+    background-color: #357a38;
+    cursor: not-allowed;
+    pointer-events: none;
+    position: relative;
+}
+
+.submitButton:hover:not(:disabled) {
+    background-color: #45a049;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.submitButton.loading {
+    color: transparent;
+}
+
+.submitButton.loading::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin: -10px 0 0 -10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.authSwitch {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.authLink {
+    color: #4CAF50;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: all 0.2s ease;
+}
+
+/* Keep auth links visible but not clickable when disabled */
+.authLink:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.authLink:hover:not(:disabled) {
+    color: #45a049;
+}
+
+.select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+}
+
+.verificationMessage {
+    text-align: center;
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.passwordGroup {
+    position: relative;
+}
+
+.forgotPassword {
+    position: absolute;
+    right: 0;
+    top: -1.5rem;
+    font-size: 0.75rem;
+    color: #4CAF50;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.forgotPassword:hover {
+    text-decoration: underline;
+}

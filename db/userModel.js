@@ -3,7 +3,7 @@ const { mongoose } = require("./connection");
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true },
+    username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     subscription: {
@@ -51,8 +51,12 @@ userSchema.virtual("averageRating").get(function() {
       count++;
     }
   }
-  return count === 0 ? 0 : (sum / count);
+  return count > 0 ? sum / count : 0;
 });
+
+// Create indexes for unique fields
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true });
 
 // If you want the virtual to appear in JSON output, enable it:
 userSchema.set("toObject", { virtuals: true });

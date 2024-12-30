@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "start": "node server.js",
+        "dev": "nodemon server.js",
         "heroku-postbuild": "cd client && npm install --only=dev && npm install && npm run build"
     },
     "keywords": [],
@@ -35,6 +36,9 @@
         "seedrandom": "^3.0.5",
         "stream": "^0.0.3",
         "validator": "^13.9.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
     },
     "engines": {
         "node": "16.15.0"

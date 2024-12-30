@@ -10,16 +10,19 @@ const userRouter = require("./routes/userRouter");
 const app = express();
 const cors = require("cors");
 
-
-
 const port = process.env.PORT || 6001;
 const path = require("path")
-const corsOptions = {
-  // origin: 'https://prizeboxmatching2-ae9a0ce954b9.herokuapp.com/'
-  // origin: ['https://prizevaultoperatorpanel-8e104cfe7c31.herokuapp.com', 'https://prizeboxuser.herokuapp.com', 'https://prizeboxmatchinginstance2-28f86e5c6786.herokuapp.com/'],
 
+// CORS configuration
+const corsOptions = {
+  origin: 'http://localhost:3000', // Your frontend URL
+  credentials: true, // Allow credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
 };
+
 app.use(cors(corsOptions))
+
 app.use(express.json());
 
 app.use(cookieParser());
