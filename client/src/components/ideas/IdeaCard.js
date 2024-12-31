@@ -1,21 +1,18 @@
 import React from 'react';
+import { FaCoins } from 'react-icons/fa';
 import styles from './IdeaCard.module.css';
 
 const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     const { title, rating, price, sellerName } = idea;
 
     const formatPrice = (price) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(price);
+        return price.toFixed(2);
     };
 
     return (
         <div className={styles.ideaCard}>
             <div className={styles.priceTag}>
+                <FaCoins className={styles.priceIcon} />
                 {formatPrice(price)}
             </div>
             <h3 className={styles.title}>{title}</h3>

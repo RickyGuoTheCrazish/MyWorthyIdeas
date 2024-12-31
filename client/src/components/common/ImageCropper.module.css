@@ -1,0 +1,130 @@
+.cropperContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.cropperContent {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.cropperContent h3 {
+    margin: 0 0 16px 0;
+    color: #333;
+}
+
+.hint {
+    color: #666;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.cropperLayout {
+    display: flex;
+    gap: 24px;
+    margin: 20px 0;
+}
+
+.cropArea {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: #f0f0f0;
+    margin: 20px 0;
+}
+
+.previewArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.previewArea h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+}
+
+.previewCanvas {
+    width: 200px;
+    height: 200px;
+    border: 2px solid #E0C19E;
+    border-radius: 4px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cancelBtn,
+.confirmBtn {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.cancelBtn {
+    background: #E8EEF2;
+    color: #333;
+}
+
+.cancelBtn:hover {
+    background: #DBE3E9;
+}
+
+.confirmBtn {
+    background: #E0C19E;
+    color: white;
+}
+
+.confirmBtn:hover {
+    background: #D4B494;
+}
+
+.zoomControl {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.zoomSlider {
+    width: 80%;
+    max-width: 300px;
+}
+
+/* Override react-easy-crop styles */
+:global(.react-easy-crop) {
+    /* Add styles here if needed */
+}
+
+@media (max-width: 900px) {
+    .cropperContent {
+        width: auto;
+    }
+
+    .cropperLayout {
+        flex-direction: column;
+    }
+
+    .cropArea {
+        height: 300px;
+    }
+}

@@ -185,5 +185,7 @@
 }
 
 .content {
-    padding: 24px;
+    flex: 1;
+    padding: 0;
+    overflow-y: auto;
 }

@@ -3,34 +3,24 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import WelcomePage from "./pages/WelcomePage";
 import Dashboard from "./pages/Dashboard";
 import Recommendations from "./pages/Recommendations";
+import CreateIdea from "./pages/CreateIdea";
+import ViewIdea from "./pages/ViewIdea";
 import Layout from "./components/layout/Layout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   
+  console.log('ProtectedRoute - Auth State:', { isAuthenticated, isLoading, user });
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
   
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to root');
     return <Navigate to="/" replace />;
-  }
-  
-  return children;
-};
-
-// Public Route component
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  
-  if (isAuthenticated) {
-    return <Navigate to="/recommendations" replace />;
   }
   
   return children;
@@ -44,9 +34,7 @@ const App = () => {
           <Route
             path="/"
             element={
-              <PublicRoute>
-                <WelcomePage />
-              </PublicRoute>
+              <WelcomePage />
             }
           />
           <Route
@@ -67,6 +55,26 @@ const App = () => {
                   <Recommendations />
                 </Layout>
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <CreateIdea />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ideas/:ideaId"
+            element={
+              <Layout>
+                <ProtectedRoute>
+                  <ViewIdea />
+                </ProtectedRoute>
+              </Layout>
             }
           />
         </Routes>
