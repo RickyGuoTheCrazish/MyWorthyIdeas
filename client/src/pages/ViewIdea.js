@@ -3,46 +3,36 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/editor/RichTextEditor';
 import styles from './ViewIdea.module.css';
-import { FaCoins } from 'react-icons/fa';
+import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt } from 'react-icons/fa';
 import 'react-quill/dist/quill.snow.css';
 
 const ViewIdea = () => {
     const { ideaId } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated, isLoading } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const [idea, setIdea] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    console.log('ViewIdea - Component State:', { 
-        isAuthenticated, 
-        isLoading, 
-        user, 
-        ideaId 
-    });
+    const [buyLoading, setBuyLoading] = useState(false);
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [ratingLoading, setRatingLoading] = useState(false);
 
     useEffect(() => {
-        // Wait for auth to be checked
-        if (isLoading) {
-            return;
-        }
-
-        // Redirect if not authenticated
-        if (!isAuthenticated) {
-            console.log('ViewIdea - Not authenticated, redirecting');
-            navigate('/');
-            return;
-        }
-
         const fetchIdea = async () => {
             try {
-                const token = localStorage.getItem('token');
-                console.log('ViewIdea - Fetching with token:', token);
+                const headers = {};
+                
+                // Add auth header only if user is logged in
+                if (isAuthenticated) {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
 
                 const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers
                 });
 
                 if (!response.ok) {
@@ -51,39 +41,173 @@ const ViewIdea = () => {
                 }
 
                 const data = await response.json();
-                console.log('ViewIdea - Fetched data:', data);
+                console.log('Fetched idea:', data.idea);
+                console.log('Current user:', user);
                 setIdea(data.idea);
-                setLoading(false);
+                if (data.idea.rating) {
+                    setRating(data.idea.rating);
+                }
             } catch (error) {
-                console.error('ViewIdea - Error:', error);
+                console.error('Error fetching idea:', error);
                 setError(error.message);
+            } finally {
                 setLoading(false);
             }
         };
 
         fetchIdea();
-    }, [ideaId, isAuthenticated, isLoading, navigate]);
+    }, [ideaId, isAuthenticated]);
 
-    // Show loading while checking auth
-    if (isLoading) {
-        return <div className={styles.loading}>Checking authentication...</div>;
-    }
+    const handleBuy = async () => {
+        if (!isAuthenticated) {
+            navigate('/login', { state: { from: `/ideas/${ideaId}` } });
+            return;
+        }
 
-    // Show loading while fetching idea
+        try {
+            setBuyLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}/buy`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to purchase idea');
+            }
+
+            // Refresh idea data after purchase
+            const updatedResponse = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const { idea: updatedIdea } = await updatedResponse.json();
+            setIdea(updatedIdea);
+        } catch (error) {
+            console.error('Error buying idea:', error);
+            setError(error.message);
+        } finally {
+            setBuyLoading(false);
+        }
+    };
+
+    const handleRating = async (newRating) => {
+        if (!isAuthenticated || !isBuyer) return;
+
+        try {
+            setRatingLoading(true);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}/rate`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ rating: newRating })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update rating');
+            }
+
+            const data = await response.json();
+            setRating(data.rating);
+            // Update the idea's creator rating in the UI
+            setIdea(prev => ({
+                ...prev,
+                creator: {
+                    ...prev.creator,
+                    averageRating: data.averageRating
+                }
+            }));
+        } catch (error) {
+            console.error('Error updating rating:', error);
+            setError(error.message);
+        } finally {
+            setRatingLoading(false);
+        }
+    };
+
+    const handleEdit = () => {
+        navigate(`/ideas/${ideaId}/edit`);
+    };
+
+    const handleLogin = () => {
+        navigate('/login', { state: { from: `/ideas/${ideaId}` } });
+    };
+
     if (loading) {
-        return <div className={styles.loading}>Loading idea...</div>;
+        return (
+            <div className={styles.loadingContainer}>
+                <div className={styles.loading}>Loading...</div>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className={styles.error}>Error: {error}</div>;
+        return (
+            <div className={styles.errorContainer}>
+                <div className={styles.error}>
+                    <h2>Error</h2>
+                    <p>{error}</p>
+                    <button onClick={() => navigate('/')}>Go Home</button>
+                </div>
+            </div>
+        );
     }
 
     if (!idea) {
-        return <div className={styles.notFound}>Idea not found</div>;
+        return (
+            <div className={styles.notFoundContainer}>
+                <div className={styles.notFound}>
+                    <h2>Idea Not Found</h2>
+                    <p>The idea you're looking for doesn't exist or you don't have permission to view it.</p>
+                    <button onClick={() => navigate('/')}>Go Home</button>
+                </div>
+            </div>
+        );
     }
 
-    const showContent = idea.creator._id === localStorage.getItem('userId') || idea.isSold;
-    const isCreator = idea.creator._id === localStorage.getItem('userId');
+    // Access level checks
+    const isCreator = isAuthenticated && user?.userId === idea.creator._id;
+    const isBuyer = isAuthenticated && idea.buyer && idea.buyer._id === user?.userId;
+    const hasFullAccess = isCreator || isBuyer;
+    const isIdeaSold = idea.isSold || !!idea.buyer;
+    const canBuy = isAuthenticated && !isCreator && !isBuyer && user?.subscription === 'buyer' && !isIdeaSold;
+
+    console.log('Access check:', {
+        isAuthenticated,
+        isCreator,
+        isBuyer,
+        hasFullAccess,
+        canBuy,
+        isIdeaSold,
+        hasBuyer: !!idea.buyer,
+        userSubscription: user?.subscription
+    });
+
+    const renderStars = () => {
+        return (
+            <div className={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                        key={star}
+                        className={`${styles.star} ${
+                            (hoverRating || rating) >= star ? styles.filled : ''
+                        }`}
+                        onClick={() => handleRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                    />
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className={styles.container}>
@@ -112,64 +236,90 @@ const ViewIdea = () => {
             </header>
 
             <div className={styles.mainContent}>
-                {showContent ? (
-                    <>
-                        <section className={styles.contentSection}>
-                            <h2>Content</h2>
-                            <div className={styles.sectionContent}>
-                                <div 
-                                    className={`${styles.richContent} ql-editor`}
-                                    dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
-                                />
-                            </div>
-                        </section>
-
-                        <aside className={styles.sidebar}>
-                            <section className={styles.previewSection}>
-                                <h2>Preview & Cover</h2>
+                <div className={styles.contentArea}>
+                    {hasFullAccess && (
+                        <>
+                            <section className={styles.contentSection}>
+                                <h2>Full Content</h2>
                                 <div className={styles.sectionContent}>
-                                    <p className={styles.preview}>{idea.preview}</p>
-                                    {idea.thumbnailImage && (
-                                        <div className={styles.thumbnail}>
-                                            <img src={idea.thumbnailImage} alt="Idea cover" />
-                                        </div>
-                                    )}
+                                    <div 
+                                        className={`${styles.richContent} ql-editor`}
+                                        dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
+                                    />
                                 </div>
                             </section>
-                        </aside>
-                    </>
-                ) : (
-                    <>
-                        <section className={styles.section}>
-                            <h2>Preview</h2>
-                            <div className={styles.sectionContent}>
-                                <p>{idea.preview}</p>
-                            </div>
-                        </section>
+                            {isBuyer && (
+                                <section className={styles.ratingSection}>
+                                    <h3>Rate this Idea</h3>
+                                    {renderStars()}
+                                    {ratingLoading && <span>Updating rating...</span>}
+                                </section>
+                            )}
+                        </>
+                    )}
 
-                        {idea.thumbnailImage && (
-                            <section className={styles.section}>
-                                <h2>Cover Image</h2>
-                                <div className={styles.sectionContent}>
-                                    <div className={styles.thumbnail}>
-                                        <img src={idea.thumbnailImage} alt="Idea cover" />
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        <div className={styles.buyButton}>
-                            Buy Now
+                    {!hasFullAccess && !isIdeaSold && (
+                        <div className={styles.lockedContent}>
+                            <FaLock className={styles.lockIcon} />
+                            <h3>Full Content Available After Purchase</h3>
+                            <p>Buy this idea to access the complete content and implementation details.</p>
                         </div>
-                    </>
-                )}
-            </div>
+                    )}
 
-            {isCreator && (
-                <div className={styles.editButton}>
-                    Edit
+                    {!hasFullAccess && isIdeaSold && (
+                        <div className={styles.soldContent}>
+                            <p className={styles.soldNotice}>
+                                This idea has already been sold.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className={styles.actionContainer}>
+                        {isCreator ? (
+                            <button 
+                                className={`${styles.actionButton} ${styles.editButton}`}
+                                onClick={handleEdit}
+                            >
+                                <FaEdit /> Edit Idea
+                            </button>
+                        ) : !isIdeaSold && (
+                            isAuthenticated ? (
+                                canBuy && (
+                                    <button 
+                                        className={`${styles.actionButton} ${styles.buyButton}`}
+                                        onClick={handleBuy}
+                                        disabled={buyLoading}
+                                    >
+                                        <FaShoppingCart />
+                                        {buyLoading ? 'Processing...' : 'Buy Now'}
+                                    </button>
+                                )
+                            ) : (
+                                <button 
+                                    className={`${styles.actionButton} ${styles.loginButton}`}
+                                    onClick={() => navigate('/login')}
+                                >
+                                    <FaSignInAlt /> Login to Buy
+                                </button>
+                            )
+                        )}
+                    </div>
                 </div>
-            )}
+
+                <div className={styles.sidebarArea}>
+                    <div className={styles.previewSection}>
+                        <h2>Preview</h2>
+                        <div className={styles.sectionContent}>
+                            <p className={styles.preview}>{idea.preview}</p>
+                            {idea.thumbnailImage && (
+                                <div className={styles.thumbnail}>
+                                    <img src={idea.thumbnailImage} alt="Idea cover" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

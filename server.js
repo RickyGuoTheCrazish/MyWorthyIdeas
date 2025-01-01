@@ -30,8 +30,8 @@ app.use(cookieParser());
 // Apply global rate limiter to all routes
 app.use(globalLimiter);
 
-// get driver connection
-app.use("/api/ideas", authProtecter, ideaRouter);
+// Use idea router without global auth (routes handle auth individually)
+app.use("/api/ideas", ideaRouter);
 
 app.use("/api/users", userRouter);
 
@@ -41,6 +41,5 @@ app.use("/api/users", userRouter);
 // });
 
 app.listen(port, () => {
-  
-  
+  console.log(`Server is running on port: ${port}`);
 });

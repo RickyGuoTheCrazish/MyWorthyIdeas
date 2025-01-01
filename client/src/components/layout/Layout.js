@@ -36,9 +36,16 @@ const Layout = ({ children }) => {
         navigate('/settings');
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setIsMenuOpen(false);
-        logout();
+        try {
+            const success = await logout();
+            if (success) {
+                navigate('/');
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
     };
 
     return (
@@ -64,7 +71,7 @@ const Layout = ({ children }) => {
                             <span>{user?.credits || 0}</span>
                         </div>
                         <div className={styles.userInfo} ref={menuRef}>
-                            <div className={styles.userName}>{user?.name || 'User'}</div>
+                            <div className={styles.userName}>{user?.username || 'User'}</div>
                             <button 
                                 className={styles.userMenuButton} 
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}

@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const jwt = require("jsonwebtoken");
 
-// Suppose we have an authProtecter middleware:
+// Middlewares
 const authProtecter = require("../middlewares/auth");
+const optionalAuth = require("../middlewares/optionalAuth");
 const { mongoose } = require("../db/connection");
 const Idea = require("../db/ideaModel");
-const User = require("../db/userModel"); // If needed for postedIdeas
+const User = require("../db/userModel");
 const { ideaCreationLimiter, ideaPurchaseLimiter } = require("../middlewares/rateLimiter");
 
 // Middlewares for uploading images
@@ -155,10 +157,12 @@ router.post("/:ideaId/buy", authProtecter, ideaPurchaseLimiter, async (req, res)
 /**
  * GET A SPECIFIC IDEA (with restricted content).
  * GET /ideas/:ideaId
+ * Public endpoint - returns basic info for everyone, full content for creator/buyer
  */
-router.get("/:ideaId", authProtecter, async (req, res) => {
+router.get("/:ideaId", optionalAuth, async (req, res) => {
   try {
     const ideaId = req.params.ideaId;
+    
     // Populate the creator => postedIdeas => rating, also the buyer if needed
     const idea = await Idea.findById(ideaId)
       .populate({
@@ -184,37 +188,39 @@ router.get("/:ideaId", authProtecter, async (req, res) => {
       };
     };
 
-    // Check if requesting user is either the creator or the buyer
-    const requestingUserId = req.user._id.toString();
-    const creatorId = idea.creator?._id?.toString();
-    const buyerId = idea.buyer?._id?.toString();
-
-    // If user is the creator or buyer => can see contentRaw/contentHtml
-    const isOwnerOrBuyer = requestingUserId === creatorId || requestingUserId === buyerId;
-
-    // We'll build a base response
+    // Build base response with public information
     const baseIdea = {
       _id: idea._id,
       title: idea.title,
       preview: idea.preview,
       price: idea.price,
-      creator: sanitizeUser(idea.creator), // always limited
+      creator: sanitizeUser(idea.creator),
       isSold: idea.isSold,
       thumbnailImage: idea.thumbnailImage,
       rating: idea.rating,
-      category: idea.category, // { main, sub }
+      category: idea.category,
       createdAt: idea.createdAt,
       updatedAt: idea.updatedAt,
-      boughtAt: idea.boughtAt,
-      buyer: idea.buyer ? sanitizeUser(idea.buyer) : null,
     };
 
-    if (isOwnerOrBuyer) {
-      // Add contentRaw/contentHtml
-      baseIdea.contentRaw = idea.contentRaw;
-      baseIdea.contentHtml = idea.contentHtml;
-      // Also contentImages if you want
-      baseIdea.contentImages = idea.contentImages;
+    // If user is authenticated, check if they're the creator or buyer
+    if (req.user) {
+      const requestingUserId = req.user.userId;
+      const creatorId = idea.creator?._id?.toString();
+      const buyerId = idea.buyer?._id?.toString();
+      
+      // If user is the creator or buyer => can see contentRaw/contentHtml
+      const isOwnerOrBuyer = requestingUserId === creatorId || requestingUserId === buyerId;
+
+      if (isOwnerOrBuyer) {
+        baseIdea.contentRaw = idea.contentRaw;
+        baseIdea.contentHtml = idea.contentHtml;
+        baseIdea.contentImages = idea.contentImages;
+        if (idea.buyer) {
+          baseIdea.buyer = sanitizeUser(idea.buyer);
+          baseIdea.boughtAt = idea.boughtAt;
+        }
+      }
     }
 
     return res.status(200).json({
@@ -222,6 +228,7 @@ router.get("/:ideaId", authProtecter, async (req, res) => {
       idea: baseIdea,
     });
   } catch (error) {
+    console.error('Error fetching idea:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -230,7 +237,7 @@ router.get("/:ideaId", authProtecter, async (req, res) => {
  * GET A PAGINATED LIST OF IDEAS (partial info), BUT ONLY UNSOLD ONES
  * GET /ideas
  */
-router.get("/", authProtecter, async (req, res) => {
+router.get("/", optionalAuth, async (req, res) => {
   try {
     let { page, limit } = req.query;
     page = parseInt(page) || 1;
@@ -552,6 +559,76 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
     }
     return res.status(500).json({ error: error.message });
   }
+});
+
+// Rate an idea - only available to buyers who own the idea
+router.post('/:id/rate', authProtecter, async (req, res) => {
+    try {
+        const { rating } = req.body;
+        const ideaId = req.params.id;
+
+        // Validate rating
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rating must be between 1 and 5'
+            });
+        }
+
+        // Find the idea and check if user is the buyer
+        const idea = await Idea.findById(ideaId);
+        if (!idea) {
+            return res.status(404).json({
+                success: false,
+                message: 'Idea not found'
+            });
+        }
+
+        // Check if the user is the buyer
+        if (!idea.buyer || idea.buyer.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Only the buyer of this idea can rate it'
+            });
+        }
+
+        // Update or create rating
+        idea.rating = rating;
+        idea.ratedAt = new Date();
+
+        // Update creator's average rating
+        const creatorId = idea.creator;
+        const allIdeasByCreator = await Idea.find({ 
+            creator: creatorId,
+            rating: { $exists: true, $ne: null }
+        });
+
+        // Calculate new average rating
+        const totalRating = allIdeasByCreator.reduce((sum, idea) => sum + (idea.rating || 0), rating);
+        const averageRating = totalRating / (allIdeasByCreator.length + 1);
+
+        // Update creator's average rating
+        await User.findByIdAndUpdate(creatorId, {
+            averageRating: averageRating
+        });
+
+        // Save the idea with new rating
+        await idea.save();
+
+        res.json({
+            success: true,
+            message: 'Rating updated successfully',
+            rating: rating,
+            averageRating: averageRating
+        });
+
+    } catch (error) {
+        console.error('Error rating idea:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating rating'
+        });
+    }
 });
 
 module.exports = router;

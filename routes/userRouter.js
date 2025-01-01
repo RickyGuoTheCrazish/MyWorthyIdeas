@@ -293,7 +293,7 @@ router.post("/resend-verification", authLimiter, async (req, res) => {
   4) LOGIN USER (Block if not isVerified)
   POST /users/login
 */
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -318,14 +318,14 @@ router.post("/login", async (req, res) => {
     }
 
     // generate JWT
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
     // set cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: "lax",
       maxAge: 60 * 60 * 1000,
     });
@@ -339,6 +339,28 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Error in login route:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/*
+  4.5) LOGOUT USER
+  POST /users/logout
+*/
+router.post("/logout", async (req, res) => {
+  try {
+    // Clear the token cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax"
+    });
+
+    return res.status(200).json({
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    console.error("Error in logout route:", error);
     return res.status(500).json({ error: error.message });
   }
 });

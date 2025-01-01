@@ -36,17 +36,26 @@ const Login = ({ onClose, onModeChange }) => {
                 body: JSON.stringify(formData)
             });
 
-            const data = await response.json();
+            // For rate limit and other errors, try to read response as text first
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                // If parsing fails, use the text directly
+                data = { message: responseText || 'An unexpected error occurred' };
+            }
+
             if (response.ok) {
-                // Use the login function from AuthContext
                 login(data);
-                
-                // Close modal and navigate
                 onClose();
                 navigate('/dashboard', { replace: true });
             } else {
                 // Handle specific error cases
                 switch (response.status) {
+                    case 429:
+                        setError(data.message || 'Too many attempts. Please try again later.');
+                        break;
                     case 403:
                         setError('Please verify your email before logging in.');
                         break;

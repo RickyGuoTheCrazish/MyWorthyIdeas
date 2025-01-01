@@ -1,39 +1,60 @@
 const rateLimit = require('express-rate-limit');
 
+// Create a custom middleware wrapper for rate limiters
+const createRateLimiter = (options) => {
+    const limiter = rateLimit({
+        ...options,
+        handler: (req, res) => {
+            return res.status(429).json({
+                status: 'error',
+                message: options.message || 'Too many requests, please try again later'
+            });
+        },
+        skipFailedRequests: false,
+        skipSuccessfulRequests: false,
+        standardHeaders: true,
+        legacyHeaders: false,
+    });
+
+    // Return a wrapper middleware
+    return (req, res, next) => {
+        // Ensure proper CORS headers are set
+        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        
+        // Apply rate limiter
+        limiter(req, res, next);
+    };
+};
+
 // Global limiter - applies to all routes
-const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again after 15 minutes',
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+const globalLimiter = createRateLimiter({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 500, // Increased from 100 to 500 requests per 10 minutes
+    message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 
-// Auth routes limiter - stricter limits for auth-related routes
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Limit each IP to 5 requests per hour
-    message: 'Too many login attempts from this IP, please try again after an hour',
-    standardHeaders: true,
-    legacyHeaders: false,
+// Auth routes limiter - made more lenient
+const authLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000, // Reduced from 1 hour to 15 minutes
+    max: 20, // Increased from 5 to 20 requests per 15 minutes
+    message: 'Too many login attempts. Please wait 15 minutes before trying again.'
 });
 
 // Idea creation limiter
-const ideaCreationLimiter = rateLimit({
+const ideaCreationLimiter = createRateLimiter({
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 50, // Limit each IP to 50 idea creations per day
-    message: 'You have reached the daily limit for creating ideas',
-    standardHeaders: true,
-    legacyHeaders: false,
+    max: 100, // Increased from 50 to 100 ideas per day
+    message: 'You have reached the daily limit for creating ideas'
 });
 
 // Idea purchase limiter
-const ideaPurchaseLimiter = rateLimit({
+const ideaPurchaseLimiter = createRateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // Limit each IP to 10 purchases per hour
-    message: 'Too many purchase attempts, please try again later',
-    standardHeaders: true,
-    legacyHeaders: false,
+    max: 30, // Increased from 10 to 30 purchases per hour
+    message: 'Too many purchase attempts, please try again later'
 });
 
 module.exports = {

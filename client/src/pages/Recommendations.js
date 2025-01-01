@@ -17,14 +17,13 @@ const Recommendations = () => {
         const fetchIdeas = async () => {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No token found');
-                }
+                const headers = token 
+                    ? { 'Authorization': `Bearer ${token}` }
+                    : {};
 
                 const response = await fetch(`http://localhost:6001/api/ideas?page=${currentPage}&limit=12`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers,
+                    credentials: 'include' // This will send cookies if they exist
                 });
 
                 if (!response.ok) {
@@ -41,18 +40,14 @@ const Recommendations = () => {
                 console.error('Recommendations error:', err);
                 setError(err.message);
                 setLoading(false);
-                if (err.message === 'No token found') {
-                    logout();
-                    navigate('/');
-                }
             }
         };
 
         fetchIdeas();
-    }, [currentPage, navigate, logout]);
+    }, [currentPage]);
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
     };
 
     if (loading) {
