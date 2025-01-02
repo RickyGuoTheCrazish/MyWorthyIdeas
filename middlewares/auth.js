@@ -18,7 +18,8 @@ const authProtecter = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    // Set user._id to match the userId from the token
+    req.user = { _id: decoded.userId };
     next();
   } catch (error) {
     return res.status(401).json({ message: "Token is not valid" });

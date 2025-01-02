@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import styles from './ImageCropper.module.css';
 
@@ -11,7 +11,7 @@ const createImage = (url) =>
     });
 
 const getCroppedImg = async (imageSrc, pixelCrop) => {
-    const image = await createImage(URL.createObjectURL(imageSrc));
+    const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -52,6 +52,21 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [imageUrl, setImageUrl] = useState(null);
+
+    useEffect(() => {
+        if (image) {
+            // If image is already a string URL, use it directly
+            if (typeof image === 'string') {
+                setImageUrl(image);
+            } else {
+                // If image is a File object, create a URL
+                const url = URL.createObjectURL(image);
+                setImageUrl(url);
+                return () => URL.revokeObjectURL(url);
+            }
+        }
+    }, [image]);
 
     const onCropChange = (crop) => {
         setCrop(crop);
@@ -67,14 +82,16 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
 
     const handleComplete = async () => {
         try {
-            if (croppedAreaPixels) {
-                const croppedImage = await getCroppedImg(image, croppedAreaPixels);
+            if (croppedAreaPixels && imageUrl) {
+                const croppedImage = await getCroppedImg(imageUrl, croppedAreaPixels);
                 onCropComplete(croppedImage);
             }
         } catch (e) {
-            console.error(e);
+            console.error('Error completing crop:', e);
         }
     };
+
+    if (!imageUrl) return null;
 
     return (
         <div className={styles.cropperContainer}>
@@ -84,7 +101,7 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
 
                 <div className={styles.cropArea}>
                     <Cropper
-                        image={URL.createObjectURL(image)}
+                        image={imageUrl}
                         crop={crop}
                         zoom={zoom}
                         aspect={1}
@@ -93,12 +110,21 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
                         onCropComplete={onCropCompleteHandler}
                         cropShape="rect"
                         showGrid={true}
-                        cropSize={{ width: 200, height: 200 }}
                         style={{
                             containerStyle: {
                                 width: '100%',
-                                height: '400px',
-                                background: '#ffffff'
+                                height: '100%',
+                                background: '#f8f9fa'
+                            },
+                            cropAreaStyle: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                border: '2px solid #E0C19E'
+                            },
+                            mediaStyle: {
+                                width: 'auto',
+                                height: 'auto',
+                                maxWidth: '100%',
+                                maxHeight: '100%'
                             }
                         }}
                     />
@@ -117,12 +143,12 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
                     />
                 </div>
 
-                <div className={styles.actions}>
-                    <button className={styles.cancelBtn} onClick={onCancel}>
+                <div className={styles.controls}>
+                    <button onClick={onCancel} className={styles.cancelButton}>
                         Cancel
                     </button>
-                    <button className={styles.confirmBtn} onClick={handleComplete}>
-                        Confirm Crop
+                    <button onClick={handleComplete} className={styles.confirmButton}>
+                        Confirm
                     </button>
                 </div>
             </div>

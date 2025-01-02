@@ -36,6 +36,11 @@ const CreateIdea = () => {
         }));
     };
 
+    const handleEditorChange = (content) => {
+        console.log('Editor content changed:', content); // Debug log
+        setEditorContent(content);
+    };
+
     const handleAddCategory = () => {
         if (categories.length >= 3) {
             alert('Maximum 3 categories allowed');
@@ -99,7 +104,7 @@ const CreateIdea = () => {
         setImageToProcess(null);
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length + formData.images.length > 10) {
             alert('Maximum 10 images allowed');
@@ -111,30 +116,81 @@ const CreateIdea = () => {
             alert('Some images were skipped as they exceed 40MB limit');
         }
 
+        // Check for duplicates
+        const newImages = [];
+        const existingBuffers = await Promise.all(
+            formData.images.map(file => file.arrayBuffer())
+        );
+
+        for (const file of validFiles) {
+            const newBuffer = await file.arrayBuffer();
+            const newArray = new Uint8Array(newBuffer);
+
+            const isDuplicate = existingBuffers.some(buffer => {
+                const existing = new Uint8Array(buffer);
+                if (existing.length !== newArray.length) return false;
+                return existing.every((byte, i) => byte === newArray[i]);
+            });
+
+            if (isDuplicate) {
+                alert(`Image "${file.name}" has already been uploaded. Skipping duplicate.`);
+                continue;
+            }
+
+            newImages.push(file);
+            existingBuffers.push(newBuffer);
+        }
+
+        if (newImages.length === 0) return;
+
         setFormData(prev => ({
             ...prev,
-            images: [...prev.images, ...validFiles]
+            images: [...prev.images, ...newImages]
         }));
     };
 
     const handleRemoveImage = (index) => {
+        const imageToRemove = formData.images[index];
+        
+        // Remove from formData
         setFormData(prev => ({
             ...prev,
             images: prev.images.filter((_, i) => i !== index)
         }));
-    };
 
-    const handleEditorChange = (content) => {
-        console.log('Editor content changed:', content); // Debug log
-        setEditorContent(content);
-    };
-
-    const handleInsertImageIntoEditor = (base64Url) => {
+        // Find and remove the image from editor
         if (quillRef.current) {
             const quill = quillRef.current.getEditor();
-            const range = quill.getSelection(true);
-            quill.insertEmbed(range.index, 'image', base64Url);
-            quill.setSelection(range.index + 1);
+            const delta = quill.getContents();
+            
+            // Create a new delta without the removed image
+            const newDelta = {
+                ops: delta.ops.reduce((acc, op) => {
+                    // If this op is not the image we're removing, keep it
+                    if (!op.insert?.image || !imageMapping.has(op.insert.image)) {
+                        acc.push(op);
+                    } else {
+                        // Check if this is the image we want to remove
+                        const mappedFile = imageMapping.get(op.insert.image);
+                        if (mappedFile !== imageToRemove) {
+                            acc.push(op);
+                        }
+                    }
+                    return acc;
+                }, [])
+            };
+
+            // Update editor content
+            quill.setContents(newDelta);
+            setEditorContent(quill.root.innerHTML);
+        }
+
+        // Clean up any URLs created for this image
+        for (const [url, file] of imageMapping.entries()) {
+            if (file === imageToRemove) {
+                URL.revokeObjectURL(url);
+                imageMapping.delete(url);
+            }
         }
     };
 
@@ -146,56 +202,71 @@ const CreateIdea = () => {
             return newMap;
         });
 
+        // Insert image without number tag
         handleInsertImageIntoEditor(imageData.url);
         setShowImagePicker(false);
     };
 
+    const handleInsertImageIntoEditor = (base64Url) => {
+        if (quillRef.current) {
+            const quill = quillRef.current.getEditor();
+            const range = quill.getSelection(true);
+            
+            // Insert a line break before if not at the start
+            if (range.index > 0) {
+                quill.insertText(range.index, '\n');
+            }
+            
+            // Insert the image
+            quill.insertEmbed(range.index, 'image', base64Url);
+            
+            // Insert a line break after
+            quill.insertText(range.index + 1, '\n');
+            
+            // Move cursor after the image
+            quill.setSelection(range.index + 2);
+        }
+    };
+
     const handleSubmit = async () => {
         try {
+            // Validate required fields
+            if (!formData.title || !formData.brief || !formData.price || categories.length === 0) {
+                alert('Please fill in all required fields (title, brief, price) and select at least one category');
+                return;
+            }
+
             // First, create the idea with basic info
             const basicData = {
                 title: formData.title,
                 preview: formData.brief,
                 price: formData.price,
-                category: currentCategory
+                categories: categories  // Now sending all categories
             };
+
+            console.log('Sending data to create idea:', basicData); // Debug log
 
             const createResponse = await fetch('http://localhost:6001/api/ideas/create', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(basicData)
             });
 
+            const responseData = await createResponse.json();
+
             if (!createResponse.ok) {
-                throw new Error('Failed to create idea');
+                throw new Error(responseData.message || 'Failed to create idea');
             }
 
-            const { idea } = await createResponse.json();
+            const { idea } = responseData;
 
-            // Then upload thumbnail if exists
-            if (thumbnailImage) {
-                const thumbnailFormData = new FormData();
-                thumbnailFormData.append('cover', thumbnailImage);
-
-                const thumbnailResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/cover`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: thumbnailFormData
-                });
-
-                if (!thumbnailResponse.ok) {
-                    console.error('Failed to upload cover image');
-                }
-            }
-
-            // Upload content images if any exist in the editor
             let contentToSave = editorContent;
-            
+            let contentImages = [];
+
+            // First upload all images if any exist
             if (formData.images.length > 0) {
                 console.log('Uploading content images...'); // Debug log
                 const contentImagesFormData = new FormData();
@@ -205,9 +276,8 @@ const CreateIdea = () => {
 
                 const imagesResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/content-images`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
+                    credentials: 'include',
+                    headers: {},
                     body: contentImagesFormData
                 });
 
@@ -215,19 +285,20 @@ const CreateIdea = () => {
                     console.error('Failed to upload content images');
                 } else {
                     // Get the S3 URLs from response
-                    const { idea: { contentImages } } = await imagesResponse.json();
+                    const { idea: { contentImages: uploadedImages } } = await imagesResponse.json();
+                    contentImages = uploadedImages;
                     
                     console.log('Replacing base64 URLs with S3 URLs...'); // Debug log
                     // Create a mapping of files to their S3 URLs
                     const fileToS3Map = new Map();
                     formData.images.forEach((file, index) => {
-                        const s3Url = contentImages[contentImages.length - formData.images.length + index];
+                        const s3Url = uploadedImages[uploadedImages.length - formData.images.length + index];
                         fileToS3Map.set(file, s3Url);
                     });
 
                     // Replace base64 images with S3 URLs in content
-                    for (const [base64Url, file] of imageMapping.entries()) {
-                        const s3Url = fileToS3Map.get(file);
+                    for (const [base64Url, fileData] of imageMapping.entries()) {
+                        const s3Url = fileToS3Map.get(fileData);
                         if (s3Url) {
                             console.log(`Replacing ${base64Url.substring(0, 50)}... with ${s3Url}`); // Debug log
                             contentToSave = contentToSave.replace(base64Url, s3Url);
@@ -236,13 +307,30 @@ const CreateIdea = () => {
                 }
             }
 
-            // Update the content with replaced URLs
-            console.log('Saving content to database...'); // Debug log
+            // Then upload thumbnail if exists
+            if (thumbnailImage) {
+                const thumbnailFormData = new FormData();
+                thumbnailFormData.append('cover', thumbnailImage);
+
+                const thumbnailResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/cover`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {},
+                    body: thumbnailFormData
+                });
+
+                if (!thumbnailResponse.ok) {
+                    console.error('Failed to upload cover image');
+                }
+            }
+
+            // Finally save the content with replaced URLs
+            console.log('Content to save:', contentToSave.substring(0, 100)); // Debug log
             const updateResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/content`, {
                 method: 'PUT',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     contentHtml: contentToSave,
@@ -251,7 +339,9 @@ const CreateIdea = () => {
             });
 
             if (!updateResponse.ok) {
-                console.error('Failed to update content');
+                const errorData = await updateResponse.json();
+                console.error('Failed to update content:', errorData);
+                throw new Error(errorData.message || 'Failed to update content');
             }
 
             // Navigate to the new idea
@@ -267,6 +357,13 @@ const CreateIdea = () => {
             handleSubmit();
         } else {
             setCurrentStep(prev => prev + 1);
+        }
+    };
+
+    const handleCancel = () => {
+        const confirmCancel = window.confirm('Are you sure you want to cancel? Your idea will not be saved.');
+        if (confirmCancel) {
+            navigate('/recommendations');
         }
     };
 
@@ -467,6 +564,7 @@ const CreateIdea = () => {
                                                     alt={`Upload ${index + 1}`}
                                                     className={styles.uploadedImage}
                                                 />
+                                                <span className={styles.imageNumber}>[Image {index + 1}]</span>
                                                 <button
                                                     onClick={() => handleRemoveImage(index)}
                                                     className={styles.removeButton}
@@ -509,14 +607,14 @@ const CreateIdea = () => {
                                 Back
                             </button>
                         )}
-                    </div>
-                    <div className={styles.rightActions}>
-                        <button
+                        <button 
                             className={styles.cancelBtn}
-                            onClick={() => navigate(-1)}
+                            onClick={handleCancel}
                         >
                             Cancel
                         </button>
+                    </div>
+                    <div className={styles.rightActions}>
                         <button
                             className={styles.confirmBtn}
                             onClick={currentStep === 3 ? handleSubmit : handleConfirm}

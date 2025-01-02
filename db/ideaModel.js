@@ -43,28 +43,25 @@ const ideaSchema = new mongoose.Schema(
             default: ""
         },
         
-        category: {
+        categories: [{
             main: {
                 type: String,
                 enum: VALID_MAIN_CATEGORIES,
-                default: "Other",
+                required: true
             },
             sub: {
                 type: String,
-                default: "Other",
+                required: true,
                 validate: {
-                    validator: function (value) {
-                        const chosenMain = this.category.main;
-                        // If the chosen main isn't in the map, fail
-                        if (!SUBCATS_BY_MAIN[chosenMain]) return false;
-                        // Check that 'value' is in the array of valid subcats for that main
-                        return SUBCATS_BY_MAIN[chosenMain].includes(value);
+                    validator: function(value) {
+                        const mainCategory = this.main;
+                        return SUBCATS_BY_MAIN[mainCategory]?.includes(value);
                     },
-                    message: props =>
-                        `'${props.value}' is not a valid subcategory for main category '${props.instance?.category?.main}'.`
+                    message: props => 
+                        `'${props.value}' is not a valid subcategory for main category '${props.parent.main}'.`
                 }
             }
-        },
+        }],
     },
     { timestamps: true }
 );

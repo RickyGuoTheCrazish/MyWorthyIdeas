@@ -9,6 +9,7 @@ const { mongoose } = require("../db/connection");
 const Idea = require("../db/ideaModel");
 const User = require("../db/userModel");
 const { ideaCreationLimiter, ideaPurchaseLimiter } = require("../middlewares/rateLimiter");
+const uploadIdeaImages = require("../middlewares/uploadIdeaImages");
 
 // Middlewares for uploading images
 const uploadCoverImages = require("../middlewares/uploadCoverImages");
@@ -20,12 +21,12 @@ const uploadContentImages = require("../middlewares/uploadContentImages");
  */
 router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
   try {
-    const { title, preview, price, category } = req.body;
-    // 'category' is expected to be an object like:
-    // {
+    const { title, preview, price, categories } = req.body;
+    // 'categories' is expected to be an array of objects like:
+    // [{
     //   main: "Technology",
     //   sub: "Computer"
-    // }
+    // }]
     const creator = req.user._id; // from authProtecter (the logged-in user)
 
     const newIdea = new Idea({
@@ -42,12 +43,7 @@ router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
       boughtAt: null,
       contentRaw: {},
       contentHtml: "",
-
-      // We'll store category.main and category.sub
-      category: {
-        main: category?.main || "Other",
-        sub: category?.sub || "Other",
-      },
+      categories: categories || []
     });
 
     await newIdea.save();
@@ -69,7 +65,7 @@ router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
         title: newIdea.title,
         preview: newIdea.preview,
         price: newIdea.price,
-        category: newIdea.category, // { main, sub }
+        categories: newIdea.categories, // [{ main, sub }]
         isSold: newIdea.isSold,
       },
     });
@@ -198,7 +194,7 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
       isSold: idea.isSold,
       thumbnailImage: idea.thumbnailImage,
       rating: idea.rating,
-      category: idea.category,
+      categories: idea.categories, // [{ main, sub }]
       createdAt: idea.createdAt,
       updatedAt: idea.updatedAt,
     };
@@ -285,7 +281,7 @@ router.get("/", optionalAuth, async (req, res) => {
         isSold: idea.isSold,
         thumbnailImage: idea.thumbnailImage,
         rating: idea.rating,
-        category: idea.category, // { main, sub }
+        categories: idea.categories, // [{ main, sub }]
         createdAt: idea.createdAt,
         updatedAt: idea.updatedAt,
         boughtAt: idea.boughtAt,
@@ -346,43 +342,44 @@ router.post("/:ideaId/cover", authProtecter, uploadCoverImages, async (req, res)
 
 /**
  * POST /ideas/:ideaId/content-images
- * Add multiple content images. Only the idea's creator can do this.
- * Loads minimal fields from Idea and returns a minimal JSON response.
+ * Upload content images for an idea. Only the creator can do this.
  */
 router.post("/:ideaId/content-images", authProtecter, uploadContentImages, async (req, res) => {
-  try {
-    const contentImageUrls = req.uploadedFiles || [];
-    if (!contentImageUrls.length) {
-      return res.status(400).json({ message: "No files were uploaded." });
+    try {
+        // 1) Find the idea and check if it exists
+        const idea = await Idea.findById(req.params.ideaId);
+        if (!idea) {
+            return res.status(404).json({ message: "Idea not found" });
+        }
+
+        // 2) Check if the logged-in user is the creator
+        if (idea.creator.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "You can only upload images to your own ideas" });
+        }
+
+        // 3) Add the uploaded image URLs to the idea's contentImages
+        if (req.uploadedFiles && req.uploadedFiles.length > 0) {
+            idea.contentImages = [...idea.contentImages, ...req.uploadedFiles];
+            await idea.save();
+        } else {
+            return res.status(400).json({ message: "No files were uploaded" });
+        }
+
+        // 4) Return the updated idea with contentImages
+        return res.status(200).json({
+            message: "Content images uploaded successfully",
+            idea: {
+                _id: idea._id,
+                contentImages: idea.contentImages
+            }
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        return res.status(500).json({ 
+            message: "Failed to upload content images",
+            error: error.message 
+        });
     }
-
-    // 1) Load only needed fields: 'creator' + 'contentImages'
-    const idea = await Idea.findById(req.params.ideaId)
-      .select("creator contentImages");
-    if (!idea) {
-      return res.status(404).json({ message: "Idea not found." });
-    }
-
-    // 2) Check if current user is the creator
-    if (idea.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized to modify this idea" });
-    }
-
-    // 3) Push images
-    idea.contentImages.push(...contentImageUrls);
-    await idea.save();
-
-    // 4) Build minimal final response
-    return res.status(200).json({
-      message: "Content images uploaded and updated successfully",
-      idea: {
-        _id: idea._id,
-        contentImages: idea.contentImages,
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
 });
 
 /**
@@ -453,6 +450,16 @@ router.put("/:ideaId/content", authProtecter, async (req, res) => {
         .json({ message: "Must provide contentRaw or contentHtml to update" });
     }
 
+    // Parse contentRaw if it's a string
+    let parsedContentRaw = contentRaw;
+    if (typeof contentRaw === 'string') {
+      try {
+        parsedContentRaw = JSON.parse(contentRaw);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid contentRaw format" });
+      }
+    }
+
     // 1) load doc with only creator + contentRaw + contentHtml
     const idea = await Idea.findById(req.params.ideaId).select(
       "creator contentRaw contentHtml"
@@ -467,7 +474,7 @@ router.put("/:ideaId/content", authProtecter, async (req, res) => {
     }
 
     // 3) update
-    if (contentRaw) idea.contentRaw = contentRaw;
+    if (parsedContentRaw) idea.contentRaw = parsedContentRaw;
     if (contentHtml) idea.contentHtml = contentHtml;
 
     await idea.save();
@@ -487,7 +494,7 @@ router.put("/:ideaId/content", authProtecter, async (req, res) => {
 
 /**
  * PUT /ideas/:ideaId
- * Update limited fields: title, preview, price, category
+ * Update limited fields: title, preview, price, categories
  * Reject requests with disallowed fields.
  * Only the idea's creator can do this.
  * Minimally load data & limit creator fields.
@@ -495,7 +502,7 @@ router.put("/:ideaId/content", authProtecter, async (req, res) => {
 router.put("/:ideaId", authProtecter, async (req, res) => {
   try {
     // 1) Allowed fields
-    const allowedFields = ["title", "preview", "price", "category"];
+    const allowedFields = ["title", "preview", "price", "categories"];
     const requestedFields = Object.keys(req.body);
     const disallowed = requestedFields.filter((f) => !allowedFields.includes(f));
     if (disallowed.length > 0) {
@@ -506,7 +513,7 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
 
     // 2) Load minimal fields + optionally populate minimal creator
     const idea = await Idea.findById(req.params.ideaId)
-      .select("creator title preview price category")
+      .select("creator title preview price categories")
       .populate({
         path: "creator",
         select: "username" // only load username & _id
@@ -522,14 +529,13 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
     }
 
     // 4) Update fields
-    //    If user wants to update category, we expect an object { main, sub } in req.body.category
+    //    If user wants to update categories, we expect an array of objects { main, sub } in req.body.categories
     if (req.body.title !== undefined) idea.title = req.body.title;
     if (req.body.preview !== undefined) idea.preview = req.body.preview;
     if (req.body.price !== undefined) idea.price = req.body.price;
 
-    if (req.body.category !== undefined) {
-      idea.category.main = req.body.category.main || "Other";
-      idea.category.sub = req.body.category.sub || "Other";
+    if (req.body.categories !== undefined) {
+      idea.categories = req.body.categories || [];
       // This will trigger the custom validation for sub if it doesn't match the main
     }
 
@@ -548,7 +554,7 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
         title: idea.title,
         preview: idea.preview,
         price: idea.price,
-        category: idea.category, // { main, sub }
+        categories: idea.categories, // [{ main, sub }]
         creator: sanitizedCreator
       },
     });
@@ -559,6 +565,67 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
     }
     return res.status(500).json({ error: error.message });
   }
+});
+
+/**
+ * PUT /ideas/:ideaId/edit
+ * Comprehensive update route for editing an entire idea.
+ * Only the creator can use this, and only if the idea hasn't been sold.
+ */
+router.put("/:ideaId/edit", authProtecter, async (req, res) => {
+    try {
+        // 1) Find the idea and check if it exists
+        const idea = await Idea.findById(req.params.ideaId);
+        if (!idea) {
+            return res.status(404).json({ message: "Idea not found" });
+        }
+
+        // 2) Check if the logged-in user is the creator
+        if (idea.creator.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "You can only edit your own ideas" });
+        }
+
+        // 3) Parse categories if it's a string
+        let categories = req.body.categories;
+        if (typeof categories === 'string') {
+            try {
+                categories = JSON.parse(categories);
+            } catch (e) {
+                return res.status(400).json({ message: "Invalid categories format" });
+            }
+        }
+
+        // 4) Update fields directly on the document
+        if (req.body.title !== undefined) idea.title = req.body.title;
+        if (req.body.preview !== undefined) idea.preview = req.body.preview;
+        if (req.body.price !== undefined) idea.price = req.body.price;
+        if (categories !== undefined) idea.categories = categories;
+
+        // 5) Save the updated idea
+        await idea.save();
+
+        // 6) Return the updated idea
+        return res.status(200).json({
+            message: "Idea updated successfully",
+            idea: {
+                _id: idea._id,
+                title: idea.title,
+                preview: idea.preview,
+                price: idea.price,
+                categories: idea.categories,
+                thumbnailImage: idea.thumbnailImage,
+                contentImages: idea.contentImages,
+                creator: idea.creator,
+                isSold: idea.isSold
+            }
+        });
+    } catch (error) {
+        console.error('Server error:', error);
+        return res.status(500).json({ 
+            message: "Failed to update idea",
+            error: error.message 
+        });
+    }
 });
 
 // Rate an idea - only available to buyers who own the idea

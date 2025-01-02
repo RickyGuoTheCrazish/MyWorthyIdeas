@@ -223,8 +223,13 @@ const ViewIdea = () => {
                                 </span>
                             )}
                             <span className={styles.separator}>•</span>
-                            <span className={styles.category}>
-                                {idea.category.main} › {idea.category.sub}
+                            <span className={styles.categories}>
+                                {idea.categories.map((cat, index) => (
+                                    <span key={index} className={styles.category}>
+                                        {cat.main} › {cat.sub}
+                                        {index < idea.categories.length - 1 && ", "}
+                                    </span>
+                                ))}
                             </span>
                         </div>
                     </div>
@@ -266,23 +271,8 @@ const ViewIdea = () => {
                         </div>
                     )}
 
-                    {!hasFullAccess && isIdeaSold && (
-                        <div className={styles.soldContent}>
-                            <p className={styles.soldNotice}>
-                                This idea has already been sold.
-                            </p>
-                        </div>
-                    )}
-
                     <div className={styles.actionContainer}>
-                        {isCreator ? (
-                            <button 
-                                className={`${styles.actionButton} ${styles.editButton}`}
-                                onClick={handleEdit}
-                            >
-                                <FaEdit /> Edit Idea
-                            </button>
-                        ) : !isIdeaSold && (
+                        {!isCreator && !isIdeaSold && (
                             isAuthenticated ? (
                                 canBuy && (
                                     <button 
@@ -318,6 +308,23 @@ const ViewIdea = () => {
                             )}
                         </div>
                     </div>
+                    {isIdeaSold && (
+                        <div className={styles.soldSection}>
+                            <p className={styles.soldNotice}>
+                                This idea has already been sold.
+                            </p>
+                        </div>
+                    )}
+                    {isCreator && !isIdeaSold && (
+                        <div className={styles.editSection}>
+                            <button 
+                                className={`${styles.actionButton} ${styles.editButton}`}
+                                onClick={handleEdit}
+                            >
+                                <FaEdit /> Edit Idea
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

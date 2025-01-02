@@ -1,0 +1,672 @@
+.editIdea {
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.container {
+    padding: 20px;
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.stepsContainer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    gap: 0;
+}
+
+.stepItem {
+    padding: 8px 24px;
+    background: #f0f0f0;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.stepItem:not(:last-child) {
+    margin-right: 0;
+}
+
+.stepItem.activeStep {
+    background: #E0C19E;
+}
+
+.stepItem.completedStep {
+    background: #D4B48F;
+    color: white;
+}
+
+.title {
+    text-align: center;
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+    padding-top: 10px;
+}
+
+.stepContent {
+    flex: 1;
+    padding: 24px 24px 0 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.step1 {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.inputGroup {
+    margin-bottom: 20px;
+}
+
+.inputGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.inputGroup input,
+.inputGroup textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.inputGroup textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.charCount {
+    display: block;
+    text-align: right;
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+}
+
+.priceIcon {
+    margin-right: 4px;
+    color: #E0C19E;
+}
+
+.categoriesList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.categoryTag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border: 1px solid #E0C19E;
+    border-radius: 20px;
+    font-size: 0.9em;
+    color: #333;
+}
+
+.categoryTag button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.categoryTag button:hover {
+    color: #dc3545;
+}
+
+.addCategoryBtn {
+    background: none;
+    border: 2px dashed #E0C19E;
+    color: #E0C19E;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.addCategoryBtn:hover {
+    background: #fff5e6;
+}
+
+.categoryCount {
+    display: block;
+    text-align: right;
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+}
+
+.buttonGroup {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding: 16px 0;
+    border-top: 1px solid #eee;
+}
+
+.backButton,
+.nextButton,
+.submitButton {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.backButton {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.backButton:hover {
+    background: #bbdefb;
+}
+
+.nextButton,
+.submitButton {
+    background: #E0C19E;
+    color: white;
+}
+
+.nextButton:hover,
+.submitButton:hover {
+    background: #D4B494;
+}
+
+/* Modal styles */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal h3 {
+    margin: 0 0 16px 0;
+    color: #333;
+}
+
+.modalContent {
+    margin-bottom: 24px;
+}
+
+.selectGroup {
+    margin-bottom: 16px;
+}
+
+.selectGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.categorySelect {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+    background-color: white;
+    cursor: pointer;
+}
+
+.categorySelect:focus {
+    outline: none;
+    border-color: #E0C19E;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.modalActions button {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.cancelBtn {
+    background: #eceff1;
+    color: #455a64;
+}
+
+.cancelBtn:hover {
+    background: #cfd8dc;
+}
+
+.confirmBtn {
+    background: #E0C19E;
+    color: white;
+}
+
+.confirmBtn:hover {
+    background: #D4B494;
+}
+
+/* Thumbnail Upload Styles */
+.thumbnailUpload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.thumbnailUpload label {
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #333;
+}
+
+.uploadArea {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: #f8f9fa;
+    transition: border-color 0.2s;
+}
+
+.uploadArea:hover {
+    border-color: #E0C19E;
+}
+
+.uploadPrompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+}
+
+.uploadPrompt label {
+    color: #666;
+    font-size: 1em;
+    font-weight: normal;
+}
+
+.uploadButton {
+    aspect-ratio: 1;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #f8f9fa;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.uploadButton span {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.uploadButton:hover {
+    border-color: #E0C19E;
+    color: #E0C19E;
+    background: #fff5e6;
+}
+
+.thumbnailPreview {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.thumbnailPreview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.removeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.2s;
+    padding: 0;
+}
+
+.removeButton:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.uploadHint {
+    color: #666;
+    font-size: 0.9em;
+    text-align: center;
+    margin: 0;
+}
+
+/* Step 3 Styles */
+.step3 {
+    display: flex;
+    gap: 20px;
+}
+
+.editorContainer {
+    flex: 1;
+    min-width: 0;
+}
+
+.imageUploadContainer {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.buttonContainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.insertImageButton {
+    padding: 8px 16px;
+    background: #E0C19E;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.insertImageButton:hover {
+    background: #D4B494;
+}
+
+.helpIcon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: help;
+}
+
+.helpIcon:hover {
+    background: #E0C19E;
+    color: white;
+}
+
+.imageUpload {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.imageUpload h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.uploadHint {
+    font-size: 0.9em;
+    color: #666;
+    margin: 8px 0;
+}
+
+.uploadedImages {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.imageContainer {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.uploadedImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.imageNumber {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.removeButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+}
+
+.removeButton:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.uploadButton {
+    aspect-ratio: 1;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #f8f9fa;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.uploadButton span {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.uploadButton:hover {
+    border-color: #E0C19E;
+    color: #E0C19E;
+    background: #fff5e6;
+}
+
+.imageIcon {
+    font-size: 24px;
+}
+
+.editHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.headerButtons {
+    display: flex;
+    gap: 1rem;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cancelButton {
+    background-color: transparent;
+    border: 1px solid #d32f2f;
+    color: #d32f2f;
+}
+
+.cancelButton:hover {
+    background-color: #ffebee;
+}
+
+.saveButton {
+    background-color: #2196f3;
+    border: none;
+    color: white;
+}
+
+.saveButton:hover:not(:disabled) {
+    background-color: #1976d2;
+}
+
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-top: 1px solid #e0e0e0;
+    margin-top: 2rem;
+}
+
+.rightButtons {
+    display: flex;
+    gap: 1rem;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    border: 1px solid #ccc;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cancelButton {
+    border: 1px solid #d32f2f;
+    color: #d32f2f;
+}
+
+.cancelButton:hover {
+    background-color: #ffebee;
+}
+
+.primaryButton {
+    background-color: #2196f3;
+    border: none;
+    color: white;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: #1976d2;
+}

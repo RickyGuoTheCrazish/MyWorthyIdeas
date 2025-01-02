@@ -1,9 +1,10 @@
 .createIdea {
-    margin: 0 auto;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 0;
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -28,9 +29,9 @@
 }
 
 .stepItem {
+    font-size: 14px;
     padding: 8px 24px;
     background: #f0f0f0;
-    font-size: 14px;
     cursor: pointer;
     border-radius: 0;
 }
@@ -57,7 +58,7 @@
 }
 
 .actions {
-    margin-top: 20px;
+    margin-top: 0;
     padding: 16px 0;
     display: flex;
     justify-content: space-between;
@@ -68,7 +69,8 @@
 }
 
 .leftActions {
-    /* Space for back button */
+    display: flex;
+    gap: 12px;
 }
 
 .rightActions {
@@ -98,12 +100,13 @@
 }
 
 .cancelBtn {
-    background: #eceff1;  
-    color: #455a64;
+    border: 1px solid #d32f2f;
+    color: #d32f2f;
+    background: white;
 }
 
 .cancelBtn:hover {
-    background: #cfd8dc;
+    background: #ffebee;
 }
 
 .confirmBtn {
@@ -117,7 +120,7 @@
 
 .stepContent {
     flex: 1;
-    padding: 24px 24px 0 24px;
+    padding: 0px 24px 0 24px;
     display: flex;
     flex-direction: column;
 }
@@ -642,4 +645,75 @@
     color: #f8c51c;
     margin-left: 0.3rem;
     vertical-align: middle;
+}
+
+.navigation {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+}
+
+.rightButtons {
+    display: flex;
+    gap: 12px;
+}
+
+.button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    min-width: 100px; /* Ensure consistent button width */
+    text-align: center;
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cancelButton {
+    border: 1px solid #d32f2f;
+    color: #d32f2f;
+    background-color: white;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background-color: #ffebee;
+}
+
+.primaryButton {
+    background-color: #2196f3;
+    border: none;
+    color: white;
+    font-weight: 600;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: #1976d2;
+}
+
+/* Add some breathing room for mobile devices */
+@media (max-width: 600px) {
+    .navigation {
+        padding: 12px 16px;
+    }
+    
+    .button {
+        padding: 8px 16px;
+        min-width: 80px;
+    }
 }

@@ -4,6 +4,7 @@ import SessionExpiredModal from "./components/modals/SessionExpiredModal";
 import Dashboard from "./pages/Dashboard";
 import Recommendations from "./pages/Recommendations";
 import CreateIdea from "./pages/CreateIdea";
+import EditIdea from "./pages/EditIdea";
 import ViewIdea from "./pages/ViewIdea";
 import Layout from "./components/layout/Layout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -43,6 +44,14 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/recommendations"
+          element={
+            <Layout>
+              <Recommendations />
+            </Layout>
+          }
+        />
+        <Route
           path="/ideas/:ideaId"
           element={
             <Layout>
@@ -50,14 +59,12 @@ const AppRoutes = () => {
             </Layout>
           }
         />
-
-        {/* Protected routes with Layout */}
         <Route
-          path="/dashboard"
+          path="/ideas/:ideaId/edit"
           element={
             <ProtectedRoute>
               <Layout>
-                <Dashboard />
+                <EditIdea />
               </Layout>
             </ProtectedRoute>
           }
@@ -68,6 +75,18 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <Layout>
                 <CreateIdea />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected routes with Layout */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           }

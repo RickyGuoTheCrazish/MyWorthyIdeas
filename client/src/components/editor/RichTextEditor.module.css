@@ -44,10 +44,20 @@
 /* Image and video styles */
 .editor :global(.ql-editor img),
 .editor :global(.ql-editor .ql-video) {
-    max-width: 50%;
-    height: auto;
-    display: block;
-    margin: 1em auto;
+    max-width: 50% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 1em auto !important;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* For smaller screens, allow images to be wider */
+@media (max-width: 768px) {
+    .editor :global(.ql-editor img),
+    .editor :global(.ql-editor .ql-video) {
+        max-width: 80%;
+    }
 }
 
 /* Text alignment */

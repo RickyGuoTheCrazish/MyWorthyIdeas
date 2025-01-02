@@ -70,6 +70,41 @@
     justify-self: end;
 }
 
+.guestSection {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.loginButton, .signupButton {
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.loginButton {
+    background-color: transparent;
+    border: 2px solid #4CAF50;
+    color: #4CAF50;
+}
+
+.loginButton:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.signupButton {
+    background-color: #4CAF50;
+    border: 2px solid #4CAF50;
+    color: white;
+}
+
+.signupButton:hover {
+    background-color: #45a049;
+}
+
 .credits {
     display: flex;
     align-items: center;

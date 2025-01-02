@@ -57,8 +57,19 @@
     margin: 0 0.5rem;
 }
 
+.categories {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    color: #666;
+}
+
 .category {
     color: #666;
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
 }
 
 .price {
@@ -146,8 +157,62 @@
 }
 
 .richContent {
+    font-size: 16px;
+    line-height: 1.6;
     color: #333;
-    line-height: 1.8;
+}
+
+.richContent img {
+    max-width: 50% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 1em auto !important;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .richContent img {
+        max-width: 80% !important;
+    }
+}
+
+:global(.ql-editor) img {
+    max-width: 50% !important;
+    height: auto !important;
+    display: block !important;
+    margin: 1em auto !important;
+}
+
+@media (max-width: 768px) {
+    :global(.ql-editor) img {
+        max-width: 80% !important;
+    }
+}
+
+.content {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content :global(.ql-editor img),
+.content img {
+    max-width: 30%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .content :global(.ql-editor img),
+    .content img {
+        max-width: 80%;
+    }
 }
 
 .lockedContent, .soldContent {
@@ -180,6 +245,21 @@
     font-weight: 500;
 }
 
+.soldSection {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.soldNotice {
+    color: #e74c3c;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
 .actionContainer {
     margin-top: 1.5rem;
     padding: 1.5rem;
@@ -201,13 +281,30 @@
     border: none;
 }
 
+.editSection {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+}
+
 .editButton {
-    background: #0366d6;
+    background-color: #4a90e2;
     color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
 }
 
 .editButton:hover {
-    background: #0255b3;
+    background-color: #357abd;
 }
 
 .buyButton {

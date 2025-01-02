@@ -2,31 +2,57 @@ import React, { useState, useEffect } from 'react';
 import styles from './ImagePicker.module.css';
 
 const ImagePicker = ({ images, onSelect, onClose }) => {
-    const [imageUrls, setImageUrls] = useState([]);
+    const [imageDataList, setImageDataList] = useState([]);
 
     useEffect(() => {
-        const loadImages = async () => {
-            const urls = await Promise.all(
-                images.map(async (file) => {
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            resolve({
-                                url: reader.result,
-                                originalFile: file
-                            });
+        const processImages = async () => {
+            const processedImages = await Promise.all(images.map(async (image, index) => {
+                if (image instanceof File) {
+                    return {
+                        originalFile: image,
+                        url: URL.createObjectURL(image),
+                        number: index + 1
+                    };
+                } else if (typeof image === 'string') {
+                    try {
+                        const response = await fetch(image);
+                        const blob = await response.blob();
+                        const file = new File([blob], `image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                        return {
+                            originalFile: file,
+                            url: image,
+                            number: index + 1
                         };
-                        reader.readAsDataURL(file);
-                    });
-                })
-            );
-            setImageUrls(urls);
+                    } catch (error) {
+                        console.error('Error loading image:', error);
+                        return null;
+                    }
+                }
+                return null;
+            }));
+
+            const validImages = processedImages.filter(img => img !== null);
+            setImageDataList(validImages);
         };
 
         if (images && images.length > 0) {
-            loadImages();
+            processImages();
         }
     }, [images]);
+
+    const handleImageSelect = (imageData) => {
+        if (imageData.originalFile instanceof File) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                onSelect({
+                    url: reader.result,
+                    originalFile: imageData.originalFile,
+                    number: imageData.number
+                });
+            };
+            reader.readAsDataURL(imageData.originalFile);
+        }
+    };
 
     if (!images || images.length === 0) {
         return (
@@ -50,20 +76,18 @@ const ImagePicker = ({ images, onSelect, onClose }) => {
                     <button onClick={onClose} className={styles.closeButton}>×</button>
                 </div>
                 <div className={styles.imageGrid}>
-                    {imageUrls.map((imageData, index) => (
-                        <div 
-                            key={index} 
+                    {imageDataList.map((imageData, index) => (
+                        <div
+                            key={index}
                             className={styles.imageItem}
-                            onClick={() => {
-                                console.log('Selecting image:', imageData.originalFile.name);
-                                onSelect(imageData);
-                            }}
+                            onClick={() => handleImageSelect(imageData)}
                         >
                             <img 
                                 src={imageData.url} 
-                                alt={`Upload ${index + 1}`}
+                                alt={`Upload ${imageData.number}`}
                                 className={styles.thumbnail}
                             />
+                            <div className={styles.imageNumber}>{imageData.number}</div>
                         </div>
                     ))}
                 </div>

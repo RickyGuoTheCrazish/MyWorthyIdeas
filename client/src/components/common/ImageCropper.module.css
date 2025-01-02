@@ -9,27 +9,33 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 20px;
 }
 
 .cropperContent {
     background: white;
-    padding: 20px;
-    border-radius: 8px;
+    padding: 24px;
+    border-radius: 12px;
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .cropperContent h3 {
-    margin: 0 0 16px 0;
+    margin: 0;
     color: #333;
+    font-size: 1.5em;
+    text-align: center;
 }
 
 .hint {
     color: #666;
-    margin: 10px 0;
+    margin: 0;
     text-align: center;
+    font-size: 0.9em;
 }
 
 .cropperLayout {
@@ -42,8 +48,9 @@
     position: relative;
     width: 100%;
     height: 400px;
-    background: #f0f0f0;
-    margin: 20px 0;
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .previewArea {
@@ -65,49 +72,76 @@
     border-radius: 4px;
 }
 
-.actions {
+.controls {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: auto;
 }
 
-.cancelBtn,
-.confirmBtn {
-    padding: 8px 24px;
+.cancelButton,
+.confirmButton {
+    padding: 10px 24px;
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.9em;
+    font-weight: 500;
     transition: background-color 0.2s;
 }
 
-.cancelBtn {
-    background: #E8EEF2;
+.cancelButton {
+    background: #f8f9fa;
     color: #333;
 }
 
-.cancelBtn:hover {
-    background: #DBE3E9;
+.cancelButton:hover {
+    background: #e9ecef;
 }
 
-.confirmBtn {
+.confirmButton {
     background: #E0C19E;
     color: white;
 }
 
-.confirmBtn:hover {
+.confirmButton:hover {
     background: #D4B494;
 }
 
 .zoomControl {
-    margin: 20px 0;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px;
+    margin-top: 12px;
 }
 
 .zoomSlider {
-    width: 80%;
-    max-width: 300px;
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: #ddd;
+    border-radius: 2px;
+    outline: none;
+}
+
+.zoomSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #E0C19E;
+    cursor: pointer;
+    border: none;
+}
+
+.zoomSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #E0C19E;
+    cursor: pointer;
+    border: none;
 }
 
 /* Override react-easy-crop styles */
