@@ -1,0 +1,117 @@
+.categoryPage {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #333;
+    text-transform: capitalize;
+}
+
+.sortControls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sortSelect {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    color: #333;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.sortSelect:hover {
+    border-color: #999;
+}
+
+.sortSelect:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.ideaGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    font-size: 1.2em;
+    color: #666;
+}
+
+.error {
+    padding: 16px;
+    background-color: #fee;
+    color: #c00;
+    border-radius: 4px;
+    margin: 16px 0;
+}
+
+.noIdeas {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px;
+    color: #666;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 32px;
+}
+
+.pageNav,
+.pageButton {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pageNav:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pageButton.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.pageNav:hover:not(:disabled),
+.pageButton:hover:not(.active) {
+    background: #f0f0f0;
+}
+
+.ellipsis {
+    color: #666;
+    padding: 8px;
+}

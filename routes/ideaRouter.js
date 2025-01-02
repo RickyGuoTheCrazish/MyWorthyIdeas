@@ -1,19 +1,117 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-
-// Middlewares
+const Idea = require("../db/ideaModel");
+const User = require("../db/userModel");
 const authProtecter = require("../middlewares/auth");
 const optionalAuth = require("../middlewares/optionalAuth");
 const { mongoose } = require("../db/connection");
-const Idea = require("../db/ideaModel");
-const User = require("../db/userModel");
 const { ideaCreationLimiter, ideaPurchaseLimiter } = require("../middlewares/rateLimiter");
 const uploadIdeaImages = require("../middlewares/uploadIdeaImages");
 
 // Middlewares for uploading images
 const uploadCoverImages = require("../middlewares/uploadCoverImages");
 const uploadContentImages = require("../middlewares/uploadContentImages");
+
+// GET ideas by category (must be before :ideaId routes)
+router.get("/by-category", async (req, res) => {
+  try {
+    let { category, subcategory, page = 1, limit = 12, sortBy = 'newest' } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skip = (page - 1) * limit;
+
+    // Build category filter
+    const categoryFilter = { isSold: false };
+    if (category) {
+      // Case-insensitive regex for main category
+      categoryFilter.categories = {
+        $regex: new RegExp(`^${category}$`, 'i')
+      };
+      
+      if (subcategory) {
+        // If both category and subcategory are provided
+        categoryFilter.categories = { 
+          $all: [
+            { $regex: new RegExp(`^${category}$`, 'i') },
+            { $regex: new RegExp(`^${subcategory}$`, 'i') }
+          ]
+        };
+      }
+    }
+
+    // Build sort options
+    let sortOptions = {};
+    switch (sortBy) {
+      case 'price-low':
+        sortOptions = { price: 1 };
+        break;
+      case 'price-high':
+        sortOptions = { price: -1 };
+        break;
+      case 'rating':
+        sortOptions = { rating: -1 };
+        break;
+      case 'newest':
+      default:
+        sortOptions = { createdAt: -1 };
+    }
+
+    // Get total count for pagination
+    const totalCount = await Idea.countDocuments(categoryFilter);
+
+    // Fetch ideas
+    const ideas = await Idea.find(categoryFilter)
+      .select("title preview price thumbnailImage rating categories creator createdAt")
+      .populate({
+        path: 'creator',
+        select: 'username averageRating'
+      })
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit);
+
+    if (!ideas || ideas.length === 0) {
+      return res.status(404).json({ 
+        message: "No ideas found",
+        debug: {
+          filter: categoryFilter,
+          totalCount,
+          skip,
+          limit
+        }
+      });
+    }
+
+    // Transform ideas to include seller info
+    const transformedIdeas = ideas.map(idea => ({
+      ...idea.toObject(),
+      seller: {
+        _id: idea.creator._id,
+        username: idea.creator.username,
+        averageRating: idea.creator.averageRating || 0
+      }
+    }));
+
+    const response = {
+      message: "Ideas fetched successfully",
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        pageSize: limit,
+        totalItems: totalCount,
+      },
+      ideas: transformedIdeas,
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({ 
+      message: "Error fetching ideas",
+      error: error.message
+    });
+  }
+});
 
 /**
  * CREATE A NEW IDEA (basic info).

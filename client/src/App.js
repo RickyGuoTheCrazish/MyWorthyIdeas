@@ -7,6 +7,7 @@ import CreateIdea from "./pages/CreateIdea";
 import EditIdea from "./pages/EditIdea";
 import ViewIdea from "./pages/ViewIdea";
 import Layout from "./components/layout/Layout";
+import CategoryPage from './pages/CategoryPage';
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -71,6 +72,22 @@ const AppRoutes = () => {
             <CreateIdea />
           </ProtectedRoute>
         }
+      />
+      <Route 
+        path="/categories/:category" 
+        element={
+          <Layout>
+            <CategoryPage />
+          </Layout>
+        } 
+      />
+      <Route 
+        path="/categories/:category/:subcategory" 
+        element={
+          <Layout>
+            <CategoryPage />
+          </Layout>
+        } 
       />
 
       {/* Protected routes with Layout */}

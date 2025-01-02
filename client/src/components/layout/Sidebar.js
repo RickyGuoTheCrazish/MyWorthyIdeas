@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
 
 // Import categories from ideaModel constants
@@ -16,6 +17,7 @@ const CATEGORIES = {
 
 const Sidebar = () => {
     const location = useLocation();
+    const { isAuthenticated } = useAuth();
     const [expandedCategories, setExpandedCategories] = useState({});
 
     const toggleCategory = (category) => {
@@ -25,11 +27,24 @@ const Sidebar = () => {
         }));
     };
 
+    const formatCategoryPath = (category) => {
+        return category.toLowerCase().replace(/ & /g, '-');
+    };
+
     const isActive = (path) => {
         if (path === '/' || path === '/recommendations') {
             return location.pathname === '/recommendations' || location.pathname === '/';
         }
         return location.pathname === path;
+    };
+
+    const isCategoryActive = (mainCategory, subCategory = null) => {
+        const mainPath = `/categories/${formatCategoryPath(mainCategory)}`;
+        if (subCategory) {
+            const fullPath = `${mainPath}/${formatCategoryPath(subCategory)}`;
+            return location.pathname === fullPath;
+        }
+        return location.pathname.startsWith(mainPath);
     };
 
     return (
@@ -42,13 +57,15 @@ const Sidebar = () => {
                 Recommendations
             </Link>
             
-            <Link 
-                to="/dashboard" 
-                className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
-            >
-                <span className={styles.icon}>📊</span>
-                My Ideas
-            </Link>
+            {isAuthenticated && (
+                <Link 
+                    to="/dashboard" 
+                    className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
+                >
+                    <span className={styles.icon}>📊</span>
+                    My Ideas
+                </Link>
+            )}
 
             <Link 
                 to="/create" 
@@ -80,13 +97,13 @@ const Sidebar = () => {
             <div className={styles.categoriesSection}>
                 {Object.entries(CATEGORIES).map(([mainCategory, subCategories]) => (
                     <div key={mainCategory} className={styles.categorySection}>
-                        <button 
-                            className={`${styles.categoryHeader} ${
-                                location.pathname.includes(`/category/${mainCategory.toLowerCase()}`) 
-                                ? styles.active 
-                                : ''
-                            }`}
-                            onClick={() => toggleCategory(mainCategory)}
+                        <NavLink 
+                            to={`/categories/${formatCategoryPath(mainCategory)}`}
+                            className={({ isActive }) => `${styles.categoryHeader} ${isActive ? styles.active : ''}`}
+                            onClick={(e) => {
+                                e.preventDefault(); // Prevent navigation
+                                toggleCategory(mainCategory);
+                            }}
                         >
                             <span className={styles.icon}>
                                 {getCategoryIcon(mainCategory)}
@@ -95,21 +112,23 @@ const Sidebar = () => {
                             <span className={`${styles.arrow} ${expandedCategories[mainCategory] ? styles.expanded : ''}`}>
                                 ▼
                             </span>
-                        </button>
+                        </NavLink>
                         {expandedCategories[mainCategory] && (
                             <div className={styles.subMenu}>
+                                <NavLink 
+                                    to={`/categories/${formatCategoryPath(mainCategory)}`}
+                                    className={({ isActive }) => `${styles.subMenuItem} ${isActive ? styles.active : ''}`}
+                                >
+                                    All {mainCategory}
+                                </NavLink>
                                 {subCategories.map(subCategory => (
-                                    <Link 
+                                    <NavLink 
                                         key={subCategory}
-                                        to={`/category/${mainCategory.toLowerCase()}/${subCategory.toLowerCase().replace(/ & /g, '-')}`}
-                                        className={`${styles.subMenuItem} ${
-                                            location.pathname === `/category/${mainCategory.toLowerCase()}/${subCategory.toLowerCase().replace(/ & /g, '-')}` 
-                                            ? styles.active 
-                                            : ''
-                                        }`}
+                                        to={`/categories/${formatCategoryPath(mainCategory)}/${formatCategoryPath(subCategory)}`}
+                                        className={({ isActive }) => `${styles.subMenuItem} ${isActive ? styles.active : ''}`}
                                     >
                                         {subCategory}
-                                    </Link>
+                                    </NavLink>
                                 ))}
                             </div>
                         )}
