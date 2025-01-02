@@ -436,6 +436,16 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
     const totalPostedIdeas = actualCount?.[0]?.postedCount || 0;
     const totalPages = Math.ceil(totalPostedIdeas / limit);
 
+    // Add seller information to each idea
+    const ideasWithSeller = user.postedIdeas.map(idea => ({
+      ...idea.toObject(),
+      seller: {
+        _id: user._id,
+        username: user.username,
+        averageRating: user.averageRating || 0
+      }
+    }));
+
     return res.status(200).json({
       message: "Posted ideas fetched successfully",
       pagination: {
@@ -444,7 +454,7 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
         pageSize: limit,
         totalItems: totalPostedIdeas,
       },
-      ideas: user.postedIdeas,
+      ideas: ideasWithSeller,
     });
   } catch (error) {
     console.error("Error fetching posted ideas:", error);
@@ -538,6 +548,16 @@ router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
     const totalSoldIdeas = actualCount?.[0]?.soldCount || 0;
     const totalPages = Math.ceil(totalSoldIdeas / limit);
 
+    // Add seller information to each idea
+    const ideasWithSeller = user.postedIdeas.map(idea => ({
+      ...idea.toObject(),
+      seller: {
+        _id: user._id,
+        username: user.username,
+        averageRating: user.averageRating || 0
+      }
+    }));
+
     return res.status(200).json({
       message: "Sold ideas fetched successfully",
       pagination: {
@@ -546,7 +566,7 @@ router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
         pageSize: limit,
         totalItems: totalSoldIdeas,
       },
-      ideas: user.postedIdeas,
+      ideas: ideasWithSeller,
     });
   } catch (error) {
     console.error("Error fetching sold ideas:", error);

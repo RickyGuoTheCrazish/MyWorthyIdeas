@@ -3,15 +3,30 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AuthModal from '../modals/AuthModal';
+import GuestModeIndicator from './WelcomeBack';
 import styles from './Layout.module.css';
 import { FaSearch, FaUser, FaCoins, FaCog, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const Layout = ({ children }) => {
     const { user, logout, isAuthenticated } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
+    const [showGuestIndicator, setShowGuestIndicator] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
+
+    // Show guest indicator when not authenticated
+    useEffect(() => {
+        if (!isAuthenticated) {
+            // Don't show on auth page
+            if (!window.location.pathname.includes('/auth')) {
+                setShowGuestIndicator(true);
+            }
+        } else {
+            setShowGuestIndicator(false);
+        }
+    }, [isAuthenticated]);
 
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
@@ -41,10 +56,8 @@ const Layout = ({ children }) => {
     const handleLogout = async () => {
         setIsMenuOpen(false);
         try {
-            const success = await logout();
-            if (success) {
-                navigate('/');
-            }
+            await logout();
+            navigate('/');
         } catch (error) {
             console.error('Error during logout:', error);
         }
@@ -114,9 +127,9 @@ const Layout = ({ children }) => {
         <div className={styles.layout}>
             <Sidebar />
             <div className={styles.mainContent}>
-                <div className={styles.header}>
+                <header className={styles.header}>
                     <div className={styles.logo}>
-                        IdeasForce
+                        <Link to="/">IdeasForce</Link>
                     </div>
                     <div className={styles.searchContainer}>
                         <FaSearch className={styles.searchIcon} />
@@ -128,17 +141,20 @@ const Layout = ({ children }) => {
                         />
                     </div>
                     {renderAuthSection()}
-                </div>
+                </header>
                 <main className={styles.content}>
                     {children}
                 </main>
             </div>
             {authModal.isOpen && (
-                <AuthModal
-                    isOpen={authModal.isOpen}
-                    mode={authModal.mode}
-                    onClose={closeAuthModal}
+                <AuthModal 
+                    isOpen={authModal.isOpen} 
+                    mode={authModal.mode} 
+                    onClose={closeAuthModal} 
                 />
+            )}
+            {showGuestIndicator && (
+                <GuestModeIndicator onClose={() => setShowGuestIndicator(false)} />
             )}
         </div>
     );

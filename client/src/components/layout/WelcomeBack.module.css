@@ -1,0 +1,155 @@
+.welcomeBack {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.guestIndicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    border: 1px solid #e1e4e8;
+    max-width: 300px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.content {
+    max-width: 300px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+}
+
+.icon {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.content p {
+    margin: 0 0 16px 0;
+    color: #666;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.content p {
+    margin: 0;
+    color: #555;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.featureList {
+    margin: 0;
+    padding-left: 20px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.featureList li {
+    margin: 4px 0;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.loginButton {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.loginButton {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex: 1;
+}
+
+.loginButton:hover {
+    background-color: #0056b3;
+}
+
+.closeButton {
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.closeButton {
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+}
+
+.closeButton:hover {
+    background-color: #f5f5f5;
+    border-color: #ccc;
+}

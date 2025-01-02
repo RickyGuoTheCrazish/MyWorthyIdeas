@@ -3,27 +3,15 @@ import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
-// Simple function to check token expiration
-const isTokenExpired = (token) => {
-    if (!token) return true;
-    
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        
-        const { exp } = JSON.parse(jsonPayload);
-        return Date.now() >= exp * 1000;
-    } catch (error) {
-        console.error('Error checking token expiration:', error);
-        return true;
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
     }
+    return context;
 };
 
-// Create a separate component to use hooks
-const AuthContextProvider = ({ children }) => {
+export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState(null);
@@ -68,9 +56,9 @@ const AuthContextProvider = ({ children }) => {
             localStorage.removeItem('subscription');
             setIsAuthenticated(false);
             setUser(null);
-            setIsTokenExpiredState(true);
-            // Navigate to auth page
-            navigate('/auth', { replace: true });
+            setIsTokenExpiredState(false);
+            // Navigate to home page
+            navigate('/', { replace: true });
         }
     }, [navigate]);
 
@@ -80,116 +68,79 @@ const AuthContextProvider = ({ children }) => {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('subscription');
-
-        // Clear cookies
-        document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         
-        // Reset all auth states
         setIsAuthenticated(false);
         setUser(null);
-        setIsTokenExpiredState(false);
+        setIsTokenExpiredState(true);
+    }, []);
 
-        // Call the logout endpoint to clear server-side session
+    // Function to check if token is expired
+    const isTokenExpired = (token) => {
+        if (!token) return true;
         try {
-            await fetch('http://localhost:6001/api/users/logout', {
-                method: 'POST',
-                credentials: 'include',
-            });
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            return decodedToken.exp * 1000 < Date.now();
         } catch (error) {
-            console.error('Error during logout:', error);
+            console.error('Token validation error:', error);
+            return true;
         }
-    }, []);
+    };
 
-    // Effect to check token expiration periodically
-    useEffect(() => {
-        let checkTokenInterval;
-        
-        const checkToken = () => {
-            const token = localStorage.getItem('token');
-            if (token && isTokenExpired(token)) {
-                setIsTokenExpiredState(true);
-                setIsAuthenticated(false);
-                setUser(null);
-            }
-        };
-
-        if (isAuthenticated) {
-            checkToken(); // Check immediately
-            checkTokenInterval = setInterval(checkToken, 60000); // Then check every minute
-        }
-
-        return () => {
-            if (checkTokenInterval) {
-                clearInterval(checkTokenInterval);
-            }
-        };
-    }, [isAuthenticated]);
-
-    useEffect(() => {
-        const checkAuth = () => {
-            try {
-                const token = localStorage.getItem('token');
-                const userId = localStorage.getItem('userId');
-                const username = localStorage.getItem('username');
-                const subscription = localStorage.getItem('subscription');
-
-                if (token && userId) {
-                    // Check if token is expired
-                    if (isTokenExpired(token)) {
-                        setIsAuthenticated(false);
-                        setUser(null);
-                    } else {
-                        setIsAuthenticated(true);
-                        setUser({
-                            userId,
-                            username,
-                            subscription
-                        });
-                    }
-                } else {
-                    setIsAuthenticated(false);
-                    setUser(null);
-                }
-            } catch (error) {
-                console.error('Auth check error:', error);
-                setIsAuthenticated(false);
-                setUser(null);
-            }
+    const checkAuth = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setIsAuthenticated(false);
+            setUser(null);
             setIsLoading(false);
-        };
+            return;
+        }
 
+        try {
+            // Check token expiration
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            if (decodedToken.exp * 1000 < Date.now()) {
+                logout();
+                return;
+            }
+
+            // Get user info from localStorage
+            const userId = localStorage.getItem('userId');
+            const username = localStorage.getItem('username');
+            const subscription = localStorage.getItem('subscription');
+
+            if (!userId || !username) {
+                throw new Error('User info missing');
+            }
+
+            setUser({
+                userId,
+                username,
+                subscription
+            });
+            setIsAuthenticated(true);
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            logout();
+        } finally {
+            setIsLoading(false);
+        }
+    }, [logout]);
+
+    useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
     return (
         <AuthContext.Provider value={{ 
             isAuthenticated, 
-            isLoading, 
             user, 
             login, 
             logout,
             clearSession,
-            isTokenExpired: isTokenExpiredState 
+            isLoading,
+            isTokenExpiredState
         }}>
             {children}
         </AuthContext.Provider>
     );
-};
-
-// Wrapper component that provides Router context
-export const AuthProvider = ({ children }) => {
-    return (
-        <AuthContextProvider>
-            {children}
-        </AuthContextProvider>
-    );
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 };

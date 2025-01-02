@@ -235,71 +235,70 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
  */
 router.get("/", optionalAuth, async (req, res) => {
   try {
-    let { page, limit } = req.query;
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 12;
-
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const type = req.query.type || 'all';
     const skip = (page - 1) * limit;
-    const query = { isSold: false };
 
-    const ideas = await Idea.find(query, {
-      contentRaw: 0,
-      contentHtml: 0,
-      contentImages: 0,
-    })
-      .populate({
-        path: "creator",
-        populate: {
-          path: "postedIdeas",
-          select: "rating",
-        },
+    // Base query
+    let query = { isSold: false };
+
+    // Add type-specific filters
+    if (type === 'recommendations') {
+      // For recommendations:
+      // 1. If user is logged in, exclude their ideas
+      // 2. Sort by rating and recency
+      // 3. Only show ideas with thumbnails for better presentation
+      query = {
+        ...query,
+        ...(req.user && { creator: { $ne: req.user._id } }),  // Exclude user's ideas if logged in
+        thumbnailImage: { $exists: true, $ne: "" }  // Only show ideas with thumbnails
+      };
+    }
+
+    // Get total count for pagination
+    const total = await Idea.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    // Get ideas with pagination and sorting
+    let ideas = await Idea.find(query)
+      .sort({ 
+        rating: -1,        // Higher rated first
+        createdAt: -1      // Then newer ones
       })
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 });
+      .populate('creator', 'username email')
+      .lean();
 
-    const totalCount = await Idea.countDocuments(query);
-    const totalPages = Math.ceil(totalCount / limit);
+    // Process ideas
+    ideas = ideas.map(idea => ({
+      _id: idea._id,
+      title: idea.title,
+      preview: idea.preview,
+      price: idea.price,
+      rating: idea.rating || 0,
+      thumbnailImage: idea.thumbnailImage,
+      categories: idea.categories,
+      seller: {
+        _id: idea.creator._id,
+        username: idea.creator.username
+      },
+      createdAt: idea.createdAt
+    }));
 
-    // Helper to sanitize the creator
-    const sanitizeUser = (userDoc) => {
-      if (!userDoc) return null;
-      return {
-        _id: userDoc._id,
-        username: userDoc.username,
-        averageRating: userDoc.averageRating || 0,
-      };
-    };
-
-    const resultIdeas = ideas.map((idea) => {
-      return {
-        _id: idea._id,
-        title: idea.title,
-        preview: idea.preview,
-        price: idea.price,
-        creator: sanitizeUser(idea.creator),
-        isSold: idea.isSold,
-        thumbnailImage: idea.thumbnailImage,
-        rating: idea.rating,
-        categories: idea.categories, // [{ main, sub }]
-        createdAt: idea.createdAt,
-        updatedAt: idea.updatedAt,
-        boughtAt: idea.boughtAt,
-      };
-    });
-
-    return res.status(200).json({
-      message: "Unsold ideas fetched successfully (partial info)",
+    res.json({
+      ideas,
       pagination: {
         currentPage: page,
         totalPages,
-        pageSize: limit,
-        totalCount,
-      },
-      ideas: resultIdeas,
+        totalItems: total,
+        hasMore: page < totalPages
+      }
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Error fetching ideas:', error);
+    res.status(500).json({ message: "Error fetching ideas", error: error.message });
   }
 });
 

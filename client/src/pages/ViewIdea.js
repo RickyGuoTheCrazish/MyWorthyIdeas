@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/editor/RichTextEditor';
+import AuthModal from '../components/modals/AuthModal';
 import styles from './ViewIdea.module.css';
 import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt } from 'react-icons/fa';
 import 'react-quill/dist/quill.snow.css';
@@ -17,6 +18,7 @@ const ViewIdea = () => {
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [ratingLoading, setRatingLoading] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     useEffect(() => {
         const fetchIdea = async () => {
@@ -60,7 +62,7 @@ const ViewIdea = () => {
 
     const handleBuy = async () => {
         if (!isAuthenticated) {
-            navigate('/login', { state: { from: `/ideas/${ideaId}` } });
+            setShowAuthModal(true);
             return;
         }
 
@@ -138,7 +140,11 @@ const ViewIdea = () => {
     };
 
     const handleLogin = () => {
-        navigate('/login', { state: { from: `/ideas/${ideaId}` } });
+        setShowAuthModal(true);
+    };
+
+    const handleCloseAuthModal = () => {
+        setShowAuthModal(false);
     };
 
     if (loading) {
@@ -211,6 +217,13 @@ const ViewIdea = () => {
 
     return (
         <div className={styles.container}>
+            {showAuthModal && (
+                <AuthModal 
+                    isOpen={showAuthModal}
+                    mode="login"
+                    onClose={handleCloseAuthModal}
+                />
+            )}
             <header className={styles.header}>
                 <h1 className={styles.title}>{idea.title}</h1>
                 <div className={styles.meta}>
@@ -287,7 +300,7 @@ const ViewIdea = () => {
                             ) : (
                                 <button 
                                     className={`${styles.actionButton} ${styles.loginButton}`}
-                                    onClick={() => navigate('/login')}
+                                    onClick={handleLogin}
                                 >
                                     <FaSignInAlt /> Login to Buy
                                 </button>

@@ -1,15 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import SessionExpiredModal from '../components/modals/SessionExpiredModal';
 import styles from './CreateIdea.module.css';
 import { FaBold, FaItalic, FaUnderline, FaLink, FaImage, FaCoins } from 'react-icons/fa';
 import { VALID_MAIN_CATEGORIES, SUBCATS_BY_MAIN } from '../utils/categories';
 import ImageCropper from '../components/common/ImageCropper';
 import RichTextEditor from '../components/editor/RichTextEditor';
-import ImagePicker from '../components/editor/ImagePicker'; // Fixed import path
+import ImagePicker from '../components/editor/ImagePicker';
 
 const CreateIdea = () => {
     const navigate = useNavigate();
+    const { isAuthenticated, isTokenExpiredState, clearSession } = useAuth();
     const [currentStep, setCurrentStep] = useState(1);
+    const [showSessionExpired, setShowSessionExpired] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         brief: '',
@@ -28,8 +32,66 @@ const CreateIdea = () => {
     const [editorContent, setEditorContent] = useState('');
     const [imageMapping, setImageMapping] = useState(new Map());
     const quillRef = useRef(null);
+    const [lastTokenCheck, setLastTokenCheck] = useState(Date.now());
+
+    // Check authentication at component mount
+    useEffect(() => {
+        if (!isAuthenticated || isTokenExpiredState) {
+            setShowSessionExpired(true);
+        }
+    }, [isAuthenticated, isTokenExpiredState]);
+
+    // Periodic token check (every 5 minutes)
+    useEffect(() => {
+        const checkToken = () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setShowSessionExpired(true);
+                return;
+            }
+
+            try {
+                const decodedToken = JSON.parse(atob(token.split('.')[1]));
+                if (decodedToken.exp * 1000 < Date.now()) {
+                    setShowSessionExpired(true);
+                }
+            } catch (error) {
+                console.error('Token validation error:', error);
+                setShowSessionExpired(true);
+            }
+        };
+
+        const interval = setInterval(() => {
+            checkToken();
+        }, 300000); // Check every 5 minutes
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // Check token before any important action
+    const validateToken = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setShowSessionExpired(true);
+            return false;
+        }
+
+        try {
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            if (decodedToken.exp * 1000 < Date.now()) {
+                setShowSessionExpired(true);
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('Token validation error:', error);
+            setShowSessionExpired(true);
+            return false;
+        }
+    };
 
     const handleInputChange = (field, value) => {
+        if (!validateToken()) return;
         setFormData(prev => ({
             ...prev,
             [field]: value
@@ -37,11 +99,12 @@ const CreateIdea = () => {
     };
 
     const handleEditorChange = (content) => {
-        console.log('Editor content changed:', content); // Debug log
+        if (!validateToken()) return;
         setEditorContent(content);
     };
 
     const handleAddCategory = () => {
+        if (!validateToken()) return;
         if (categories.length >= 3) {
             alert('Maximum 3 categories allowed');
             return;
@@ -51,6 +114,7 @@ const CreateIdea = () => {
     };
 
     const handleMainCategoryChange = (mainCat) => {
+        if (!validateToken()) return;
         setCurrentCategory({
             main: mainCat,
             sub: SUBCATS_BY_MAIN[mainCat][0]
@@ -58,6 +122,7 @@ const CreateIdea = () => {
     };
 
     const handleSubCategoryChange = (subCat) => {
+        if (!validateToken()) return;
         setCurrentCategory(prev => ({
             ...prev,
             sub: subCat
@@ -65,6 +130,7 @@ const CreateIdea = () => {
     };
 
     const handleCategorySubmit = () => {
+        if (!validateToken()) return;
         if (currentCategory.main && currentCategory.sub) {
             if (categories.some(cat => 
                 cat.main === currentCategory.main && cat.sub === currentCategory.sub
@@ -78,10 +144,12 @@ const CreateIdea = () => {
     };
 
     const removeCategory = (index) => {
+        if (!validateToken()) return;
         setCategories(categories.filter((_, i) => i !== index));
     };
 
     const handleThumbnailUpload = (e) => {
+        if (!validateToken()) return;
         const file = e.target.files[0];
         if (file) {
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
@@ -94,17 +162,20 @@ const CreateIdea = () => {
     };
 
     const handleCropComplete = (croppedImage) => {
+        if (!validateToken()) return;
         setThumbnailImage(croppedImage);
         setShowCropper(false);
         setImageToProcess(null);
     };
 
     const handleCropCancel = () => {
+        if (!validateToken()) return;
         setShowCropper(false);
         setImageToProcess(null);
     };
 
     const handleImageUpload = async (e) => {
+        if (!validateToken()) return;
         const files = Array.from(e.target.files);
         if (files.length + formData.images.length > 10) {
             alert('Maximum 10 images allowed');
@@ -150,6 +221,7 @@ const CreateIdea = () => {
     };
 
     const handleRemoveImage = (index) => {
+        if (!validateToken()) return;
         const imageToRemove = formData.images[index];
         
         // Remove from formData
@@ -195,6 +267,7 @@ const CreateIdea = () => {
     };
 
     const handleSelectImageFromPicker = (imageData) => {
+        if (!validateToken()) return;
         // Store the mapping of base64 URL to file
         setImageMapping(prev => {
             const newMap = new Map(prev);
@@ -208,6 +281,7 @@ const CreateIdea = () => {
     };
 
     const handleInsertImageIntoEditor = (base64Url) => {
+        if (!validateToken()) return;
         if (quillRef.current) {
             const quill = quillRef.current.getEditor();
             const range = quill.getSelection(true);
@@ -229,6 +303,11 @@ const CreateIdea = () => {
     };
 
     const handleSubmit = async () => {
+        if (!validateToken()) {
+            setShowSessionExpired(true);
+            return;
+        }
+
         try {
             // Validate required fields
             if (!formData.title || !formData.brief || !formData.price || categories.length === 0) {
@@ -353,6 +432,10 @@ const CreateIdea = () => {
     };
 
     const handleConfirm = () => {
+        if (!validateToken()) {
+            setShowSessionExpired(true);
+            return;
+        }
         if (currentStep === 3) {
             handleSubmit();
         } else {
@@ -361,6 +444,10 @@ const CreateIdea = () => {
     };
 
     const handleCancel = () => {
+        if (!validateToken()) {
+            setShowSessionExpired(true);
+            return;
+        }
         const confirmCancel = window.confirm('Are you sure you want to cancel? Your idea will not be saved.');
         if (confirmCancel) {
             navigate('/recommendations');
@@ -369,6 +456,7 @@ const CreateIdea = () => {
 
     return (
         <div className={styles.createIdea}>
+            {showSessionExpired && <SessionExpiredModal />}
             <div className={styles.container}>
                 <div className={styles.header}>
                     <div className={styles.stepsContainer}>

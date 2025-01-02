@@ -10,7 +10,7 @@ const SessionExpiredModal = () => {
         mode: 'login',
         email: null
     });
-    const { clearSession } = useAuth();
+    const { clearSession, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     const handleVerifyEmail = (email) => {
@@ -31,8 +31,9 @@ const SessionExpiredModal = () => {
 
     const handleContinueAsGuest = async () => {
         try {
-            await clearSession(); // Wait for session to be fully cleared
-            navigate('/', { replace: true }); // Navigate to recommendations page
+            await clearSession();
+            // Only navigate away if user chooses to continue as guest
+            navigate('/', { replace: true });
         } catch (error) {
             console.error('Error clearing session:', error);
         }
@@ -42,38 +43,48 @@ const SessionExpiredModal = () => {
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <div className={styles.content}>
-                    <h2 className={styles.title}>Session Expired</h2>
+                    <h2 className={styles.title}>
+                        {isAuthenticated ? 'Session Expired' : 'Login Required'}
+                    </h2>
                     <p className={styles.message}>
-                        Your session has expired. Please log in to continue with full access to all features.
+                        {isAuthenticated 
+                            ? 'Your session has expired. Please log in to continue with full access to all features.'
+                            : 'Please log in to access this feature. Only registered users can access this page.'}
                     </p>
 
                     <div className={styles.actionButtons}>
                         <button 
-                            onClick={() => openAuthModal('login')} 
                             className={styles.loginButton}
+                            onClick={() => openAuthModal('login')}
                         >
                             Log In
                         </button>
                         <button 
-                            onClick={handleContinueAsGuest} 
+                            className={styles.signupButton}
+                            onClick={() => openAuthModal('signup')}
+                        >
+                            Sign Up
+                        </button>
+                        <button 
                             className={styles.guestButton}
+                            onClick={handleContinueAsGuest}
                         >
                             Continue as Guest
                         </button>
                     </div>
                 </div>
-
-                {authModal.isOpen && (
-                    <AuthModal
-                        isOpen={authModal.isOpen}
-                        mode={authModal.mode}
-                        onClose={closeAuthModal}
-                        onVerifyEmail={handleVerifyEmail}
-                        onModeChange={handleModeChange}
-                        email={authModal.email}
-                    />
-                )}
             </div>
+
+            {authModal.isOpen && (
+                <AuthModal
+                    isOpen={authModal.isOpen}
+                    mode={authModal.mode}
+                    onClose={closeAuthModal}
+                    onVerifyEmail={handleVerifyEmail}
+                    onModeChange={handleModeChange}
+                    email={authModal.email}
+                />
+            )}
         </div>
     );
 };
