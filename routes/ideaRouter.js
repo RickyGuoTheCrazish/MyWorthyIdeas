@@ -24,19 +24,15 @@ router.get("/by-category", async (req, res) => {
     // Build category filter
     const categoryFilter = { isSold: false };
     if (category) {
-      // Case-insensitive regex for main category
-      categoryFilter.categories = {
-        $regex: new RegExp(`^${category}$`, 'i')
-      };
-      
       if (subcategory) {
         // If both category and subcategory are provided
-        categoryFilter.categories = { 
-          $all: [
-            { $regex: new RegExp(`^${category}$`, 'i') },
-            { $regex: new RegExp(`^${subcategory}$`, 'i') }
-          ]
-        };
+        categoryFilter.$and = [
+          { 'categories.main': new RegExp(`^${category}$`, 'i') },
+          { 'categories.sub': new RegExp(`^${subcategory}$`, 'i') }
+        ];
+      } else {
+        // If only main category is provided
+        categoryFilter['categories.main'] = new RegExp(`^${category}$`, 'i');
       }
     }
 

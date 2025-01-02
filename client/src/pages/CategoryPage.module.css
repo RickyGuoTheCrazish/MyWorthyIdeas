@@ -1,5 +1,5 @@
 .categoryPage {
-    padding: 24px;
+    padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -8,14 +8,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 2rem;
 }
 
 .header h1 {
     margin: 0;
-    font-size: 1.8em;
+    font-size: 2rem;
     color: #333;
-    text-transform: capitalize;
 }
 
 .sortControls {
@@ -25,14 +24,12 @@
 }
 
 .sortSelect {
-    padding: 8px 12px;
+    padding: 0.5rem 1rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: white;
-    color: #333;
-    font-size: 0.9em;
+    font-size: 1rem;
     cursor: pointer;
-    transition: border-color 0.2s;
 }
 
 .sortSelect:hover {
@@ -44,28 +41,87 @@
     border-color: #007bff;
 }
 
-.ideaGrid {
+.ideasGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 24px;
-    margin-bottom: 24px;
+    gap: 2rem;
+    margin-bottom: 2rem;
 }
 
-.loading {
+.loadingContainer {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 200px;
-    font-size: 1.2em;
-    color: #666;
+    min-height: 300px;
 }
 
-.error {
-    padding: 16px;
-    background-color: #fee;
-    color: #c00;
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.emptyState {
+    text-align: center;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin: 1rem auto;
+    max-width: 600px;
+}
+
+.emptyStateImage {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 1.5rem;
+}
+
+.emptyState h2 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.emptyState p {
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.pageButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    margin: 16px 0;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pageButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pageButton:not(:disabled):hover {
+    background-color: #f0f0f0;
+}
+
+.pageInfo {
+    color: #666;
 }
 
 .noIdeas {
@@ -75,40 +131,6 @@
     color: #666;
     background: #f9f9f9;
     border-radius: 8px;
-}
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 32px;
-}
-
-.pageNav,
-.pageButton {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    background: white;
-    color: #333;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.pageNav:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.pageButton.active {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
-}
-
-.pageNav:hover:not(:disabled),
-.pageButton:hover:not(.active) {
-    background: #f0f0f0;
 }
 
 .ellipsis {

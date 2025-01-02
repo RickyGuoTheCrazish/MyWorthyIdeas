@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import IdeaCard from '../components/ideas/IdeaCard';
 import styles from './CategoryPage.module.css';
 
@@ -11,9 +11,7 @@ const CategoryPage = () => {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-
-    // Get sort preference from URL or default to 'newest'
-    const sortBy = searchParams.get('sortBy') || 'newest';
+    const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'newest');
 
     const formatCategoryName = (name) => {
         // Split by hyphens and capitalize each word
@@ -67,35 +65,12 @@ const CategoryPage = () => {
         fetchIdeas();
     }, [category, subcategory, currentPage, sortBy]);
 
-    const handleSortChange = (newSortBy) => {
-        setSearchParams({ sortBy: newSortBy });
-    };
-
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-        window.scrollTo(0, 0);
-    };
-
-    if (loading) {
-        return <div className={styles.loading}>Loading...</div>;
-    }
-
-    if (error) {
-        return <div className={styles.error}>Error: {error}</div>;
-    }
-
     return (
         <div className={styles.categoryPage}>
             <div className={styles.header}>
-                <h1>
-                    {subcategory ? `${formatCategoryName(category)} - ${formatCategoryName(subcategory)}` : formatCategoryName(category)}
-                </h1>
-                <div className={styles.sortControls}>
-                    <select 
-                        value={sortBy} 
-                        onChange={(e) => handleSortChange(e.target.value)}
-                        className={styles.sortSelect}
-                    >
+                <h1>{formatCategoryName(category)}{subcategory ? ` > ${formatCategoryName(subcategory)}` : ''}</h1>
+                <div className={styles.sortDropdown}>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                         <option value="newest">Newest First</option>
                         <option value="price-low">Price: Low to High</option>
                         <option value="price-high">Price: High to Low</option>
@@ -104,64 +79,50 @@ const CategoryPage = () => {
                 </div>
             </div>
 
-            <div className={styles.ideaGrid}>
-                {ideas.length > 0 ? (
-                    ideas.map(idea => (
-                        <IdeaCard
-                            key={idea._id}
-                            idea={idea}
-                            mode="view"
-                            showRating={true}
-                        />
-                    ))
-                ) : (
-                    <div className={styles.noIdeas}>
-                        No ideas found in this category.
-                    </div>
-                )}
-            </div>
-
-            {ideas.length > 0 && (
-                <div className={styles.pagination}>
-                    <button 
-                        className={styles.pageNav} 
-                        disabled={currentPage === 1}
-                        onClick={() => handlePageChange(currentPage - 1)}
-                    >
-                        ←
-                    </button>
-                    {[...Array(totalPages)].map((_, index) => {
-                        const pageNum = index + 1;
-                        if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                        ) {
-                            return (
-                                <button
-                                    key={pageNum}
-                                    onClick={() => handlePageChange(pageNum)}
-                                    className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
-                                >
-                                    {pageNum}
-                                </button>
-                            );
-                        } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                        ) {
-                            return <span key={pageNum} className={styles.ellipsis}>...</span>;
-                        }
-                        return null;
-                    })}
-                    <button 
-                        className={styles.pageNav}
-                        disabled={currentPage === totalPages}
-                        onClick={() => handlePageChange(currentPage + 1)}
-                    >
-                        →
-                    </button>
+            {loading ? (
+                <div className={styles.loadingContainer}>
+                    <div className={styles.loader}></div>
                 </div>
+            ) : error ? (
+                <div className={styles.emptyState}>
+                    <img 
+                        src="/images/empty-ideas.svg" 
+                        alt="No ideas found" 
+                        className={styles.emptyStateImage}
+                    />
+                    <h2>No Ideas Found</h2>
+                    <p>There are currently no ideas in this category.</p>
+                    <p>Check back later for new ideas!</p>
+                </div>
+            ) : (
+                <>
+                    <div className={styles.ideasGrid}>
+                        {ideas.map((idea) => (
+                            <IdeaCard key={idea._id} idea={idea} />
+                        ))}
+                    </div>
+                    {totalPages > 1 && (
+                        <div className={styles.pagination}>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className={styles.pageButton}
+                            >
+                                Previous
+                            </button>
+                            <span className={styles.pageInfo}>
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className={styles.pageButton}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

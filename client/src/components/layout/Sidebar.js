@@ -115,12 +115,6 @@ const Sidebar = () => {
                         </NavLink>
                         {expandedCategories[mainCategory] && (
                             <div className={styles.subMenu}>
-                                <NavLink 
-                                    to={`/categories/${formatCategoryPath(mainCategory)}`}
-                                    className={({ isActive }) => `${styles.subMenuItem} ${isActive ? styles.active : ''}`}
-                                >
-                                    All {mainCategory}
-                                </NavLink>
                                 {subCategories.map(subCategory => (
                                     <NavLink 
                                         key={subCategory}
