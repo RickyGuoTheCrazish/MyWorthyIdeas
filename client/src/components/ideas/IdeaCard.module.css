@@ -111,10 +111,21 @@
     gap: 8px;
 }
 
+.sellerInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .sellerName {
     font-size: 0.9em;
     color: #666;
     font-weight: 500;
+}
+
+.purchaseDate {
+    font-size: 0.8em;
+    color: #888;
 }
 
 .price {

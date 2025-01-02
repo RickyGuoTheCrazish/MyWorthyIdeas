@@ -5,10 +5,20 @@ import styles from './IdeaCard.module.css';
 
 const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     const navigate = useNavigate();
-    const { _id, title, rating, price, seller, thumbnailImage } = idea;
+    const { _id, title, rating, price, seller, thumbnailImage, boughtAt } = idea;
 
     const formatPrice = (price) => {
         return typeof price === 'number' ? price.toFixed(2) : '0.00';
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     };
 
     const handleCardClick = (e) => {
@@ -63,10 +73,15 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 </div>
             )}
             <div className={styles.footer}>
-                <div className={styles.seller}>
+                <div className={styles.sellerInfo}>
                     <span className={styles.sellerName}>
                         {seller?.username || 'Unknown Seller'}
                     </span>
+                    {mode === 'view' && boughtAt && (
+                        <span className={styles.purchaseDate}>
+                            Purchased: {formatDate(boughtAt)}
+                        </span>
+                    )}
                 </div>
                 <button 
                     className={`${styles.actionButton} ${mode === 'edit' ? styles.editButton : styles.viewButton}`}

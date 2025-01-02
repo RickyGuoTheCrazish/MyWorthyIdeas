@@ -417,7 +417,7 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
     const user = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: false },  // Only get unsold ideas
-      select: "title preview price thumbnailImage rating category isSold createdAt",
+      select: "title preview price thumbnailImage rating categories isSold createdAt",
       options: {
         skip,
         limit,
@@ -483,7 +483,11 @@ router.get("/:userId/bought-ideas", authProtecter, async (req, res) => {
     const totalCount = await Idea.countDocuments({ _id: { $in: user.boughtIdeas } });
 
     const purchasedIdeas = await Idea.find({ _id: { $in: user.boughtIdeas } })
-      .select("title preview price thumbnailImage rating category isSold boughtAt")
+      .select("title preview price thumbnailImage rating categories isSold boughtAt creator")
+      .populate({
+        path: 'creator',
+        select: 'username averageRating'
+      })
       .sort({ boughtAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -498,7 +502,14 @@ router.get("/:userId/bought-ideas", authProtecter, async (req, res) => {
         pageSize: limit,
         totalCount,
       },
-      boughtIdeas: purchasedIdeas,
+      boughtIdeas: purchasedIdeas.map(idea => ({
+        ...idea.toObject(),
+        seller: {
+          _id: idea.creator._id,
+          username: idea.creator.username,
+          averageRating: idea.creator.averageRating || 0
+        }
+      })),
     });
   } catch (error) {
     console.error("Error fetching bought ideas:", error);
@@ -521,7 +532,7 @@ router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
     const user = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: true },  // Only get sold ideas
-      select: "title preview price thumbnailImage rating category isSold createdAt",
+      select: "title preview price thumbnailImage rating categories isSold createdAt",
       options: {
         skip,
         limit,
@@ -665,5 +676,6 @@ router.get('/:userId/sold-ideas', authProtecter, async (req, res) => {
         res.status(500).json({ message: 'Error fetching sold ideas' });
     }
 });
+
 
 module.exports = router;

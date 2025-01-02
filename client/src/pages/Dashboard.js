@@ -12,7 +12,9 @@ const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
+    const subscription = localStorage.getItem('subscription');
+    const isSeller = subscription === 'seller';
 
     useEffect(() => {
         const fetchIdeas = async () => {
@@ -22,9 +24,15 @@ const Dashboard = () => {
                     throw new Error('No token found');
                 }
 
-                const endpoint = activeTab === 'unsold' 
-                    ? `/api/users/${user.userId}/posted-ideas`
-                    : `/api/users/${user.userId}/sold-ideas`;
+                let endpoint;
+                if (isSeller) {
+                    endpoint = activeTab === 'unsold' 
+                        ? `/api/users/${user.userId}/posted-ideas`
+                        : `/api/users/${user.userId}/sold-ideas`;
+                } else {
+                    // For buyers, only show bought ideas
+                    endpoint = `/api/users/${user.userId}/bought-ideas`;
+                }
 
                 const response = await fetch(`http://localhost:6001${endpoint}?page=${currentPage}&limit=12`, {
                     headers: {
@@ -37,24 +45,18 @@ const Dashboard = () => {
                 }
 
                 const data = await response.json();
-                setIdeas(data.ideas || []);
-                // Ensure at least 1 page even if no ideas
-                const total = Math.max(1, data.pagination?.totalPages || 1);
-                setTotalPages(total);
+                setIdeas(isSeller ? (data.ideas || []) : (data.boughtIdeas || []));
+                setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
                 setLoading(false);
             } catch (err) {
                 console.error('Dashboard error:', err);
                 setError(err.message);
                 setLoading(false);
-                if (err.message === 'No token found') {
-                    logout();
-                    navigate('/');
-                }
             }
         };
 
         fetchIdeas();
-    }, [activeTab, currentPage, navigate, user, logout]);
+    }, [activeTab, currentPage, user.userId, isSeller]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -70,75 +72,88 @@ const Dashboard = () => {
 
     return (
         <div className={styles.dashboard}>
-            <h1>My Ideas</h1>
+            <h1>{isSeller ? 'My Ideas' : 'Purchased Ideas'}</h1>
             
-            <div className={styles.tabs}>
-                <button 
-                    className={`${styles.tab} ${activeTab === 'unsold' ? styles.active : ''}`}
-                    onClick={() => setActiveTab('unsold')}
-                >
-                    Posted Ideas (Unsold)
-                </button>
-                <button 
-                    className={`${styles.tab} ${activeTab === 'sold' ? styles.active : ''}`}
-                    onClick={() => setActiveTab('sold')}
-                >
-                    Sold Ideas (History)
-                </button>
-            </div>
+            {isSeller && (
+                <div className={styles.tabs}>
+                    <button 
+                        className={`${styles.tab} ${activeTab === 'unsold' ? styles.active : ''}`}
+                        onClick={() => setActiveTab('unsold')}
+                    >
+                        Posted Ideas (Unsold)
+                    </button>
+                    <button 
+                        className={`${styles.tab} ${activeTab === 'sold' ? styles.active : ''}`}
+                        onClick={() => setActiveTab('sold')}
+                    >
+                        Sold Ideas (History)
+                    </button>
+                </div>
+            )}
 
             <div className={styles.ideaGrid}>
-                {ideas.map(idea => (
-                    <IdeaCard
-                        key={idea._id}
-                        idea={idea}
-                        mode="edit"
-                        showRating={activeTab === 'sold'}
-                    />
-                ))}
+                {ideas.length > 0 ? (
+                    ideas.map(idea => (
+                        <IdeaCard
+                            key={idea._id}
+                            idea={idea}
+                            mode={isSeller ? "edit" : "view"}
+                            showRating={isSeller ? (activeTab === 'sold') : true}
+                        />
+                    ))
+                ) : (
+                    <div className={styles.noIdeas}>
+                        {isSeller 
+                            ? (activeTab === 'unsold' 
+                                ? 'You haven\'t posted any ideas yet.' 
+                                : 'You haven\'t sold any ideas yet.')
+                            : 'You haven\'t purchased any ideas yet.'}
+                    </div>
+                )}
             </div>
 
-            <div className={styles.pagination}>
-                <button 
-                    className={styles.pageNav} 
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                >
-                    ←
-                </button>
-                {[...Array(totalPages)].map((_, index) => {
-                    const pageNum = index + 1;
-                    // Show first page, last page, current page, and pages around current page
-                    if (
-                        pageNum === 1 ||
-                        pageNum === totalPages ||
-                        (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                    ) {
-                        return (
-                            <button
-                                key={pageNum}
-                                onClick={() => handlePageChange(pageNum)}
-                                className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
-                            >
-                                {pageNum}
-                            </button>
-                        );
-                    } else if (
-                        pageNum === currentPage - 3 ||
-                        pageNum === currentPage + 3
-                    ) {
-                        return <span key={pageNum} className={styles.ellipsis}>...</span>;
-                    }
-                    return null;
-                })}
-                <button 
-                    className={styles.pageNav}
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                >
-                    →
-                </button>
-            </div>
+            {ideas.length > 0 && (
+                <div className={styles.pagination}>
+                    <button 
+                        className={styles.pageNav} 
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                    >
+                        ←
+                    </button>
+                    {[...Array(totalPages)].map((_, index) => {
+                        const pageNum = index + 1;
+                        if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                        ) {
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => handlePageChange(pageNum)}
+                                    className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        } else if (
+                            pageNum === currentPage - 3 ||
+                            pageNum === currentPage + 3
+                        ) {
+                            return <span key={pageNum} className={styles.ellipsis}>...</span>;
+                        }
+                        return null;
+                    })}
+                    <button 
+                        className={styles.pageNav}
+                        disabled={currentPage === totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                    >
+                        →
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
