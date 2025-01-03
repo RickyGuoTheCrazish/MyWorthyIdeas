@@ -20,7 +20,7 @@ const PurchaseSuccessModal = ({ idea, onClose }) => {
         onClose();
         navigate(`/ideas/${idea._id}`);
         // Refresh the page to show the full idea content
-        window.location.reload();
+        // window.location.reload();
     };
 
     return (

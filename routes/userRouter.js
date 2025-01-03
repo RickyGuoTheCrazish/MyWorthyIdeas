@@ -707,4 +707,23 @@ router.get("/me", authProtecter, async (req, res) => {
   }
 });
 
+// Get user's financial data
+router.get('/financial-data', authProtecter, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('credits earnings subscription');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({
+      credits: user.credits,
+      earnings: user.earnings,
+      subscription: user.subscription
+    });
+  } catch (error) {
+    console.error('Error fetching financial data:', error);
+    res.status(500).json({ message: 'Error fetching financial data' });
+  }
+});
+
 module.exports = router;

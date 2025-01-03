@@ -13,7 +13,7 @@ import 'react-quill/dist/quill.bubble.css';
 const ViewIdea = () => {
     const { ideaId } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated, updateUserFinancials } = useAuth();
+    const { user, isAuthenticated, updateUserFinancials, fetchFinancialData } = useAuth();
     const [idea, setIdea] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -89,7 +89,11 @@ const ViewIdea = () => {
                 return;
             }
 
-            // Refresh idea data after purchase
+            // Close modals and show success
+            setShowPurchaseModal(false);
+            setShowSuccessModal(true);
+
+            // Fetch updated idea data
             const updatedResponse = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -97,14 +101,9 @@ const ViewIdea = () => {
             });
             const { idea: updatedIdea } = await updatedResponse.json();
             setIdea(updatedIdea);
-            setShowPurchaseModal(false);
-            setShowSuccessModal(true);
 
-            // Refresh page to get updated credits
-            window.location.reload();
-
-            // Update user's credits/earnings
-            await updateUserFinancials();
+            // Update financial data
+            await fetchFinancialData();
         } catch (error) {
             console.error('Error buying idea:', error);
             setPurchaseError(error.message || 'An unexpected error occurred');
@@ -269,7 +268,7 @@ const ViewIdea = () => {
                     idea={idea}
                     onClose={() => {
                         setShowSuccessModal(false);
-                        window.location.reload();
+                        // window.location.reload();
                     }}
                 />
             )}

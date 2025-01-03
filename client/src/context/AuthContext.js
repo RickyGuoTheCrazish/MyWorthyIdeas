@@ -18,7 +18,40 @@ export const AuthProvider = ({ children }) => {
     const [isTokenExpiredState, setIsTokenExpiredState] = useState(false);
     const navigate = useNavigate();
 
-    const login = useCallback((userData) => {
+    // Function to fetch financial data
+    const fetchFinancialData = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch('http://localhost:6001/api/users/financial-data', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch financial data');
+            }
+
+            const data = await response.json();
+            
+            // Update user state with new financial data
+            setUser(prevUser => ({
+                ...prevUser,
+                credits: data.credits,
+                earnings: data.earnings,
+                subscription: data.subscription
+            }));
+
+            return data;
+        } catch (error) {
+            console.error('Failed to fetch financial data:', error);
+            throw error;
+        }
+    }, []);
+
+    const login = useCallback(async (userData) => {
         localStorage.setItem('token', userData.token);
         localStorage.setItem('userId', userData.userId);
         localStorage.setItem('username', userData.username);
@@ -27,6 +60,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('earnings', userData.earnings);
         setIsAuthenticated(true);
         setIsTokenExpiredState(false);
+        
+        // Set basic user data
         setUser({
             userId: userData.userId,
             username: userData.username,
@@ -34,7 +69,10 @@ export const AuthProvider = ({ children }) => {
             credits: userData.credits,
             earnings: userData.earnings
         });
-    }, []);
+
+        // Fetch fresh financial data
+        await fetchFinancialData();
+    }, [fetchFinancialData]);
 
     const logout = useCallback(async () => {
         try {
@@ -95,15 +133,15 @@ export const AuthProvider = ({ children }) => {
     };
 
     const checkAuth = useCallback(async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setIsAuthenticated(false);
-            setUser(null);
-            setIsLoading(false);
-            return;
-        }
-
         try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setIsAuthenticated(false);
+                setUser(null);
+                setIsLoading(false);
+                return;
+            }
+
             // Check token expiration
             const decodedToken = JSON.parse(atob(token.split('.')[1]));
             if (decodedToken.exp * 1000 < Date.now()) {
@@ -130,13 +168,16 @@ export const AuthProvider = ({ children }) => {
                 earnings: Number(earnings)
             });
             setIsAuthenticated(true);
+
+            // Fetch fresh financial data
+            await fetchFinancialData();
         } catch (error) {
             console.error('Auth check failed:', error);
             logout();
         } finally {
             setIsLoading(false);
         }
-    }, [logout]);
+    }, [logout, fetchFinancialData]);
 
     useEffect(() => {
         checkAuth();
@@ -150,7 +191,8 @@ export const AuthProvider = ({ children }) => {
             logout,
             clearSession,
             isLoading,
-            isTokenExpiredState
+            isTokenExpiredState,
+            fetchFinancialData
         }}>
             {children}
         </AuthContext.Provider>
