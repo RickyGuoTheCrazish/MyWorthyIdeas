@@ -5,7 +5,7 @@ import styles from './IdeaCard.module.css';
 
 const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     const navigate = useNavigate();
-    const { _id, title, rating, price, seller, thumbnailImage, boughtAt } = idea;
+    const { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt } = idea;
 
     const formatPrice = (price) => {
         return typeof price === 'number' ? price.toFixed(2) : '0.00';
@@ -81,7 +81,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
             <div className={styles.footer}>
                 <div className={styles.sellerInfo}>          
                     <span className={styles.sellerName}>
-                        {seller?.username || 'Unknown Seller'}
+                        {(seller?.username || creator?.username) || 'Unknown Seller'}
                     </span>
                     {mode === 'view' && boughtAt && (
                         <span className={styles.purchaseDate}>

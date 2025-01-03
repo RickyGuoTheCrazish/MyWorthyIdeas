@@ -160,8 +160,8 @@ router.get("/search", optionalAuth, async (req, res) => {
         price: idea.price,
         thumbnailImage: idea.thumbnailImage,
         creator: {
-          username: idea.creator.username,
-          averageRating: idea.creator.averageRating
+          username: idea.creator?.username,
+          averageRating: idea.creator?.averageRating
         },
         categories: idea.categories,
         isSold: idea.isSold,
@@ -191,8 +191,8 @@ router.get("/search", optionalAuth, async (req, res) => {
         price: idea.price,
         thumbnailImage: idea.thumbnailImage,
         creator: {
-          username: idea.creator.username,
-          averageRating: idea.creator.averageRating
+          username: idea.creator?.username,
+          averageRating: idea.creator?.averageRating
         },
         categories: idea.categories,
         isSold: idea.isSold,
