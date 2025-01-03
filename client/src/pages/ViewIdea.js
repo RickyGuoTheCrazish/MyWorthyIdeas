@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthModal from '../components/modals/AuthModal';
+import PurchaseModal from '../components/modals/PurchaseModal';
+import PurchaseSuccessModal from '../components/modals/PurchaseSuccessModal';
+import PurchaseErrorModal from '../components/modals/PurchaseErrorModal';
 import styles from './ViewIdea.module.css';
 import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt } from 'react-icons/fa';
 import 'react-quill/dist/quill.snow.css';
@@ -19,6 +22,9 @@ const ViewIdea = () => {
     const [hoverRating, setHoverRating] = useState(0);
     const [ratingLoading, setRatingLoading] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [purchaseError, setPurchaseError] = useState(null);
 
     useEffect(() => {
         const fetchIdea = async () => {
@@ -68,6 +74,7 @@ const ViewIdea = () => {
 
         try {
             setBuyLoading(true);
+            setPurchaseError(null);
             const token = localStorage.getItem('token');
             const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}/buy`, {
                 method: 'POST',
@@ -78,7 +85,8 @@ const ViewIdea = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to purchase idea');
+                setPurchaseError(errorData.message || 'Failed to purchase idea');
+                return;
             }
 
             // Refresh idea data after purchase
@@ -89,9 +97,11 @@ const ViewIdea = () => {
             });
             const { idea: updatedIdea } = await updatedResponse.json();
             setIdea(updatedIdea);
+            setShowPurchaseModal(false);
+            setShowSuccessModal(true);
         } catch (error) {
             console.error('Error buying idea:', error);
-            setError(error.message);
+            setPurchaseError(error.message || 'An unexpected error occurred');
         } finally {
             setBuyLoading(false);
         }
@@ -143,8 +153,21 @@ const ViewIdea = () => {
         setShowAuthModal(true);
     };
 
+    const handleBuyClick = () => {
+        if (!isAuthenticated) {
+            setShowAuthModal(true);
+            return;
+        }
+        setShowPurchaseModal(true);
+    };
+
     const handleCloseAuthModal = () => {
         setShowAuthModal(false);
+    };
+
+    const handleCloseSuccessModal = () => {
+        setShowSuccessModal(false);
+        window.location.reload(); // Refresh to show full content
     };
 
     const formatId = (id) => {
@@ -224,7 +247,30 @@ const ViewIdea = () => {
                 <AuthModal
                     isOpen={showAuthModal}
                     mode="login"
-                    onClose={handleCloseAuthModal}
+                    onClose={() => setShowAuthModal(false)}
+                />
+            )}
+            {showPurchaseModal && (
+                <PurchaseModal
+                    idea={idea}
+                    userCredits={user?.credits || 0}
+                    onClose={() => setShowPurchaseModal(false)}
+                    onConfirm={handleBuy}
+                />
+            )}
+            {showSuccessModal && (
+                <PurchaseSuccessModal
+                    idea={idea}
+                    onClose={() => {
+                        setShowSuccessModal(false);
+                        window.location.reload();
+                    }}
+                />
+            )}
+            {purchaseError && (
+                <PurchaseErrorModal
+                    error={purchaseError}
+                    onClose={() => setPurchaseError(null)}
                 />
             )}
             <div className={styles.header}>
@@ -316,7 +362,7 @@ const ViewIdea = () => {
                         canBuy && (
                             <button
                                 className={`${styles.actionButton} ${styles.buyButton}`}
-                                onClick={handleBuy}
+                                onClick={handleBuyClick}
                                 disabled={buyLoading}
                             >
                                 <FaShoppingCart />
