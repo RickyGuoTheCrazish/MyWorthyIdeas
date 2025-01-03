@@ -83,7 +83,11 @@ const Layout = ({ children }) => {
                 <div className={styles.userSection}>
                     <div className={styles.credits}>
                         <FaCoins className={styles.creditsIcon} />
-                        <span>{user?.credits || 0}</span>
+                        {user?.subscription === 'buyer' ? (
+                            <span>{user?.credits?.toFixed(2) || '0.00'} Credits</span>
+                        ) : (
+                            <span>${user?.earnings?.toFixed(2) || '0.00'} Earned</span>
+                        )}
                     </div>
                     <div className={styles.userInfo} ref={menuRef}>
                         <div className={styles.userName}>{user?.username}</div>

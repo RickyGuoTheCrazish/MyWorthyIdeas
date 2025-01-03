@@ -23,12 +23,16 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('userId', userData.userId);
         localStorage.setItem('username', userData.username);
         localStorage.setItem('subscription', userData.subscription);
+        localStorage.setItem('credits', userData.credits);
+        localStorage.setItem('earnings', userData.earnings);
         setIsAuthenticated(true);
         setIsTokenExpiredState(false);
         setUser({
             userId: userData.userId,
             username: userData.username,
-            subscription: userData.subscription
+            subscription: userData.subscription,
+            credits: userData.credits,
+            earnings: userData.earnings
         });
     }, []);
 
@@ -54,6 +58,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userId');
             localStorage.removeItem('username');
             localStorage.removeItem('subscription');
+            localStorage.removeItem('credits');
+            localStorage.removeItem('earnings');
             setIsAuthenticated(false);
             setUser(null);
             setIsTokenExpiredState(false);
@@ -68,6 +74,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('subscription');
+        localStorage.removeItem('credits');
+        localStorage.removeItem('earnings');
         
         setIsAuthenticated(false);
         setUser(null);
@@ -107,6 +115,8 @@ export const AuthProvider = ({ children }) => {
             const userId = localStorage.getItem('userId');
             const username = localStorage.getItem('username');
             const subscription = localStorage.getItem('subscription');
+            const credits = localStorage.getItem('credits');
+            const earnings = localStorage.getItem('earnings');
 
             if (!userId || !username) {
                 throw new Error('User info missing');
@@ -115,7 +125,9 @@ export const AuthProvider = ({ children }) => {
             setUser({
                 userId,
                 username,
-                subscription
+                subscription,
+                credits: Number(credits),
+                earnings: Number(earnings)
             });
             setIsAuthenticated(true);
         } catch (error) {

@@ -13,7 +13,7 @@ import 'react-quill/dist/quill.bubble.css';
 const ViewIdea = () => {
     const { ideaId } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, updateUserFinancials } = useAuth();
     const [idea, setIdea] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -99,6 +99,12 @@ const ViewIdea = () => {
             setIdea(updatedIdea);
             setShowPurchaseModal(false);
             setShowSuccessModal(true);
+
+            // Refresh page to get updated credits
+            window.location.reload();
+
+            // Update user's credits/earnings
+            await updateUserFinancials();
         } catch (error) {
             console.error('Error buying idea:', error);
             setPurchaseError(error.message || 'An unexpected error occurred');
