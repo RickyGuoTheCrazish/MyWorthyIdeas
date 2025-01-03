@@ -32,35 +32,50 @@
 }
 
 .searchContainer {
+    display: flex;
+    align-items: center;
     position: relative;
+    flex: 1;
     max-width: 600px;
-    width: 100%;
-    margin: 0 auto;
-    justify-self: center;
+    margin: 0 20px;
 }
 
 .searchIcon {
     position: absolute;
     left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
     color: #666;
-    font-size: 1.1em;
+    font-size: 1rem;
 }
 
 .searchInput {
     width: 100%;
-    padding: 8px 12px 8px 40px;
-    border: 1px solid #e0e0e0;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
     border-radius: 20px;
-    font-size: 0.95em;
     outline: none;
-    transition: all 0.2s;
+    transition: border-color 0.2s;
 }
 
 .searchInput:focus {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+    border-color: #007bff;
+}
+
+.searchType {
+    position: absolute;
+    right: 8px;
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.searchType:focus {
+    color: #007bff;
 }
 
 .userSection {

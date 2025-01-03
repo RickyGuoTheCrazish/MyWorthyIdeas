@@ -8,6 +8,7 @@ import EditIdea from "./pages/EditIdea";
 import ViewIdea from "./pages/ViewIdea";
 import Layout from "./components/layout/Layout";
 import CategoryPage from './pages/CategoryPage';
+import SearchResults from './pages/SearchResults';
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -86,6 +87,14 @@ const AppRoutes = () => {
         element={
           <Layout>
             <CategoryPage />
+          </Layout>
+        } 
+      />
+      <Route 
+        path="/search" 
+        element={
+          <Layout>
+            <SearchResults />
           </Layout>
         } 
       />

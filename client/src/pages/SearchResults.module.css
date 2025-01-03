@@ -1,0 +1,44 @@
+.searchResults {
+    padding: 24px;
+}
+
+.title {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 24px;
+}
+
+.resultsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+    color: #dc3545;
+    font-size: 1.2rem;
+}
+
+.noResults {
+    text-align: center;
+    padding: 48px;
+    color: #666;
+    font-size: 1.1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 24px 0;
+}

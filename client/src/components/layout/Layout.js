@@ -13,6 +13,8 @@ const Layout = ({ children }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login', email: '' });
     const [showGuestIndicator, setShowGuestIndicator] = useState(false);
+    const [searchType, setSearchType] = useState('title'); // 'title' or 'id'
+    const [searchQuery, setSearchQuery] = useState('');
     const menuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -29,9 +31,9 @@ const Layout = ({ children }) => {
     }, [isAuthenticated]);
 
     const handleSearch = (e) => {
-        if (e.key === 'Enter') {
-            // Handle search
-            console.log('Search:', e.target.value);
+        if (e.key === 'Enter' && searchQuery.trim()) {
+            // Navigate to search results page with query parameters
+            navigate(`/search?type=${searchType}&query=${encodeURIComponent(searchQuery.trim())}`);
         }
     };
 
@@ -140,9 +142,21 @@ const Layout = ({ children }) => {
                         <input
                             type="text"
                             className={styles.searchInput}
-                            placeholder="Search ideas..."
+                            placeholder={searchType === 'title' 
+                                ? "Search ideas by title..." 
+                                : "Search by ID (full ID or #XXXXXX format)"}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyPress={handleSearch}
                         />
+                        <select 
+                            className={styles.searchType}
+                            value={searchType}
+                            onChange={(e) => setSearchType(e.target.value)}
+                        >
+                            <option value="title">Title</option>
+                            <option value="id">ID</option>
+                        </select>
                     </div>
                     {renderAuthSection()}
                 </header>

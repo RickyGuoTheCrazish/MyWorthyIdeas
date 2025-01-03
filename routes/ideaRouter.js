@@ -109,6 +109,106 @@ router.get("/by-category", async (req, res) => {
   }
 });
 
+// Search ideas by title or ID (must be before :ideaId routes)
+router.get("/search", optionalAuth, async (req, res) => {
+  try {
+    const { type = 'title', query = '' } = req.query;
+    
+    if (!query.trim()) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    let searchQuery = {};
+    
+    if (type === 'id') {
+      // Clean up the ID by removing # and whitespace, and take last 6 characters
+      const cleanId = query.replace('#', '').trim().toUpperCase().slice(-6);
+      
+      // Use aggregation pipeline to match the last 6 characters of the _id
+      const ideas = await Idea.aggregate([
+        {
+          $addFields: {
+            shortId: {
+              $toUpper: {
+                $substr: [
+                  { $toString: "$_id" },
+                  { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
+                  6
+                ]
+              }
+            }
+          }
+        },
+        {
+          $match: {
+            shortId: cleanId,
+            ...(!req.user ? { isSold: false } : {})
+          }
+        },
+        {
+          $limit: 20
+        }
+      ]).exec();
+
+      // Populate creator information
+      await Idea.populate(ideas, { path: 'creator', select: 'username averageRating' });
+
+      // Map ideas to include only necessary fields
+      const sanitizedIdeas = ideas.map(idea => ({
+        _id: idea._id,
+        title: idea.title,
+        price: idea.price,
+        thumbnailImage: idea.thumbnailImage,
+        creator: {
+          username: idea.creator.username,
+          averageRating: idea.creator.averageRating
+        },
+        categories: idea.categories,
+        isSold: idea.isSold,
+        boughtAt: idea.buyers?.find(buyer => 
+          req.user && buyer.userId.toString() === req.user._id.toString()
+        )?.boughtAt
+      }));
+
+      return res.json({ ideas: sanitizedIdeas });
+    } else {
+      // If searching by title, use case-insensitive partial match
+      searchQuery.title = new RegExp(query.trim(), 'i');
+
+      // Don't show sold ideas in search results unless the user is authenticated
+      if (!req.user) {
+        searchQuery.isSold = false;
+      }
+
+      const ideas = await Idea.find(searchQuery)
+        .populate('creator', 'username averageRating')
+        .limit(20);
+
+      // Map ideas to include only necessary fields
+      const sanitizedIdeas = ideas.map(idea => ({
+        _id: idea._id,
+        title: idea.title,
+        price: idea.price,
+        thumbnailImage: idea.thumbnailImage,
+        creator: {
+          username: idea.creator.username,
+          averageRating: idea.creator.averageRating
+        },
+        categories: idea.categories,
+        isSold: idea.isSold,
+        boughtAt: idea.buyers?.find(buyer => 
+          req.user && buyer.userId.toString() === req.user._id.toString()
+        )?.boughtAt
+      }));
+
+      return res.json({ ideas: sanitizedIdeas });
+    }
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ message: "Error searching ideas" });
+  }
+});
+
 /**
  * CREATE A NEW IDEA (basic info).
  * POST /ideas/create
