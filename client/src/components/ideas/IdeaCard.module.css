@@ -22,6 +22,7 @@
     top: 8px;
     right: 8px;
     background: #007bff;
+    opacity: 0.8;
     color: white;
     padding: 4px 8px;
     border-radius: 12px;
@@ -36,6 +37,23 @@
 .priceIcon {
     color: #ffd700;
     font-size: 0.9em;
+}
+
+.idTag{
+    position: absolute;
+    bottom: 50px;
+    right: 10px;
+    background: #ffffff;
+    color: #9b9b9b;
+    padding: 4px 8px;
+    opacity: 0.8;
+    /* border-radius: 12px; */
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85em;
+    z-index: 1;
 }
 
 .title {

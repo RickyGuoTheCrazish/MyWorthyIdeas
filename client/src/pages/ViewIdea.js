@@ -147,6 +147,10 @@ const ViewIdea = () => {
         setShowAuthModal(false);
     };
 
+    const formatId = (id) => {
+        return '#' + id.toString().slice(-6).toUpperCase();
+    };
+
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
@@ -223,8 +227,10 @@ const ViewIdea = () => {
                     onClose={handleCloseAuthModal}
                 />
             )}
-            <header className={styles.header}>
-                <h1 className={styles.title}>{idea.title}</h1>
+            <div className={styles.header}>
+                <div className={styles.titleSection}>
+                    <h1 className={styles.title}>{idea.title}</h1>
+                </div>
                 <div className={styles.meta}>
                     <div className={styles.leftMeta}>
                         <div className={styles.creator}>
@@ -243,6 +249,8 @@ const ViewIdea = () => {
                                     </span>
                                 ))}
                             </span>
+                            <span className={styles.separator}>•</span>
+                            <span className={styles.idTag}><span>ID:</span>{formatId(idea._id)}</span>
                         </div>
                     </div>
                     <div className={styles.price}>
@@ -250,7 +258,7 @@ const ViewIdea = () => {
                         {idea.price.toFixed(2)}
                     </div>
                 </div>
-            </header>
+            </div>
 
             <div className={styles.mainContent}>
                 <div className={styles.contentArea}>

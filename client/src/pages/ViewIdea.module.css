@@ -34,7 +34,6 @@
 .leftMeta {
     display: flex;
     align-items: center;
-    margin-left: 0;
 }
 
 .creator {
@@ -42,14 +41,11 @@
     align-items: center;
     gap: 0.5rem;
     color: #666;
-    font-size: 0.95rem;
 }
 
 .rating {
-    color: #f0b000;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    color: #ffd700;
+    margin-left: 0.5rem;
 }
 
 .separator {
@@ -70,6 +66,14 @@
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.9rem;
+}
+
+.idTag {
+    color: #666;
+    font-size: 0.9rem;
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
 }
 
 .price {

@@ -21,6 +21,10 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         });
     };
 
+    const formatId = (id) => {
+        return '#' + id.toString().slice(-6).toUpperCase();
+    };
+
     const handleCardClick = (e) => {
         // Don't trigger card click if clicking the action button
         if (e.target.closest(`.${styles.actionButton}`)) {
@@ -45,6 +49,8 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 {formatPrice(price)}
             </div>
             <h3 className={styles.title}>{title}</h3>
+            <div className={styles.idTag}>{formatId(_id)}</div>
+
             <div className={styles.imageContainer}>
                 {thumbnailImage ? (
                     <img 
@@ -70,10 +76,10 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                             </span>
                         ))}
                     </div>
-                </div>
+                </div>  
             )}
             <div className={styles.footer}>
-                <div className={styles.sellerInfo}>
+                <div className={styles.sellerInfo}>          
                     <span className={styles.sellerName}>
                         {seller?.username || 'Unknown Seller'}
                     </span>
