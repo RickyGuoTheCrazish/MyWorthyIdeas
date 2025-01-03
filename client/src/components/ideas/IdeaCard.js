@@ -5,7 +5,28 @@ import styles from './IdeaCard.module.css';
 
 const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     const navigate = useNavigate();
-    const { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt } = idea;
+    
+    console.log('IdeaCard rendering with idea:', idea);
+    
+    // Return null if idea is not provided
+    if (!idea || typeof idea !== 'object') {
+        console.warn('IdeaCard received invalid idea prop:', idea);
+        return null;
+    }
+
+    // Safely destructure with defaults
+    const {
+        _id = '',
+        title = 'Untitled',
+        rating = 0,
+        price = 0,
+        seller = {},
+        creator = {},
+        thumbnailImage = '',
+        boughtAt = null
+    } = idea;
+
+    console.log('Destructured idea properties:', { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt });
 
     const formatPrice = (price) => {
         return typeof price === 'number' ? price.toFixed(2) : '0.00';
@@ -13,37 +34,35 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return '';
+        }
     };
 
     const formatId = (id) => {
-        return '#' + id.toString().slice(-6).toUpperCase();
-    };
-
-    const handleCardClick = (e) => {
-        // Don't trigger card click if clicking the action button
-        if (e.target.closest(`.${styles.actionButton}`)) {
-            return;
-        }
-        navigate(`/ideas/${_id}`);
-    };
-
-    const handleActionClick = (e) => {
-        e.stopPropagation(); // Prevent card click when clicking the button
-        if (mode === 'edit') {
-            navigate(`/ideas/${_id}/edit`);
-        } else {
-            navigate(`/ideas/${_id}`);
+        if (!id) return '#000000';
+        try {
+            return '#' + id.toString().slice(-6).toUpperCase();
+        } catch (error) {
+            console.error('Error formatting ID:', error);
+            return '#000000';
         }
     };
 
     return (
-        <div className={styles.ideaCard} onClick={handleCardClick}>
+        <div className={styles.ideaCard} onClick={(e) => {
+            if (_id && e.target.closest(`.${styles.actionButton}`) === null) {
+                navigate(`/ideas/${_id}`);
+            }
+        }}>
             <div className={styles.priceTag}>
                 <FaCoins className={styles.priceIcon} />
                 {formatPrice(price)}
@@ -55,12 +74,18 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 {thumbnailImage ? (
                     <img 
                         src={thumbnailImage} 
-                        alt={title}
+                        alt={title || 'Idea'}
                         className={styles.ideaImage}
+                        onError={(e) => {
+                            console.warn('Failed to load image:', thumbnailImage);
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                        }}
                     />
-                ) : (
-                    <div className={styles.placeholder}></div>
-                )}
+                ) : null}
+                <div className={styles.placeholder} style={{ display: thumbnailImage ? 'none' : 'flex' }}>
+                    <span>No Image</span>
+                </div>
             </div>
             {showRating && (
                 <div className={styles.rating}>
@@ -89,12 +114,17 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                         </span>
                     )}
                 </div>
-                <button 
-                    className={`${styles.actionButton} ${mode === 'edit' ? styles.editButton : styles.viewButton}`}
-                    onClick={handleActionClick}
-                >
-                    {mode === 'edit' ? 'Edit' : 'View'}
-                </button>
+                {_id && (
+                    <button 
+                        className={`${styles.actionButton} ${mode === 'edit' ? styles.editButton : styles.viewButton}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/ideas/${_id}${mode === 'edit' ? '/edit' : ''}`);
+                        }}
+                    >
+                        {mode === 'edit' ? 'Edit' : 'View'}
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -25,6 +25,7 @@ const Recommendations = () => {
                     ...(token && { 'Authorization': `Bearer ${token}` })
                 };
 
+                console.log('Fetching recommendations with headers:', headers);
                 const response = await fetch(
                     `http://localhost:6001/api/ideas?page=${currentPage}&limit=12&type=recommendations`, 
                     {
@@ -38,11 +39,14 @@ const Recommendations = () => {
                 }
 
                 const data = await response.json();
+                console.log('Received recommendations data:', data);
                 
                 if (Array.isArray(data.ideas)) {
+                    console.log('Setting ideas:', data.ideas);
                     setIdeas(data.ideas);
                     setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
                 } else {
+                    console.error('Invalid data format:', data);
                     throw new Error('Invalid data format received');
                 }
             } catch (err) {

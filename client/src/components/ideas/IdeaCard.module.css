@@ -84,10 +84,19 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: #f0f0f0;
+    background: #f5f5f5;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #999;
+    font-size: 0.9em;
+    border-radius: 4px;
+}
+
+.placeholder span {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
 .ideaImage {

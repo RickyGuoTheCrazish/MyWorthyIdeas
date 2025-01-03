@@ -442,11 +442,9 @@ router.get("/", optionalAuth, async (req, res) => {
       // For recommendations:
       // 1. If user is logged in, exclude their ideas
       // 2. Sort by rating and recency
-      // 3. Only show ideas with thumbnails for better presentation
       query = {
         ...query,
-        ...(req.user && { creator: { $ne: req.user._id } }),  // Exclude user's ideas if logged in
-        thumbnailImage: { $exists: true, $ne: "" }  // Only show ideas with thumbnails
+        ...(req.user && { creator: { $ne: req.user._id } })  // Exclude user's ideas if logged in
       };
     }
 

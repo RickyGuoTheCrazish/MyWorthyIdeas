@@ -1,15 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FaUser } from 'react-icons/fa';
 import styles from './WelcomeBack.module.css';
 
 const GuestModeIndicator = ({ onClose }) => {
-    const navigate = useNavigate();
-
-    const handleLogin = () => {
-        navigate('/auth');
-        if (onClose) onClose();
-    };
 
     return (
         <div className={styles.guestIndicator}>
@@ -18,15 +11,10 @@ const GuestModeIndicator = ({ onClose }) => {
                     <FaUser className={styles.icon} />
                     <h2>Guest Mode</h2>
                 </div>
-                <p>Login for full access to the platform.</p>
+                <p> For full access to the platform, please login.</p>
                 <div className={styles.actions}>
-                    <button 
-                        className={styles.loginButton}
-                        onClick={handleLogin}
-                    >
-                        Log In
-                    </button>
-                    <button 
+                    
+                    <button     
                         className={styles.closeButton}
                         onClick={onClose}
                     >
