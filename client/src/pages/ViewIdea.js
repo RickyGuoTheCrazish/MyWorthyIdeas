@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import RichTextEditor from '../components/editor/RichTextEditor';
 import AuthModal from '../components/modals/AuthModal';
 import styles from './ViewIdea.module.css';
 import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt } from 'react-icons/fa';
 import 'react-quill/dist/quill.snow.css';
+import 'react-quill/dist/quill.bubble.css';
 
 const ViewIdea = () => {
     const { ideaId } = useParams();
@@ -24,7 +24,7 @@ const ViewIdea = () => {
         const fetchIdea = async () => {
             try {
                 const headers = {};
-                
+
                 // Add auth header only if user is logged in
                 if (isAuthenticated) {
                     const token = localStorage.getItem('token');
@@ -203,9 +203,8 @@ const ViewIdea = () => {
                 {[1, 2, 3, 4, 5].map((star) => (
                     <FaStar
                         key={star}
-                        className={`${styles.star} ${
-                            (hoverRating || rating) >= star ? styles.filled : ''
-                        }`}
+                        className={`${styles.star} ${(hoverRating || rating) >= star ? styles.filled : ''
+                            }`}
                         onClick={() => handleRating(star)}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(0)}
@@ -218,7 +217,7 @@ const ViewIdea = () => {
     return (
         <div className={styles.container}>
             {showAuthModal && (
-                <AuthModal 
+                <AuthModal
                     isOpen={showAuthModal}
                     mode="login"
                     onClose={handleCloseAuthModal}
@@ -255,58 +254,20 @@ const ViewIdea = () => {
 
             <div className={styles.mainContent}>
                 <div className={styles.contentArea}>
-                    {hasFullAccess && (
-                        <>
-                            <section className={styles.contentSection}>
-                                <h2>Full Content</h2>
-                                <div className={styles.sectionContent}>
-                                    <div 
-                                        className={`${styles.richContent} ql-editor`}
-                                        dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
-                                    />
-                                </div>
-                            </section>
-                            {isBuyer && (
-                                <section className={styles.ratingSection}>
-                                    <h3>Rate this Idea</h3>
-                                    {renderStars()}
-                                    {ratingLoading && <span>Updating rating...</span>}
-                                </section>
-                            )}
-                        </>
-                    )}
-
-                    {!hasFullAccess && !isIdeaSold && (
+                    {isCreator || (idea.isSold && isBuyer) ? (
+                        <div
+                            className="ql-editor"
+                            dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
+                        />
+                    ) : (
                         <div className={styles.lockedContent}>
-                            <FaLock className={styles.lockIcon} />
-                            <h3>Full Content Available After Purchase</h3>
-                            <p>Buy this idea to access the complete content and implementation details.</p>
+                            <h3>Content Locked</h3>
+                            <FaLock size={48} />
+                            <p>Wondering what's inside? </p>
+                            <p> Login and buy this to view full contents!</p>
+                            <small style={{ color: '#FF12ab' }}>*if not having a buyer account yet, welcome to sign up a new one at anytime!</small>
                         </div>
                     )}
-
-                    <div className={styles.actionContainer}>
-                        {!isCreator && !isIdeaSold && (
-                            isAuthenticated ? (
-                                canBuy && (
-                                    <button 
-                                        className={`${styles.actionButton} ${styles.buyButton}`}
-                                        onClick={handleBuy}
-                                        disabled={buyLoading}
-                                    >
-                                        <FaShoppingCart />
-                                        {buyLoading ? 'Processing...' : 'Buy Now'}
-                                    </button>
-                                )
-                            ) : (
-                                <button 
-                                    className={`${styles.actionButton} ${styles.loginButton}`}
-                                    onClick={handleLogin}
-                                >
-                                    <FaSignInAlt /> Login to Buy
-                                </button>
-                            )
-                        )}
-                    </div>
                 </div>
 
                 <div className={styles.sidebarArea}>
@@ -330,7 +291,7 @@ const ViewIdea = () => {
                     )}
                     {isCreator && !isIdeaSold && (
                         <div className={styles.editSection}>
-                            <button 
+                            <button
                                 className={`${styles.actionButton} ${styles.editButton}`}
                                 onClick={handleEdit}
                             >
@@ -339,6 +300,30 @@ const ViewIdea = () => {
                         </div>
                     )}
                 </div>
+            </div>
+
+            <div className={styles.actionContainer}>
+                {!isCreator && !isIdeaSold && (
+                    isAuthenticated ? (
+                        canBuy && (
+                            <button
+                                className={`${styles.actionButton} ${styles.buyButton}`}
+                                onClick={handleBuy}
+                                disabled={buyLoading}
+                            >
+                                <FaShoppingCart />
+                                {buyLoading ? 'Processing...' : 'Buy Now'}
+                            </button>
+                        )
+                    ) : (
+                        <button
+                            className={`${styles.actionButton} ${styles.loginButton}`}
+                            onClick={handleLogin}
+                        >
+                            <FaSignInAlt /> Login to Buy
+                        </button>
+                    )
+                )}
             </div>
         </div>
     );

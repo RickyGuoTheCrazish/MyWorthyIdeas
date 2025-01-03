@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 const Layout = ({ children }) => {
     const { user, logout, isAuthenticated } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
+    const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login', email: '' });
     const [showGuestIndicator, setShowGuestIndicator] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -64,11 +64,15 @@ const Layout = ({ children }) => {
     };
 
     const handleAuthAction = (mode) => {
-        setAuthModal({ isOpen: true, mode });
+        setAuthModal({ isOpen: true, mode, email: '' });
     };
 
     const closeAuthModal = () => {
-        setAuthModal({ isOpen: false, mode: 'login' });
+        setAuthModal({ isOpen: false, mode: 'login', email: '' });
+    };
+
+    const handleVerify = (email) => {
+        setAuthModal(prev => ({ ...prev, mode: 'verify', email }));
     };
 
     const renderAuthSection = () => {
@@ -148,9 +152,12 @@ const Layout = ({ children }) => {
             </div>
             {authModal.isOpen && (
                 <AuthModal 
-                    isOpen={authModal.isOpen} 
-                    mode={authModal.mode} 
-                    onClose={closeAuthModal} 
+                    isOpen={authModal.isOpen}
+                    mode={authModal.mode}
+                    email={authModal.email}
+                    onClose={closeAuthModal}
+                    onVerify={handleVerify}
+                    onModeChange={(mode) => setAuthModal(prev => ({ ...prev, mode }))}
                 />
             )}
             {showGuestIndicator && (

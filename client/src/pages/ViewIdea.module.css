@@ -100,6 +100,100 @@
 
 .contentArea {
     padding-right: 2rem;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Rich text content styles */
+.contentArea :global(.ql-editor) {
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.contentArea :global(.ql-editor h1) {
+    font-size: 2em;
+    margin-bottom: 0.5em;
+}
+
+.contentArea :global(.ql-editor h2) {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.contentArea :global(.ql-editor h3) {
+    font-size: 1.17em;
+    margin-bottom: 0.5em;
+}
+
+.contentArea :global(.ql-editor p) {
+    margin-bottom: 1em;
+    line-height: 1.6;
+}
+
+.contentArea :global(.ql-editor pre.ql-syntax) {
+    background-color: #23241f;
+    color: #f8f8f2;
+    overflow: auto;
+    padding: 1em;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    margin: 1em 0;
+    white-space: pre;
+}
+
+.contentArea :global(.ql-editor code) {
+    background-color: #f6f8fa;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 0.2em 0.4em;
+    font-size: 0.9em;
+}
+
+.contentArea :global(.ql-editor blockquote) {
+    border-left: 4px solid #e9ecef;
+    margin: 1em 0;
+    padding-left: 1em;
+    color: #666;
+}
+
+.contentArea :global(.ql-editor ul),
+.contentArea :global(.ql-editor ol) {
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.contentArea :global(.ql-editor li) {
+    margin-bottom: 0.5em;
+}
+
+.contentArea :global(.ql-editor img) {
+    max-width: 100%;
+    height: auto;
+    margin: 1em 0;
+    border-radius: 4px;
+}
+
+.contentArea :global(.ql-editor .ql-align-center) {
+    text-align: center;
+}
+
+.contentArea :global(.ql-editor .ql-align-right) {
+    text-align: right;
+}
+
+.contentArea :global(.ql-editor .ql-align-justify) {
+    text-align: justify;
+}
+
+.contentArea :global(.ql-editor a) {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.contentArea :global(.ql-editor a:hover) {
+    text-decoration: underline;
 }
 
 .sidebarArea {
@@ -124,9 +218,11 @@
 }
 
 .preview {
-    color: #555;
+    font-size: 1.1rem;
     line-height: 1.6;
-    margin-bottom: 1.5rem;
+    color: #555;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
 }
 
 .thumbnail {
@@ -215,7 +311,64 @@
     }
 }
 
-.lockedContent, .soldContent {
+.lockedContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}
+
+.lockedContent h3 {
+    font-size: 1.5rem;
+    color: #495057;
+    margin-bottom: 1.5rem;
+}
+
+.lockedContent svg {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.lockedContent p {
+    font-size: 1.1rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.lockedContent small {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.lockMessage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}
+
+.lockMessage svg {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.lockMessage p {
+    font-size: 1.1rem;
+    color: #495057;
+}
+
+.soldContent {
     background: #f8f9fa;
     border-radius: 8px;
     padding: 3rem 2rem;
@@ -226,12 +379,6 @@
 .lockIcon {
     font-size: 2.5rem;
     color: #6c757d;
-    margin-bottom: 1rem;
-}
-
-.lockedContent h3, .soldContent h3 {
-    font-size: 1.5rem;
-    color: #495057;
     margin-bottom: 1rem;
 }
 
@@ -269,16 +416,40 @@
 }
 
 .actionButton {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border: none;
+    border-radius: 4px;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    border: none;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+}
+
+.loginButton {
+    background-color: #007bff;
+    color: white;
+}
+
+.loginButton:hover {
+    background-color: #0056b3;
+}
+
+.buyButton {
+    background-color: #28a745;
+    color: white;
+}
+
+.buyButton:hover {
+    background-color: #218838;
+}
+
+.buyButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 .editSection {
@@ -305,29 +476,6 @@
 
 .editButton:hover {
     background-color: #357abd;
-}
-
-.buyButton {
-    background: #2ea44f;
-    color: white;
-}
-
-.buyButton:hover {
-    background: #2c974b;
-}
-
-.buyButton:disabled {
-    background: #94d3a2;
-    cursor: not-allowed;
-}
-
-.loginButton {
-    background: #6c757d;
-    color: white;
-}
-
-.loginButton:hover {
-    background: #5a6268;
 }
 
 .ratingSection {
