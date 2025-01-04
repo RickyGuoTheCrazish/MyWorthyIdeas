@@ -74,7 +74,7 @@ const ViewIdea = () => {
 
     const handleBuy = async () => {
         if (!isAuthenticated) {
-            setShowAuthModal(true);
+            setShowAuthModal(true); 
             return;
         }
 

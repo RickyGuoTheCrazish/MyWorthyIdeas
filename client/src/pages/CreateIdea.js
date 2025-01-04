@@ -609,7 +609,7 @@ const CreateIdea = () => {
                                         </div>
                                     )}
                                 </div>
-                                <p className={styles.uploadHint}>*The thumbnail image will be cropped to 1:1 ratio and must be less than 10mb</p>
+                                <p className={styles.uploadHint}>*The thumbnail image will be cropped to 1:1 ratio and must be less than 10mb </p>
                             </div>
                             {showCropper && imageToProcess && (
                                 <ImageCropper
