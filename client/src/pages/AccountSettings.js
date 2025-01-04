@@ -6,12 +6,14 @@ import { Elements } from '@stripe/react-stripe-js';
 import PaymentMethodForm from '../components/payment/PaymentMethodForm';
 import paymentService from '../services/paymentService';
 import styles from '../styles/AccountSettings.module.css';
+import { useNavigate } from 'react-router-dom';
 
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 const AccountSettings = () => {
     const { user, setUser } = useAuth();
+    const navigate = useNavigate();
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -28,8 +30,13 @@ const AccountSettings = () => {
     const balance = user?.credits || 0;
 
     useEffect(() => {
+        if (!user) {
+            navigate('/recommendations');
+        }
         fetchTransactionHistory();
-    }, []);
+    }, [user, navigate]);
+
+    if (!user) return null;
 
     const fetchTransactionHistory = async () => {
         try {

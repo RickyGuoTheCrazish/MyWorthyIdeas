@@ -136,13 +136,15 @@ const Sidebar = () => {
 
             <div className={styles.personalSection}>
                 <h3>Personal</h3>
-                <Link 
-                    to="/account-settings" 
-                    className={`${styles.menuItem} ${isActive('/account-settings') ? styles.active : ''}`}
-                >
-                    <span className={styles.icon}>⚙️</span>
-                    Account Settings
-                </Link>
+                {isAuthenticated && (
+                    <Link 
+                        to="/account-settings" 
+                        className={`${styles.menuItem} ${isActive('/account-settings') ? styles.active : ''}`}
+                    >
+                        <span className={styles.icon}>⚙️</span>
+                        Account Settings
+                    </Link>
+                )}
                 <Link 
                     to="/terms" 
                     className={`${styles.menuItem} ${isActive('/terms') ? styles.active : ''}`}
