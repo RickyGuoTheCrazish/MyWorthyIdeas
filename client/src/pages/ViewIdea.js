@@ -6,7 +6,8 @@ import PurchaseModal from '../components/modals/PurchaseModal';
 import PurchaseSuccessModal from '../components/modals/PurchaseSuccessModal';
 import PurchaseErrorModal from '../components/modals/PurchaseErrorModal';
 import styles from './ViewIdea.module.css';
-import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt } from 'react-icons/fa';
+import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt, FaTimes } from 'react-icons/fa';
+import toast, { Toaster } from 'react-hot-toast';
 import 'react-quill/dist/quill.snow.css';
 import 'react-quill/dist/quill.bubble.css';
 
@@ -18,13 +19,14 @@ const ViewIdea = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [buyLoading, setBuyLoading] = useState(false);
-    const [rating, setRating] = useState(0);
-    const [hoverRating, setHoverRating] = useState(0);
-    const [ratingLoading, setRatingLoading] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [purchaseError, setPurchaseError] = useState(null);
+    const [purchaseError, setPurchaseError] = useState(false);
+    const [showRatingModal, setShowRatingModal] = useState(false);
+    const [userRating, setUserRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [ratingLoading, setRatingLoading] = useState(false);
 
     useEffect(() => {
         const fetchIdea = async () => {
@@ -52,8 +54,9 @@ const ViewIdea = () => {
                 console.log('Fetched idea:', data.idea);
                 console.log('Current user:', user);
                 setIdea(data.idea);
-                if (data.idea.rating) {
-                    setRating(data.idea.rating);
+                // Set user's rating if it exists
+                if (data.idea.userRating) {
+                    setUserRating(data.idea.userRating);
                 }
             } catch (error) {
                 console.error('Error fetching idea:', error);
@@ -64,7 +67,7 @@ const ViewIdea = () => {
         };
 
         fetchIdea();
-    }, [ideaId, isAuthenticated]);
+    }, [ideaId, isAuthenticated, user]);
 
     const handleBuy = async () => {
         if (!isAuthenticated) {
@@ -133,18 +136,24 @@ const ViewIdea = () => {
             }
 
             const data = await response.json();
-            setRating(data.rating);
-            // Update the idea's creator rating in the UI
+            setUserRating(newRating);
+            setShowRatingModal(false);
+            
+            // Update the idea state while preserving all existing data
             setIdea(prev => ({
                 ...prev,
+                userRating: newRating,
+                rating: data.rating || prev.rating,
                 creator: {
                     ...prev.creator,
-                    averageRating: data.averageRating
+                    averageRating: data.averageRating || prev.creator.averageRating
                 }
             }));
+            
+            toast.success('Rating updated successfully!');
         } catch (error) {
             console.error('Error updating rating:', error);
-            setError(error.message);
+            toast.error(error.message || 'Failed to update rating');
         } finally {
             setRatingLoading(false);
         }
@@ -177,6 +186,22 @@ const ViewIdea = () => {
 
     const formatId = (id) => {
         return '#' + id.toString().slice(-6).toUpperCase();
+    };
+
+    const renderStars = () => {
+        return (
+            <div className={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <FaStar
+                        key={star}
+                        className={`${styles.star} ${(hoverRating || userRating) >= star ? styles.filled : ''}`}
+                        onClick={() => handleRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                    />
+                ))}
+            </div>
+        );
     };
 
     if (loading) {
@@ -229,25 +254,9 @@ const ViewIdea = () => {
         userSubscription: user?.subscription
     });
 
-    const renderStars = () => {
-        return (
-            <div className={styles.ratingStars}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <FaStar
-                        key={star}
-                        className={`${styles.star} ${(hoverRating || rating) >= star ? styles.filled : ''
-                            }`}
-                        onClick={() => handleRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                    />
-                ))}
-            </div>
-        );
-    };
-
     return (
         <div className={styles.container}>
+            <Toaster position="top-right" />
             {showAuthModal && (
                 <AuthModal
                     isOpen={showAuthModal}
@@ -277,6 +286,23 @@ const ViewIdea = () => {
                     error={purchaseError}
                     onClose={() => setPurchaseError(null)}
                 />
+            )}
+            {/* Rating Modal */}
+            {showRatingModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.ratingModal}>
+                        <button 
+                            className={styles.closeButton}
+                            onClick={() => setShowRatingModal(false)}
+                        >
+                            <FaTimes />
+                        </button>
+                        <h2>Rate This Idea</h2>
+                        <p>How would you rate {idea.title}?</p>
+                        {renderStars()}
+                        {ratingLoading && <p>Updating rating...</p>}
+                    </div>
+                </div>
             )}
             <div className={styles.header}>
                 <div className={styles.titleSection}>
@@ -337,6 +363,37 @@ const ViewIdea = () => {
                             {idea.thumbnailImage && (
                                 <div className={styles.thumbnail}>
                                     <img src={idea.thumbnailImage} alt="Idea cover" />
+                                </div>
+                            )}
+                            {isBuyer && (
+                                <div className={styles.ratingSection}>
+                                    {userRating > 0 ? (
+                                        <div className={styles.currentRating}>
+                                            <p>Your Rating:</p>
+                                            <div className={styles.stars}>
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <FaStar
+                                                        key={star}
+                                                        className={`${styles.star} ${userRating >= star ? styles.filled : ''}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => setShowRatingModal(true)}
+                                                className={styles.updateRatingButton}
+                                            >
+                                                Update Rating
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowRatingModal(true)}
+                                            className={`${styles.rateButton} bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center space-x-2`}
+                                        >
+                                            <FaStar className="w-4 h-4" />
+                                            <span>Rate This Idea</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
