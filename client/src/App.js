@@ -9,6 +9,7 @@ import ViewIdea from "./pages/ViewIdea";
 import Layout from "./components/layout/Layout";
 import CategoryPage from './pages/CategoryPage';
 import SearchResults from './pages/SearchResults';
+import AccountSettings from './pages/AccountSettings';
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -105,6 +106,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account-settings"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
           </ProtectedRoute>
         }
       />

@@ -58,13 +58,22 @@ const Sidebar = () => {
             </Link>
             
             {isAuthenticated && (
-                <Link 
-                    to="/dashboard" 
-                    className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
-                >
-                    <span className={styles.icon}>📊</span>
-                    My Ideas
-                </Link>
+                <>
+                    <Link 
+                        to="/dashboard" 
+                        className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
+                    >
+                        <span className={styles.icon}>📊</span>
+                        My Ideas
+                    </Link>
+                    <Link 
+                        to="/account-settings" 
+                        className={`${styles.menuItem} ${isActive('/account-settings') ? styles.active : ''}`}
+                    >
+                        <span className={styles.icon}>💰</span>
+                        Account Settings
+                    </Link>
+                </>
             )}
 
             <Link 
@@ -133,8 +142,8 @@ const Sidebar = () => {
             <div className={styles.personalSection}>
                 <h3>Personal</h3>
                 <Link 
-                    to="/settings" 
-                    className={`${styles.menuItem} ${isActive('/settings') ? styles.active : ''}`}
+                    to="/account-settings" 
+                    className={`${styles.menuItem} ${isActive('/account-settings') ? styles.active : ''}`}
                 >
                     <span className={styles.icon}>⚙️</span>
                     Account Settings

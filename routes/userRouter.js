@@ -726,4 +726,60 @@ router.get('/financial-data', authProtecter, async (req, res) => {
   }
 });
 
+// Deposit funds
+router.post("/deposit", authProtecter, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.credits += amount;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Deposit successful",
+      newBalance: user.credits
+    });
+  } catch (error) {
+    console.error("Error processing deposit:", error);
+    return res.status(500).json({ message: "Failed to process deposit" });
+  }
+});
+
+// Withdraw funds
+router.post("/withdraw", authProtecter, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.credits < amount) {
+      return res.status(400).json({ message: "Insufficient funds" });
+    }
+
+    user.credits -= amount;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Withdrawal successful",
+      newBalance: user.credits
+    });
+  } catch (error) {
+    console.error("Error processing withdrawal:", error);
+    return res.status(500).json({ message: "Failed to process withdrawal" });
+  }
+});
+
 module.exports = router;

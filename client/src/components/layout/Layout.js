@@ -52,7 +52,7 @@ const Layout = ({ children }) => {
 
     const handleAccountSettings = () => {
         setIsMenuOpen(false);
-        navigate('/settings');
+        navigate('/account-settings');
     };
 
     const handleLogout = async () => {
