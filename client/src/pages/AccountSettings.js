@@ -452,26 +452,37 @@ const AccountSettings = () => {
                         <div className={styles.historySection}>
                             <h2>Transaction History</h2>
                             {loadingHistory ? (
-                                <p>Loading history...</p>
-                            ) : billingHistory.length === 0 ? (
-                                <p>No transactions found</p>
-                            ) : (
+                                <div className={styles.loadingState}>
+                                    <FaSpinner className={styles.spinner} />
+                                    Loading transaction history...
+                                </div>
+                            ) : billingHistory.length > 0 ? (
                                 <div className={styles.transactionList}>
                                     {billingHistory.map((transaction, index) => (
                                         <div key={index} className={styles.transactionItem}>
                                             <div className={styles.transactionInfo}>
-                                                <span className={styles.transactionType}>
-                                                    {transaction.type === 'deposit' ? 'Added Credits' : 'Purchase'}
-                                                </span>
-                                                <span className={styles.transactionAmount}>
-                                                    {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                                                </span>
+                                                <div className={styles.transactionAmount}>
+                                                    <span className={styles.creditAmount}>
+                                                        +{transaction.credits || transaction.amount * 10} Credits
+                                                    </span>
+                                                    <span className={styles.audAmount}>
+                                                        ${transaction.amount?.toFixed(2)} AUD
+                                                    </span>
+                                                </div>
+                                                <div className={styles.transactionDate}>
+                                                    {new Date(transaction.createdAt).toLocaleDateString('en-AU', {
+                                                        day: 'numeric',
+                                                        month: 'long',
+                                                        year: 'numeric'
+                                                    })}
+                                                </div>
                                             </div>
-                                            <span className={styles.transactionDate}>
-                                                {formatDate(transaction.createdAt)}
-                                            </span>
                                         </div>
                                     ))}
+                                </div>
+                            ) : (
+                                <div className={styles.emptyState}>
+                                    <p>No transaction history yet</p>
                                 </div>
                             )}
                         </div>

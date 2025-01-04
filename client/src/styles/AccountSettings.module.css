@@ -993,3 +993,78 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+.historySection {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.historySection h2 {
+    font-size: 1.25rem;
+    color: #1a1a1a;
+    margin-bottom: 1.5rem;
+}
+
+.loadingState {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+}
+
+.transactionList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.transactionItem {
+    padding: 1rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s;
+}
+
+.transactionItem:hover {
+    background: #f1f3f5;
+}
+
+.transactionInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.transactionAmount {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.creditAmount {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #2b8a3e;
+}
+
+.audAmount {
+    font-size: 0.875rem;
+    color: #868e96;
+}
+
+.transactionDate {
+    font-size: 0.875rem;
+    color: #868e96;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 2rem;
+    color: #868e96;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}

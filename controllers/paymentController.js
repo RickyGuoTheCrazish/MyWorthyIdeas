@@ -43,13 +43,19 @@ class PaymentController {
             const userId = req.user._id;
             const { page = 1, limit = 10 } = req.query;
 
-            const transactions = await Transaction.find({ userId })
+            const transactions = await Transaction.find({ 
+                userId,
+                type: 'credit_addition' // Only get credit additions
+            })
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit);
             console.log('Transactions found:', transactions);
 
-            const total = await Transaction.countDocuments({ userId });
+            const total = await Transaction.countDocuments({ 
+                userId,
+                type: 'credit_addition'
+            });
             console.log('Total transactions:', total);
 
             res.json({
