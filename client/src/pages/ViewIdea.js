@@ -54,9 +54,11 @@ const ViewIdea = () => {
                 console.log('Fetched idea:', data.idea);
                 console.log('Current user:', user);
                 setIdea(data.idea);
-                // Set user's rating if it exists
-                if (data.idea.userRating) {
-                    setUserRating(data.idea.userRating);
+                
+                // If the user has already rated this idea
+                if (data.idea.ratings && data.idea.ratings.find(r => r.userId === user?.userId)) {
+                    const userRating = data.idea.ratings.find(r => r.userId === user?.userId).rating;
+                    setUserRating(userRating);
                 }
             } catch (error) {
                 console.error('Error fetching idea:', error);
@@ -117,6 +119,12 @@ const ViewIdea = () => {
 
     const handleRating = async (newRating) => {
         if (!isAuthenticated || !isBuyer) return;
+        
+        // Don't allow rating if user has already rated
+        if (userRating > 0) {
+            toast.error('You have already rated this idea');
+            return;
+        }
 
         try {
             setRatingLoading(true);
@@ -144,13 +152,14 @@ const ViewIdea = () => {
                 ...prev,
                 userRating: newRating,
                 rating: data.rating || prev.rating,
+                ratings: [...(prev.ratings || []), { userId: user.userId, rating: newRating }],
                 creator: {
                     ...prev.creator,
                     averageRating: data.averageRating || prev.creator.averageRating
                 }
             }));
             
-            toast.success('Rating updated successfully!');
+            toast.success('Rating submitted successfully!');
         } catch (error) {
             console.error('Error updating rating:', error);
             toast.error(error.message || 'Failed to update rating');
@@ -378,12 +387,6 @@ const ViewIdea = () => {
                                                     />
                                                 ))}
                                             </div>
-                                            <button
-                                                onClick={() => setShowRatingModal(true)}
-                                                className={styles.updateRatingButton}
-                                            >
-                                                Update Rating
-                                            </button>
                                         </div>
                                     ) : (
                                         <button
