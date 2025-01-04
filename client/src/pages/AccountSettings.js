@@ -7,6 +7,7 @@ import PaymentMethodForm from '../components/payment/PaymentMethodForm';
 import paymentService from '../services/paymentService';
 import styles from '../styles/AccountSettings.module.css';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../utils/dateFormatter';
 
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
@@ -96,35 +97,20 @@ const AccountSettings = () => {
         handleTransaction();
     };
 
-    const calculateProcessingFee = (amount) => {
-        const numAmount = Number(amount);
-        let feePercentage;
-        
-        // Tiered fee structure
-        if (numAmount < 20) {
-            feePercentage = 0.03; // 3% for small amounts
-        } else if (numAmount < 50) {
-            feePercentage = 0.02; // 2% for medium amounts
-        } else if (numAmount < 100) {
-            feePercentage = 0.015; // 1.5% for larger amounts
-        } else {
-            feePercentage = 0.01; // 1% for very large amounts
-        }
-
-        const fee = Math.min(numAmount * feePercentage, 2); // Cap at $2 AUD
-        return {
-            percentage: feePercentage * 100,
-            fee: fee
-        };
+    const getFeeInfo = (amount) => {
+        if (!amount || isNaN(amount)) return { fee: 0, percentage: 0 };
+        return paymentService.calculateProcessingFee(Number(amount));
     };
 
-    const getFeeDescription = (amount) => {
-        const { percentage } = calculateProcessingFee(amount);
-        if (percentage === 3) return "Higher fee for small amounts";
-        if (percentage === 2) return "Reduced fee for medium amounts";
-        if (percentage === 1.5) return "Lower fee for larger amounts";
-        return "Lowest fee for bulk purchase";
+    const handleAmountChange = (e) => {
+        // Only allow integers
+        const value = e.target.value.replace(/[^0-9]/g, '');
+        setAmount(value);
     };
+
+    const { fee: processingFee, percentage: feePercentage } = getFeeInfo(amount);
+    const totalAmount = amount ? Number(amount) + processingFee : 0;
+    const creditsToReceive = amount ? Number(amount) * CREDIT_MULTIPLIER : 0;
 
     const calculateWithdrawFee = (credits) => {
         const audAmount = Number(credits) / 10;
@@ -210,7 +196,7 @@ const AccountSettings = () => {
                             <div className={styles.feeInfo}>
                                 <FaExchangeAlt className={styles.exchangeIcon} />
                                 <div className={styles.feeDescription}>
-                                    <div className={styles.feePrimary}>Processing fee: 1-3% (max $2 AUD)</div>
+                                    <div className={styles.feePrimary}>Processing fee: {feePercentage}% (max $2 AUD)</div>
                                     <div className={styles.feeSecondary}>Add more credits to enjoy lower processing fees standard</div>
                                 </div>
                             </div>
@@ -229,7 +215,7 @@ const AccountSettings = () => {
                                         <div>Perfect for trying out</div>
                                         <div>Instant delivery</div>
                                         <div className={styles.processingFee}>
-                                            + ${calculateProcessingFee(10).fee.toFixed(2)} AUD processing fee
+                                            + ${getFeeInfo(10).fee.toFixed(2)} AUD processing fee
                                             <div className={styles.feeNote}>
                                                 Save on fees with larger amounts
                                             </div>
@@ -251,7 +237,7 @@ const AccountSettings = () => {
                                         <div>Most popular choice</div>
                                         <div>Instant delivery</div>
                                         <div className={styles.processingFee}>
-                                            + ${calculateProcessingFee(50).fee.toFixed(2)} AUD processing fee
+                                            + ${getFeeInfo(50).fee.toFixed(2)} AUD processing fee
                                             <div className={styles.feeNote}>
                                                 Better processing fee rate
                                             </div>
@@ -273,7 +259,7 @@ const AccountSettings = () => {
                                         <div>Best value</div>
                                         <div>Instant delivery</div>
                                         <div className={styles.processingFee}>
-                                            + ${calculateProcessingFee(100).fee.toFixed(2)} AUD processing fee
+                                            + ${getFeeInfo(100).fee.toFixed(2)} AUD processing fee
                                             <div className={styles.feeNote}>
                                                 Lowest processing fee rate
                                             </div>
@@ -287,32 +273,28 @@ const AccountSettings = () => {
                                     <h3>Custom Amount</h3>
                                     <div className={styles.conversionRate}>
                                         <FaExchangeAlt className={styles.exchangeIcon} />
-                                        <span>10 Credits = 1 AUD</span>
+                                        <span>1 AUD = {CREDIT_MULTIPLIER} Credits</span>
                                     </div>
                                 </div>
                                 <div className={styles.customAmountInput}>
                                     <div className={styles.inputWrapper}>
+                                        <span className={styles.currencySymbol}>$</span>
                                         <input
-                                            type="number"
-                                            min="10"
-                                            step="10"
-                                            value={customCredits}
-                                            onChange={handleCustomCreditsChange}
-                                            placeholder="Enter amount in Credits"
-                                            className={styles.input}
+                                            type="text"
+                                            value={amount}
+                                            onChange={handleAmountChange}
+                                            placeholder="Enter whole number in AUD"
+                                            className={styles.amountInput}
                                         />
-                                        <span className={styles.creditsSuffix}>Credits</span>
+                                        <span className={styles.currencyCode}>AUD</span>
                                     </div>
-                                    <div className={styles.creditPreview}>
-                                        <div className={styles.audAmount}>≈ ${(Number(customCredits) / 10).toFixed(2)} AUD</div>
-                                        <div className={styles.processingFee}>
-                                            + ${amount ? calculateProcessingFee(amount).fee.toFixed(2) : '0.00'} AUD processing fee
-                                            {amount && (
-                                                <div className={styles.feeNote}>
-                                                    {getFeeDescription(amount)}
-                                                </div>
-                                            )}
-                                        </div>
+                                </div>
+                                <div className={styles.creditPreview}>
+                                    <div className={styles.creditAmount}>
+                                        ≈ {creditsToReceive.toLocaleString()} Credits
+                                    </div>
+                                    <div className={styles.processingFee}>
+                                        + ${processingFee.toFixed(2)} AUD processing fee ({feePercentage}%)
                                     </div>
                                 </div>
                             </div>
@@ -320,10 +302,10 @@ const AccountSettings = () => {
                             {error && <div className={styles.error}>{error}</div>}
                             {success && <div className={styles.success}>{success}</div>}
 
-                            <button
+                            <button 
+                                className={`${styles.checkoutButton} ${(!amount || isNaN(amount) || Number(amount) <= 0) ? styles.disabled : ''}`}
                                 onClick={handleTransaction}
-                                disabled={loading || !amount}
-                                className={styles.checkoutButton}
+                                disabled={!amount || isNaN(amount) || Number(amount) <= 0}
                             >
                                 {loading ? (
                                     <span className={styles.loadingText}>Processing...</span>
@@ -331,7 +313,7 @@ const AccountSettings = () => {
                                     <span className={styles.buttonContent}>
                                         Proceed to Checkout
                                         <span className={styles.buttonAmount}>
-                                            ${(Number(amount) + calculateProcessingFee(amount).fee).toFixed(2)} AUD
+                                            ${totalAmount.toFixed(2)} AUD
                                         </span>
                                     </span>
                                 )}

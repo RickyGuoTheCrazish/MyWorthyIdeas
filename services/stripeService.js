@@ -1,6 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../db/userModel');
 const Transaction = require('../db/transactionModel');
+const { calculateProcessingFee, getFeeDescription } = require('../utils/feeCalculator');
 
 const CREDIT_MULTIPLIER = 10; // 1 USD = 10 credits
 
@@ -102,8 +103,8 @@ class StripeService {
      */
     async createCheckoutSession(amount, userId) {
         try {
-            // Calculate processing fee (1% with max $2)
-            const processingFee = Math.min(amount * 0.01, 2);
+            // Calculate processing fee using shared utility
+            const { fee: processingFee, percentage } = calculateProcessingFee(amount);
             const totalAmount = amount + processingFee;
 
             const session = await stripe.checkout.sessions.create({
@@ -126,7 +127,7 @@ class StripeService {
                             currency: 'usd',
                             product_data: {
                                 name: 'Processing Fee',
-                                description: '1% processing fee',
+                                description: `${percentage}% processing fee`,
                             },
                             unit_amount: processingFee * 100, // Convert to cents
                         },
@@ -137,6 +138,7 @@ class StripeService {
                     userId: userId.toString(),
                     credits: (amount * CREDIT_MULTIPLIER).toString(),
                     processingFee: processingFee.toString(),
+                    feePercentage: percentage.toString()
                 },
                 success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.CLIENT_URL}/account`,

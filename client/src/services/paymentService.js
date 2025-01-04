@@ -4,6 +4,33 @@ import { loadStripe } from '@stripe/stripe-js';
 const API_BASE_URL = 'http://localhost:6001/api/users';
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
 
+/**
+ * Calculate processing fee based on amount
+ * @param {number} amount Amount in USD
+ * @returns {{percentage: number, fee: number}} Fee percentage and amount
+ */
+function calculateProcessingFee(amount) {
+    const numAmount = Number(amount);
+    let feePercentage;
+    
+    // Tiered fee structure
+    if (numAmount < 20) {
+        feePercentage = 0.03; // 3% for small amounts
+    } else if (numAmount < 50) {
+        feePercentage = 0.02; // 2% for medium amounts
+    } else if (numAmount < 100) {
+        feePercentage = 0.015; // 1.5% for larger amounts
+    } else {
+        feePercentage = 0.01; // 1% for very large amounts
+    }
+
+    const fee = Math.min(numAmount * feePercentage, 2); // Cap at $2 USD
+    return {
+        percentage: feePercentage * 100, // Return as percentage (e.g., 3 for 3%)
+        fee: Number(fee.toFixed(2))
+    };
+}
+
 // Initialize Stripe
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -11,6 +38,33 @@ const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 axios.defaults.withCredentials = true;
 
 class PaymentService {
+    /**
+     * Calculate processing fee based on amount
+     * @param {number} amount Amount in USD
+     * @returns {{percentage: number, fee: number}} Fee percentage and amount
+     */
+    calculateProcessingFee(amount) {
+        const numAmount = Number(amount);
+        let feePercentage;
+        
+        // Tiered fee structure
+        if (numAmount < 20) {
+            feePercentage = 0.03; // 3% for small amounts
+        } else if (numAmount < 50) {
+            feePercentage = 0.02; // 2% for medium amounts
+        } else if (numAmount < 100) {
+            feePercentage = 0.015; // 1.5% for larger amounts
+        } else {
+            feePercentage = 0.01; // 1% for very large amounts
+        }
+
+        const fee = Math.min(numAmount * feePercentage, 2); // Cap at $2 USD
+        return {
+            percentage: feePercentage * 100, // Return as percentage (e.g., 3 for 3%)
+            fee: Number(fee.toFixed(2))
+        };
+    }
+
     /**
      * Get user profile
      * @returns {Promise<Object>}

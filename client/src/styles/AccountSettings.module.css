@@ -514,6 +514,11 @@
     position: relative;
     display: flex;
     align-items: center;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
 }
 
 .input {
@@ -563,6 +568,54 @@
     margin-top: 0.25rem;
     color: #1a73e8;
     font-size: 0.85rem;
+}
+
+.currencySymbol {
+    font-size: 18px;
+    color: #495057;
+    margin-right: 8px;
+}
+
+.currencyCode {
+    font-size: 14px;
+    color: #6c757d;
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid #dee2e6;
+}
+
+.amountInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 18px;
+    color: #212529;
+    width: 100%;
+    padding: 0;
+}
+
+.amountInput::placeholder {
+    color: #adb5bd;
+}
+
+.creditPreview {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.creditAmount {
+    font-size: 16px;
+    color: #28a745;
+    font-weight: 500;
+}
+
+.processingFee {
+    font-size: 14px;
+    color: #6c757d;
 }
 
 /* Checkout Button */
