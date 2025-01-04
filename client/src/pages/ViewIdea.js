@@ -68,9 +68,8 @@ const ViewIdea = () => {
             }
         };
 
-        if (isAuthenticated && user) {
-            fetchIdea();
-        }
+        // Always fetch idea data, regardless of authentication status
+        fetchIdea();
     }, [ideaId, isAuthenticated, user]);
 
     const handleBuy = async () => {
