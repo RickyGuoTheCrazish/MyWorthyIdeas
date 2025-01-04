@@ -41,27 +41,31 @@ class PaymentController {
         try {
             console.log('Getting transaction history for user:', req.user._id);
             const userId = req.user._id;
-            const { page = 1, limit = 10 } = req.query;
 
-            const transactions = await Transaction.find({ 
-                userId,
-                type: 'credit_addition' // Only get credit additions
-            })
-                .sort({ createdAt: -1 })
-                .skip((page - 1) * limit)
-                .limit(limit);
-            console.log('Transactions found:', transactions);
-
-            const total = await Transaction.countDocuments({ 
-                userId,
-                type: 'credit_addition'
+            // Get all successful checkout sessions for this user from Stripe
+            const checkoutSessions = await stripe.checkout.sessions.list({
+                limit: 100, // Adjust as needed
+                expand: ['data.line_items']
             });
-            console.log('Total transactions:', total);
+
+            // Filter sessions for this user and transform to our format
+            const transactions = checkoutSessions.data
+                .filter(session => session.metadata?.userId === userId.toString())
+                .map(session => ({
+                    id: session.id,
+                    type: 'deposit',
+                    amount: session.amount_total / 100, // Convert from cents to dollars
+                    status: session.payment_status,
+                    createdAt: new Date(session.created * 1000), // Convert from Unix timestamp
+                    processingFee: session.metadata?.processingFee ? parseFloat(session.metadata.processingFee) : 0
+                }));
+
+            console.log('Transactions found:', transactions);
 
             res.json({
                 transactions,
-                totalPages: Math.ceil(total / limit),
-                currentPage: page
+                totalPages: 1,
+                currentPage: 1
             });
         } catch (error) {
             console.error('Error fetching transaction history:', error);

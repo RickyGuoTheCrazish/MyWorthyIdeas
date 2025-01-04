@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
+const CREDIT_MULTIPLIER = 10;
+
 const AccountSettings = () => {
     const { user, setUser } = useAuth();
     const navigate = useNavigate();
@@ -450,39 +452,86 @@ const AccountSettings = () => {
                     
                     {activeTab === 'history' && (
                         <div className={styles.historySection}>
-                            <h2>Transaction History</h2>
+                            <div className={styles.historyHeader}>
+                                <h2>Transaction History</h2>
+                                <div className={styles.historySummary}>
+                                    <div className={styles.summaryItem}>
+                                        <FaCoins className={styles.summaryIcon} />
+                                        <div className={styles.summaryText}>
+                                            <div className={styles.summaryLabel}>Current Balance</div>
+                                            <div className={styles.summaryValue}>{user.credits?.toFixed(0)} Credits</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {loadingHistory ? (
                                 <div className={styles.loadingState}>
                                     <FaSpinner className={styles.spinner} />
-                                    Loading transaction history...
+                                    <span>Loading your transaction history...</span>
                                 </div>
                             ) : billingHistory.length > 0 ? (
                                 <div className={styles.transactionList}>
                                     {billingHistory.map((transaction, index) => (
-                                        <div key={index} className={styles.transactionItem}>
-                                            <div className={styles.transactionInfo}>
-                                                <div className={styles.transactionAmount}>
-                                                    <span className={styles.creditAmount}>
-                                                        +{transaction.credits || transaction.amount * 10} Credits
-                                                    </span>
-                                                    <span className={styles.audAmount}>
-                                                        ${transaction.amount?.toFixed(2)} AUD
-                                                    </span>
+                                        <div key={index} className={`${styles.transactionItem} ${styles[transaction.status]}`}>
+                                            <div className={styles.transactionIcon}>
+                                                {transaction.status === 'complete' ? (
+                                                    <div className={styles.successIcon}><FaCoins /></div>
+                                                ) : transaction.status === 'pending' ? (
+                                                    <div className={styles.pendingIcon}><FaSpinner /></div>
+                                                ) : (
+                                                    <div className={styles.failedIcon}><FaInfoCircle /></div>
+                                                )}
+                                            </div>
+                                            <div className={styles.transactionContent}>
+                                                <div className={styles.transactionMain}>
+                                                    <div className={styles.transactionLeft}>
+                                                        <div className={styles.transactionTitle}>
+                                                            Credit Purchase
+                                                            <span className={`${styles.statusBadge} ${styles[transaction.status]}`}>
+                                                                {transaction.status}
+                                                            </span>
+                                                        </div>
+                                                        <div className={styles.transactionDate}>
+                                                            {formatDate(transaction.createdAt)}
+                                                        </div>
+                                                    </div>
+                                                    <div className={styles.transactionRight}>
+                                                        <div className={styles.amountDetails}>
+                                                            <div className={styles.creditAmount}>
+                                                                +{(transaction.amount * CREDIT_MULTIPLIER).toFixed(0)} Credits
+                                                            </div>
+                                                            <div className={styles.moneyAmount}>
+                                                                ${transaction.amount.toFixed(2)} USD
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className={styles.transactionDate}>
-                                                    {new Date(transaction.createdAt).toLocaleDateString('en-AU', {
-                                                        day: 'numeric',
-                                                        month: 'long',
-                                                        year: 'numeric'
-                                                    })}
-                                                </div>
+                                                {transaction.processingFee > 0 && (
+                                                    <div className={styles.transactionFee}>
+                                                        <div className={styles.feeLabel}>Processing Fee:</div>
+                                                        <div className={styles.feeAmount}>
+                                                            ${transaction.processingFee.toFixed(2)} USD
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
                                 <div className={styles.emptyState}>
-                                    <p>No transaction history yet</p>
+                                    <div className={styles.emptyIcon}>
+                                        <FaCoins />
+                                    </div>
+                                    <h3>No Transactions Yet</h3>
+                                    <p>Your purchase history will appear here once you buy credits.</p>
+                                    <button 
+                                        className={styles.emptyStateAction}
+                                        onClick={() => setActiveTab('transactions')}
+                                    >
+                                        Buy Credits Now
+                                    </button>
                                 </div>
                             )}
                         </div>

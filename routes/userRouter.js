@@ -765,6 +765,9 @@ router.post("/withdraw", authProtecter, async (req, res) => {
 router.post('/deposit/init', authProtecter, initializeDeposit);
 router.get('/transactions', authProtecter, getTransactionHistory);
 
+// Stripe webhook - no auth required as this is called by Stripe
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }), handleWebhook);
+
 /*
   GET CURRENT USER
   GET /users/me
