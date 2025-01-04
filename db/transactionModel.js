@@ -15,6 +15,18 @@ const transactionSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    baseAmount: {
+        type: Number,
+        required: function() {
+            return this.type === 'deposit';
+        }
+    },
+    processingFee: {
+        type: Number,
+        required: function() {
+            return this.type === 'deposit';
+        }
+    },
     status: {
         type: String,
         enum: ['pending', 'completed', 'failed', 'cancelled'],
@@ -28,6 +40,7 @@ const transactionSchema = new mongoose.Schema({
     paymentDetails: {
         stripePaymentId: String,
         stripeTransferId: String,
+        stripeSessionId: String,
         accountNumber: String,
         routingNumber: String
     },

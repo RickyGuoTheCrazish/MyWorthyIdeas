@@ -102,23 +102,41 @@ class StripeService {
      */
     async createCheckoutSession(amount, userId) {
         try {
+            // Calculate processing fee (1% with max $2)
+            const processingFee = Math.min(amount * 0.01, 2);
+            const totalAmount = amount + processingFee;
+
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
                 mode: 'payment',
-                line_items: [{
-                    price_data: {
-                        currency: 'usd',
-                        product_data: {
-                            name: 'Credits Purchase',
-                            description: `${amount * CREDIT_MULTIPLIER} Credits`,
+                line_items: [
+                    {
+                        price_data: {
+                            currency: 'usd',
+                            product_data: {
+                                name: 'Credits Purchase',
+                                description: `${amount * CREDIT_MULTIPLIER} Credits`,
+                            },
+                            unit_amount: amount * 100, // Convert to cents
                         },
-                        unit_amount: amount * 100, // Convert to cents
+                        quantity: 1,
                     },
-                    quantity: 1,
-                }],
+                    {
+                        price_data: {
+                            currency: 'usd',
+                            product_data: {
+                                name: 'Processing Fee',
+                                description: '1% processing fee',
+                            },
+                            unit_amount: processingFee * 100, // Convert to cents
+                        },
+                        quantity: 1,
+                    }
+                ],
                 metadata: {
                     userId: userId.toString(),
                     credits: (amount * CREDIT_MULTIPLIER).toString(),
+                    processingFee: processingFee.toString(),
                 },
                 success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.CLIENT_URL}/account`,
@@ -128,7 +146,9 @@ class StripeService {
             await Transaction.create({
                 userId,
                 type: 'deposit',
-                amount,
+                amount: totalAmount, // Store total amount including fee
+                baseAmount: amount, // Store original amount
+                processingFee, // Store processing fee separately
                 status: 'pending',
                 paymentMethod: 'stripe',
                 paymentDetails: {
@@ -168,7 +188,7 @@ class StripeService {
                         status: session.status
                     });
 
-                    const { userId, credits } = session.metadata;
+                    const { userId, credits, processingFee } = session.metadata;
                     if (!userId || !credits) {
                         console.error('Missing metadata in session:', session.metadata);
                         return;
@@ -200,11 +220,14 @@ class StripeService {
                         existingTransaction.status = 'completed';
                         await existingTransaction.save();
                     } else {
+                        const baseAmount = session.amount_total / 100 - parseFloat(processingFee);
                         console.log('Creating new transaction for session:', session.id);
                         await Transaction.create({
                             userId,
                             type: 'deposit',
-                            amount: session.amount_total / 100, // Convert from cents to dollars
+                            amount: session.amount_total / 100,
+                            baseAmount,
+                            processingFee: parseFloat(processingFee),
                             status: 'completed',
                             paymentMethod: 'stripe',
                             paymentDetails: {

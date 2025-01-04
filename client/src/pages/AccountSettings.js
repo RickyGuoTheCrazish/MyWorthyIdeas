@@ -116,39 +116,121 @@ const AccountSettings = () => {
             <div className={styles.content}>
                 {activeTab === 'transactions' && (
                     <div className={styles.transactionSection}>
-                        <h2>Add Credits</h2>
-                        <p className={styles.conversionInfo}>
-                            <FaExchangeAlt className={styles.exchangeIcon} />
-                            1 USD = 10 Credits
-                        </p>
-                        
-                        <form onSubmit={handleTransaction} className={styles.form}>
-                            <div className={styles.formGroup}>
-                                <label htmlFor="amount">Amount (USD)</label>
-                                <input
-                                    type="number"
-                                    id="amount"
-                                    min="1"
-                                    step="1"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    required
-                                    className={styles.input}
-                                    placeholder="Enter amount in USD"
-                                />
+                        <div className={styles.creditPackages}>
+                            <h2>Select Credit Package</h2>
+                            <div className={styles.feeInfo}>
+                                <FaExchangeAlt className={styles.exchangeIcon} />
+                                <span>Processing fee: 1% (max $2 USD)</span>
                             </div>
-                            
+                            <div className={styles.packageGrid}>
+                                <div 
+                                    className={`${styles.packageCard} ${amount === '10' ? styles.selectedPackage : ''}`}
+                                    onClick={() => setAmount('10')}
+                                >
+                                    <div className={styles.packageHeader}>
+                                        <FaCoins className={styles.packageIcon} />
+                                        <h3>Starter</h3>
+                                    </div>
+                                    <div className={styles.packagePrice}>$10</div>
+                                    <div className={styles.packageCredits}>100 Credits</div>
+                                    <div className={styles.packageFeatures}>
+                                        <div>Perfect for trying out</div>
+                                        <div>Instant delivery</div>
+                                        <div className={styles.processingFee}>
+                                            + ${(10 * 0.01).toFixed(2)} processing fee
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div 
+                                    className={`${styles.packageCard} ${amount === '50' ? styles.selectedPackage : ''}`}
+                                    onClick={() => setAmount('50')}
+                                >
+                                    <div className={styles.packageHeader}>
+                                        <FaCoins className={styles.packageIcon} />
+                                        <h3>Popular</h3>
+                                    </div>
+                                    <div className={styles.packagePrice}>$50</div>
+                                    <div className={styles.packageCredits}>500 Credits</div>
+                                    <div className={styles.packageFeatures}>
+                                        <div>Most popular choice</div>
+                                        <div>Instant delivery</div>
+                                        <div className={styles.processingFee}>
+                                            + ${(50 * 0.01).toFixed(2)} processing fee
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div 
+                                    className={`${styles.packageCard} ${amount === '100' ? styles.selectedPackage : ''}`}
+                                    onClick={() => setAmount('100')}
+                                >
+                                    <div className={styles.packageHeader}>
+                                        <FaCoins className={styles.packageIcon} />
+                                        <h3>Pro</h3>
+                                    </div>
+                                    <div className={styles.packagePrice}>$100</div>
+                                    <div className={styles.packageCredits}>1000 Credits</div>
+                                    <div className={styles.packageFeatures}>
+                                        <div>Best value</div>
+                                        <div>Instant delivery</div>
+                                        <div className={styles.processingFee}>
+                                            + $2.00 processing fee
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={styles.customAmount}>
+                                <div className={styles.customAmountHeader}>
+                                    <h3>Custom Amount</h3>
+                                    <div className={styles.conversionRate}>
+                                        <FaExchangeAlt className={styles.exchangeIcon} />
+                                        <span>1 USD = 10 Credits</span>
+                                    </div>
+                                </div>
+                                <div className={styles.customAmountInput}>
+                                    <div className={styles.inputWrapper}>
+                                        <span className={styles.currencySymbol}>$</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            placeholder="Enter amount"
+                                            className={styles.input}
+                                        />
+                                    </div>
+                                    <div className={styles.creditPreview}>
+                                        <div>≈ {(Number(amount) || 0) * 10} Credits</div>
+                                        <div className={styles.processingFee}>
+                                            + ${Math.min((Number(amount) || 0) * 0.01, 2).toFixed(2)} processing fee
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {error && <div className={styles.error}>{error}</div>}
                             {success && <div className={styles.success}>{success}</div>}
-                            
+
                             <button
-                                type="submit"
+                                onClick={handleTransaction}
                                 disabled={loading || !amount}
-                                className={styles.submitButton}
+                                className={styles.checkoutButton}
                             >
-                                {loading ? 'Processing...' : 'Proceed to Checkout'}
+                                {loading ? (
+                                    <span className={styles.loadingText}>Processing...</span>
+                                ) : (
+                                    <span className={styles.buttonContent}>
+                                        Proceed to Checkout
+                                        <span className={styles.buttonAmount}>
+                                            ${(Number(amount) + Math.min(Number(amount) * 0.01, 2)).toFixed(2)}
+                                        </span>
+                                    </span>
+                                )}
                             </button>
-                        </form>
+                        </div>
                     </div>
                 )}
                 
