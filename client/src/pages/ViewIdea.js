@@ -56,9 +56,9 @@ const ViewIdea = () => {
                 setIdea(data.idea);
                 
                 // If the user has already rated this idea
-                if (data.idea.ratings && data.idea.ratings.find(r => r.userId === user?.userId)) {
-                    const userRating = data.idea.ratings.find(r => r.userId === user?.userId).rating;
-                    setUserRating(userRating);
+                if (isAuthenticated && user && data.idea.rating) {
+                    console.log('Current rating:', data.idea.rating);
+                    setUserRating(data.idea.rating);
                 }
             } catch (error) {
                 console.error('Error fetching idea:', error);
@@ -68,7 +68,9 @@ const ViewIdea = () => {
             }
         };
 
-        fetchIdea();
+        if (isAuthenticated && user) {
+            fetchIdea();
+        }
     }, [ideaId, isAuthenticated, user]);
 
     const handleBuy = async () => {
@@ -150,9 +152,7 @@ const ViewIdea = () => {
             // Update the idea state while preserving all existing data
             setIdea(prev => ({
                 ...prev,
-                userRating: newRating,
-                rating: data.rating || prev.rating,
-                ratings: [...(prev.ratings || []), { userId: user.userId, rating: newRating }],
+                rating: data.rating || newRating,
                 creator: {
                     ...prev.creator,
                     averageRating: data.averageRating || prev.creator.averageRating
