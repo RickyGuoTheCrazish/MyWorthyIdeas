@@ -1,6 +1,11 @@
 import axios from 'axios';
+import { loadStripe } from '@stripe/stripe-js';
 
 const API_BASE_URL = 'http://localhost:6001/api/users';
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
+
+// Initialize Stripe
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 // Configure axios defaults
 axios.defaults.withCredentials = true;
@@ -20,35 +25,30 @@ class PaymentService {
     }
 
     /**
-     * Initialize a deposit transaction
+     * Initialize a Stripe Checkout session for deposit
      * @param {number} amount Amount in USD
-     * @returns {Promise<{clientSecret: string, paymentIntentId: string}>}
+     * @returns {Promise<void>}
      */
     async initializeDeposit(amount) {
         try {
             console.log('Sending deposit init request:', { amount });
             const response = await axios.post(`${API_BASE_URL}/deposit/init`, { amount });
             console.log('Deposit init response:', response.data);
-            return response.data;
+            
+            const stripe = await stripePromise;
+            if (!stripe) {
+                throw new Error('Failed to initialize Stripe');
+            }
+
+            const { error } = await stripe.redirectToCheckout({
+                sessionId: response.data.id // Use id instead of sessionId
+            });
+
+            if (error) {
+                throw new Error(error.message);
+            }
         } catch (error) {
             console.error('Deposit init error:', error.response?.data || error.message);
-            throw this.handleError(error);
-        }
-    }
-
-    /**
-     * Process a withdrawal
-     * @param {number} amount Amount in USD
-     * @returns {Promise<Object>}
-     */
-    async processWithdrawal(amount) {
-        try {
-            console.log('Sending withdrawal request:', { amount });
-            const response = await axios.post(`${API_BASE_URL}/withdraw`, { amount });
-            console.log('Withdrawal response:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('Withdrawal error:', error.response?.data || error.message);
             throw this.handleError(error);
         }
     }

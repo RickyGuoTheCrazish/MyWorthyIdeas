@@ -1,5 +1,8 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const User = require('../db/userModel');
 const Transaction = require('../db/transactionModel');
+
+const CREDIT_MULTIPLIER = 10; // 1 USD = 10 credits
 
 class StripeService {
     constructor() {
@@ -92,12 +95,63 @@ class StripeService {
     }
 
     /**
+     * Create a Stripe Checkout session
+     * @param {number} amount Amount in USD
+     * @param {string} userId User ID
+     * @returns {Promise<{id: string}>}
+     */
+    async createCheckoutSession(amount, userId) {
+        try {
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                mode: 'payment',
+                line_items: [{
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: 'Credits Purchase',
+                            description: `${amount * CREDIT_MULTIPLIER} Credits`,
+                        },
+                        unit_amount: amount * 100, // Convert to cents
+                    },
+                    quantity: 1,
+                }],
+                metadata: {
+                    userId: userId.toString(),
+                    credits: (amount * CREDIT_MULTIPLIER).toString(),
+                },
+                success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${process.env.CLIENT_URL}/account`,
+            });
+
+            // Create a pending transaction
+            await Transaction.create({
+                userId,
+                type: 'deposit',
+                amount,
+                status: 'pending',
+                paymentMethod: 'stripe',
+                paymentDetails: {
+                    stripeSessionId: session.id
+                }
+            });
+
+            return { id: session.id };
+        } catch (error) {
+            console.error('Error creating checkout session:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Handle Stripe webhook events
      * @param {Object} event Stripe webhook event
      * @returns {Promise<void>}
      */
     async handleWebhookEvent(event) {
         try {
+            console.log('Processing webhook event:', event.type);
+            
             switch (event.type) {
                 case 'payment_intent.succeeded':
                     await this.handlePaymentSuccess(event.data.object);
@@ -105,7 +159,63 @@ class StripeService {
                 case 'payment_intent.failed':
                     await this.handlePaymentFailure(event.data.object);
                     break;
-                // Add more event handlers as needed
+                case 'checkout.session.completed':
+                    console.log('Handling checkout.session.completed');
+                    const session = event.data.object;
+                    console.log('Session data:', {
+                        metadata: session.metadata,
+                        amount: session.amount_total,
+                        status: session.status
+                    });
+
+                    const { userId, credits } = session.metadata;
+                    if (!userId || !credits) {
+                        console.error('Missing metadata in session:', session.metadata);
+                        return;
+                    }
+
+                    // Update user's credits
+                    const user = await User.findById(userId);
+                    if (!user) {
+                        console.error('User not found:', userId);
+                        return;
+                    }
+
+                    console.log('Updating user credits:', {
+                        before: user.credits,
+                        adding: parseInt(credits),
+                        after: user.credits + parseInt(credits)
+                    });
+
+                    user.credits += parseInt(credits);
+                    await user.save();
+
+                    // Update existing transaction or create new one
+                    const existingTransaction = await Transaction.findOne({
+                        'paymentDetails.stripeSessionId': session.id
+                    });
+
+                    if (existingTransaction) {
+                        console.log('Updating existing transaction:', existingTransaction._id);
+                        existingTransaction.status = 'completed';
+                        await existingTransaction.save();
+                    } else {
+                        console.log('Creating new transaction for session:', session.id);
+                        await Transaction.create({
+                            userId,
+                            type: 'deposit',
+                            amount: session.amount_total / 100, // Convert from cents to dollars
+                            status: 'completed',
+                            paymentMethod: 'stripe',
+                            paymentDetails: {
+                                stripeSessionId: session.id
+                            }
+                        });
+                    }
+                    console.log('Checkout session processing completed');
+                    break;
+                default:
+                    console.log('Unhandled event type:', event.type);
             }
         } catch (error) {
             console.error('Error handling webhook event:', error);

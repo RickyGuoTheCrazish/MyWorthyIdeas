@@ -20,7 +20,7 @@ const CARD_ELEMENT_OPTIONS = {
     }
 };
 
-const PaymentMethodForm = ({ onSuccess, type = 'deposit', clientSecret }) => {
+const PaymentMethodForm = ({ onSuccess, clientSecret }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [error, setError] = useState(null);
@@ -39,13 +39,6 @@ const PaymentMethodForm = ({ onSuccess, type = 'deposit', clientSecret }) => {
         setLoading(true);
         setError(null);
 
-        console.log('Payment submission state:', {
-            stripeReady: !!stripe,
-            elementsReady: !!elements,
-            hasClientSecret: !!clientSecret,
-            clientSecret
-        });
-
         if (!stripe || !elements || !clientSecret) {
             setError('Payment system not ready. Please try again.');
             setLoading(false);
@@ -53,38 +46,24 @@ const PaymentMethodForm = ({ onSuccess, type = 'deposit', clientSecret }) => {
         }
 
         try {
-            if (type === 'deposit') {
-                console.log('Confirming payment with secret:', clientSecret);
-                const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
-                    clientSecret,
-                    {
-                        payment_method: {
-                            card: elements.getElement(CardElement),
-                        },
-                    }
-                );
-
-                if (confirmError) {
-                    throw new Error(confirmError.message);
+            console.log('Confirming payment with secret:', clientSecret);
+            const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
+                clientSecret,
+                {
+                    payment_method: {
+                        card: elements.getElement(CardElement),
+                    },
                 }
+            );
 
-                if (paymentIntent.status === 'succeeded') {
-                    onSuccess();
-                } else {
-                    throw new Error('Payment failed. Please try again.');
-                }
-            } else {
-                // For withdrawal setup (Connect Express)
-                const { error: stripeError } = await stripe.createToken('account', {
-                    type: 'custom',
-                    requested_capabilities: ['transfers'],
-                });
+            if (confirmError) {
+                throw new Error(confirmError.message);
+            }
 
-                if (stripeError) {
-                    throw new Error(stripeError.message);
-                }
-
+            if (paymentIntent.status === 'succeeded') {
                 onSuccess();
+            } else {
+                throw new Error('Payment failed. Please try again.');
             }
         } catch (err) {
             console.error('Payment error:', err);
@@ -95,15 +74,13 @@ const PaymentMethodForm = ({ onSuccess, type = 'deposit', clientSecret }) => {
     };
 
     if (!stripe || !elements) {
-        return <div>Loading...</div>;
+        return <div className={styles.loading}>Loading payment system...</div>;
     }
 
     return (
         <form onSubmit={handleSubmit} className={styles.form}>
             <div className={styles.formGroup}>
-                <label className={styles.label}>
-                    {type === 'deposit' ? 'Card Details' : 'Bank Account Details'}
-                </label>
+                <label className={styles.label}>Card Details</label>
                 <div className={styles.cardElement}>
                     <CardElement options={CARD_ELEMENT_OPTIONS} />
                 </div>
@@ -116,7 +93,7 @@ const PaymentMethodForm = ({ onSuccess, type = 'deposit', clientSecret }) => {
                 disabled={!stripe || loading} 
                 className={styles.submitButton}
             >
-                {loading ? 'Processing...' : type === 'deposit' ? 'Add Card' : 'Add Bank Account'}
+                {loading ? 'Processing...' : 'Add Credits'}
             </button>
         </form>
     );

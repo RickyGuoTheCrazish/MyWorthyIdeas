@@ -20,6 +20,11 @@ const uploadProfileImages = require("../middlewares/uploadProfileImages");
 const PaymentController = require('../controllers/paymentController');
 const paymentController = new PaymentController();
 
+// Bind payment controller methods to maintain 'this' context
+const handleWebhook = paymentController.handleWebhook.bind(paymentController);
+const initializeDeposit = paymentController.initializeDeposit.bind(paymentController);
+const getTransactionHistory = paymentController.getTransactionHistory.bind(paymentController);
+
 /** 
  * Example username validator:
  * - >=6 chars
@@ -757,10 +762,8 @@ router.post("/withdraw", authProtecter, async (req, res) => {
 });
 
 // Payment routes
-router.post('/deposit/init', authProtecter, paymentController.initializeDeposit.bind(paymentController));
-router.post('/withdraw', authProtecter, paymentController.processWithdrawal.bind(paymentController));
-router.get('/transactions', authProtecter, paymentController.getTransactionHistory.bind(paymentController));
-router.post('/webhook', paymentController.handleWebhook.bind(paymentController));
+router.post('/deposit/init', authProtecter, initializeDeposit);
+router.get('/transactions', authProtecter, getTransactionHistory);
 
 /*
   GET CURRENT USER

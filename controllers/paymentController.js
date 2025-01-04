@@ -1,18 +1,20 @@
 const stripeService = require('../services/stripeService');
 const Transaction = require('../db/transactionModel');
 const User = require('../db/userModel');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const CREDIT_MULTIPLIER = 10; // 1 USD = 10 credits
 
+// Webhook secret from Stripe CLI
 class PaymentController {
     /**
-     * Initialize payment intent for deposit
+     * Create Stripe Checkout session for deposit
      * @param {Object} req Request object
      * @param {Object} res Response object
      */
     async initializeDeposit(req, res) {
         try {
-            console.log('Initializing deposit with body:', req.body);
+            console.log('Initializing Stripe Checkout with body:', req.body);
             const { amount } = req.body;
             const userId = req.user._id;
 
@@ -21,78 +23,12 @@ class PaymentController {
                 return res.status(400).json({ error: 'Invalid amount' });
             }
 
-            console.log('Creating payment intent for user:', userId, 'amount:', amount);
-            const result = await stripeService.createPaymentIntent(
-                amount,
-                userId.toString()
-            );
-            console.log('Payment intent created:', result);
-
-            res.json(result);
+            const session = await stripeService.createCheckoutSession(amount, userId);
+            console.log('Created checkout session:', session.id);
+            res.json({ id: session.id });
         } catch (error) {
-            console.error('Error initializing deposit:', error);
-            res.status(500).json({ error: 'Failed to initialize deposit' });
-        }
-    }
-
-    /**
-     * Process withdrawal request
-     * @param {Object} req Request object
-     * @param {Object} res Response object
-     */
-    async processWithdrawal(req, res) {
-        try {
-            console.log('Processing withdrawal with body:', req.body);
-            const { amount } = req.body;
-            const userId = req.user._id;
-            const user = await User.findById(userId);
-
-            if (!amount || amount <= 0) {
-                console.log('Invalid amount:', amount);
-                return res.status(400).json({ error: 'Invalid amount' });
-            }
-
-            // Check if user has enough balance
-            const creditsNeeded = amount * CREDIT_MULTIPLIER;
-            if (user.subscription === 'seller' && user.earnings < creditsNeeded) {
-                console.log('Insufficient earnings for user:', userId);
-                return res.status(400).json({ error: 'Insufficient earnings' });
-            } else if (user.subscription === 'buyer' && user.credits < creditsNeeded) {
-                console.log('Insufficient credits for user:', userId);
-                return res.status(400).json({ error: 'Insufficient credits' });
-            }
-
-            // Verify user has a connected Stripe account
-            if (!user.stripeAccountId) {
-                console.log('No payment method found for user:', userId);
-                return res.status(400).json({ 
-                    error: 'No payment method found',
-                    code: 'NO_PAYMENT_METHOD'
-                });
-            }
-
-            console.log('Processing withdrawal for user:', userId, 'amount:', amount);
-            // Process withdrawal
-            const transaction = await stripeService.createPayout(
-                amount,
-                userId,
-                user.stripeAccountId
-            );
-            console.log('Withdrawal processed:', transaction);
-
-            // Update user balance
-            if (user.subscription === 'seller') {
-                user.earnings -= creditsNeeded;
-            } else {
-                user.credits -= creditsNeeded;
-            }
-            await user.save();
-            console.log('User balance updated:', user);
-
-            res.json({ transaction });
-        } catch (error) {
-            console.error('Error processing withdrawal:', error);
-            res.status(500).json({ error: 'Failed to process withdrawal' });
+            console.error('Error creating checkout session:', error);
+            res.status(500).json({ error: 'Failed to initialize checkout' });
         }
     }
 
@@ -133,22 +69,40 @@ class PaymentController {
      * @param {Object} res Response object
      */
     async handleWebhook(req, res) {
-        console.log('Handling Stripe webhook');
+        console.log('\n=== Webhook Request Received ===');
         const sig = req.headers['stripe-signature'];
+        console.log('Stripe Signature:', sig);
+        console.log('Request URL:', req.originalUrl);
+        console.log('Request Method:', req.method);
+        console.log('Content-Type:', req.headers['content-type']);
+        console.log('Body Type:', typeof req.body);
+        console.log('Body Length:', req.body ? req.body.length : 0);
+        console.log('Body is Buffer?:', Buffer.isBuffer(req.body));
+        console.log('================================\n');
 
         try {
             const event = stripe.webhooks.constructEvent(
                 req.body,
                 sig,
-                process.env.STRIPE_WEBHOOK_SECRET
+                process.env.STRIPE_WEBHOOK_SECRET // Use the CLI webhook secret
             );
-            console.log('Webhook event:', event);
+            console.log('Successfully constructed event:', event.type);
 
             await stripeService.handleWebhookEvent(event);
+            console.log('Successfully handled webhook event');
             res.json({ received: true });
         } catch (error) {
             console.error('Webhook error:', error);
-            res.status(400).json({ error: 'Webhook error' });
+            console.error('Error details:', {
+                type: error.type,
+                message: error.message,
+                raw: error.raw
+            });
+            return res.status(400).json({ 
+                error: error.message,
+                type: error.type,
+                detail: error.detail 
+            });
         }
     }
 }

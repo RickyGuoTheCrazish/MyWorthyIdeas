@@ -13,7 +13,6 @@ const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 const AccountSettings = () => {
     const { user, setUser } = useAuth();
     const [amount, setAmount] = useState('');
-    const [transactionType, setTransactionType] = useState('deposit');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -23,8 +22,7 @@ const AccountSettings = () => {
     const [showPaymentForm, setShowPaymentForm] = useState(false);
     const [clientSecret, setClientSecret] = useState('');
 
-    const isSeller = user?.subscription === 'seller';
-    const balance = isSeller ? user?.earnings || 0 : user?.credits || 0;
+    const balance = user?.credits || 0;
 
     useEffect(() => {
         fetchTransactionHistory();
@@ -49,36 +47,10 @@ const AccountSettings = () => {
         setLoading(true);
 
         try {
-            if (transactionType === 'deposit') {
-                console.log('Initializing deposit with amount:', amount);
-                const response = await paymentService.initializeDeposit(Number(amount));
-                console.log('Deposit initialization response:', response);
-                const { clientSecret } = response;
-                
-                if (!clientSecret) {
-                    throw new Error('Failed to initialize payment');
-                }
-                
-                console.log('Setting client secret:', clientSecret);
-                setClientSecret(clientSecret);
-                setShowPaymentForm(true);
-            } else {
-                await paymentService.processWithdrawal(Number(amount));
-                setSuccess('Withdrawal processed successfully');
-                try {
-                    const updatedUser = await paymentService.getUserProfile();
-                    setUser(updatedUser);
-                } catch (err) {
-                    console.error('Error updating user data:', err);
-                }
-                fetchTransactionHistory();
-                setAmount('');
-            }
+            console.log('Initializing deposit with amount:', amount);
+            await paymentService.initializeDeposit(Number(amount));
         } catch (err) {
             setError(err.message);
-            if (err.code === 'NO_PAYMENT_METHOD') {
-                setShowPaymentForm(true);
-            }
         } finally {
             setLoading(false);
         }
@@ -112,7 +84,7 @@ const AccountSettings = () => {
             <div className={styles.header}>
                 <h1>Account Settings</h1>
                 <div className={styles.balanceCard}>
-                    <h2>{isSeller ? 'Your Earnings' : 'Your Credits'}</h2>
+                    <h2>Your Credits</h2>
                     <div className={styles.balanceWrapper}>
                         <p className={styles.balance}>
                             <FaCoins className={styles.coinIcon} />
@@ -123,11 +95,6 @@ const AccountSettings = () => {
                             <span>1 USD = 10 Credits</span>
                         </div>
                     </div>
-                    {isSeller && (
-                        <p className={styles.subtitle}>
-                            Total earnings from sold ideas
-                        </p>
-                    )}
                 </div>
             </div>
 
@@ -136,7 +103,7 @@ const AccountSettings = () => {
                     className={`${styles.tab} ${activeTab === 'transactions' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('transactions')}
                 >
-                    {isSeller ? 'Withdraw' : 'Transactions'}
+                    Add Credits
                 </button>
                 <button
                     className={`${styles.tab} ${activeTab === 'history' ? styles.activeTab : ''}`}
@@ -149,108 +116,64 @@ const AccountSettings = () => {
             <div className={styles.content}>
                 {activeTab === 'transactions' && (
                     <div className={styles.transactionSection}>
-                        <h2>{isSeller ? 'Withdraw Earnings' : 'Make a Transaction'}</h2>
-                        {error && <div className={styles.error}>{error}</div>}
-                        {success && <div className={styles.success}>{success}</div>}
+                        <h2>Add Credits</h2>
+                        <p className={styles.conversionInfo}>
+                            <FaExchangeAlt className={styles.exchangeIcon} />
+                            1 USD = 10 Credits
+                        </p>
                         
-                        {showPaymentForm ? (
-                            <Elements 
-                                stripe={stripePromise} 
-                                options={{
-                                    clientSecret,
-                                    appearance: {
-                                        theme: 'stripe',
-                                    },
-                                }}
-                            >
-                                <PaymentMethodForm 
-                                    onSuccess={handlePaymentSuccess}
-                                    type={transactionType}
-                                    clientSecret={clientSecret}
+                        <form onSubmit={handleTransaction} className={styles.form}>
+                            <div className={styles.formGroup}>
+                                <label htmlFor="amount">Amount (USD)</label>
+                                <input
+                                    type="number"
+                                    id="amount"
+                                    min="1"
+                                    step="1"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    required
+                                    className={styles.input}
+                                    placeholder="Enter amount in USD"
                                 />
-                            </Elements>
-                        ) : (
-                            <form onSubmit={handleTransaction}>
-                                {!isSeller && (
-                                    <div className={styles.transactionType}>
-                                        <button 
-                                            type="button"
-                                            className={`${styles.typeButton} ${transactionType === 'deposit' ? styles.active : ''}`}
-                                            onClick={() => setTransactionType('deposit')}
-                                        >
-                                            Deposit
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            className={`${styles.typeButton} ${transactionType === 'withdraw' ? styles.active : ''}`}
-                                            onClick={() => setTransactionType('withdraw')}
-                                        >
-                                            Withdraw
-                                        </button>
-                                    </div>
-                                )}
-
-                                <div className={styles.inputGroup}>
-                                    <label htmlFor="amount" className={styles.amountLabel}>
-                                        Amount <FaCoins className={styles.coinIcon} />
-                                    </label>
-                                    <input
-                                        id="amount"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        required
-                                        max={transactionType === 'withdraw' ? balance / 10 : undefined}
-                                    />
-                                </div>
-
-                                <button 
-                                    type="submit" 
-                                    className={styles.submitButton}
-                                    disabled={loading || (transactionType === 'withdraw' && balance <= 0)}
-                                >
-                                    {loading ? 'Processing...' : (
-                                        <span className={styles.buttonContent}>
-                                            {isSeller ? 'Withdraw' : `${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)}`}
-                                            <FaCoins className={styles.buttonIcon} />
-                                        </span>
-                                    )}
-                                </button>
-                            </form>
-                        )}
+                            </div>
+                            
+                            {error && <div className={styles.error}>{error}</div>}
+                            {success && <div className={styles.success}>{success}</div>}
+                            
+                            <button
+                                type="submit"
+                                disabled={loading || !amount}
+                                className={styles.submitButton}
+                            >
+                                {loading ? 'Processing...' : 'Proceed to Checkout'}
+                            </button>
+                        </form>
                     </div>
                 )}
-
+                
                 {activeTab === 'history' && (
-                    <div className={styles.billingHistory}>
-                        <h2>Billing History</h2>
+                    <div className={styles.historySection}>
+                        <h2>Transaction History</h2>
                         {loadingHistory ? (
-                            <div className={styles.loading}>Loading history...</div>
+                            <p>Loading history...</p>
                         ) : billingHistory.length === 0 ? (
-                            <div className={styles.emptyState}>No transaction history yet</div>
+                            <p>No transactions found</p>
                         ) : (
-                            <div className={styles.historyList}>
-                                {billingHistory.map((transaction) => (
-                                    <div key={transaction._id} className={styles.historyItem}>
-                                        <div className={styles.historyItemHeader}>
+                            <div className={styles.transactionList}>
+                                {billingHistory.map((transaction, index) => (
+                                    <div key={index} className={styles.transactionItem}>
+                                        <div className={styles.transactionInfo}>
                                             <span className={styles.transactionType}>
-                                                {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                                                {transaction.type === 'deposit' ? 'Added Credits' : 'Purchase'}
                                             </span>
-                                            <span className={`${styles.amount} ${transaction.type === 'deposit' ? styles.positive : styles.negative}`}>
-                                                {transaction.type === 'deposit' ? '+' : '-'}
-                                                <FaCoins className={styles.coinIcon} />
-                                                {transaction.amount.toFixed(2)}
+                                            <span className={styles.transactionAmount}>
+                                                {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
                                             </span>
                                         </div>
-                                        <div className={styles.historyItemDetails}>
-                                            <span className={styles.date}>{formatDate(transaction.createdAt)}</span>
-                                            <span className={styles.status}>{transaction.status}</span>
-                                        </div>
-                                        {transaction.description && (
-                                            <div className={styles.description}>{transaction.description}</div>
-                                        )}
+                                        <span className={styles.transactionDate}>
+                                            {formatDate(transaction.createdAt)}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
