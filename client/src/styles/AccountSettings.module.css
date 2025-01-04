@@ -19,11 +19,18 @@
     margin: 1rem 0;
 }
 
+.subtitle {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+}
+
 .transactionSection {
     background: white;
     padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
 }
 
 .transactionType {
@@ -41,6 +48,7 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
+    font-weight: 500;
 }
 
 .typeButton.active {
@@ -56,6 +64,7 @@
     display: block;
     margin-bottom: 0.5rem;
     color: #333;
+    font-weight: 500;
 }
 
 .inputGroup input {
@@ -64,6 +73,12 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: #1a73e8;
 }
 
 .submitButton {
@@ -74,6 +89,7 @@
     border: none;
     border-radius: 8px;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -93,6 +109,7 @@
     padding: 1rem;
     border-radius: 8px;
     margin-bottom: 1rem;
+    font-weight: 500;
 }
 
 .success {
@@ -101,4 +118,5 @@
     padding: 1rem;
     border-radius: 8px;
     margin-bottom: 1rem;
+    font-weight: 500;
 }

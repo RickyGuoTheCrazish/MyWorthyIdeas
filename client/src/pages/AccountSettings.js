@@ -11,6 +11,9 @@ const AccountSettings = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    const isSeller = user?.subscription === 'seller';
+    const balance = isSeller ? user?.earnings || 0 : user?.credits || 0;
+
     const handleTransaction = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -37,55 +40,99 @@ const AccountSettings = () => {
             <h1>Account Settings</h1>
             
             <div className={styles.balanceCard}>
-                <h2>Your Balance</h2>
-                <p className={styles.balance}>${user?.credits || 0}</p>
+                <h2>{isSeller ? 'Your Earnings' : 'Your Credits'}</h2>
+                <p className={styles.balance}>
+                    {isSeller ? '$' : ''}{balance.toFixed(2)}
+                    {!isSeller && ' Credits'}
+                </p>
+                {isSeller && (
+                    <p className={styles.subtitle}>
+                        Total earnings from sold ideas
+                    </p>
+                )}
             </div>
 
-            <div className={styles.transactionSection}>
-                <h2>Make a Transaction</h2>
-                {error && <div className={styles.error}>{error}</div>}
-                {success && <div className={styles.success}>{success}</div>}
-                
-                <form onSubmit={handleTransaction}>
-                    <div className={styles.transactionType}>
+            {!isSeller && (
+                <div className={styles.transactionSection}>
+                    <h2>Make a Transaction</h2>
+                    {error && <div className={styles.error}>{error}</div>}
+                    {success && <div className={styles.success}>{success}</div>}
+                    
+                    <form onSubmit={handleTransaction}>
+                        <div className={styles.transactionType}>
+                            <button 
+                                type="button"
+                                className={`${styles.typeButton} ${transactionType === 'deposit' ? styles.active : ''}`}
+                                onClick={() => setTransactionType('deposit')}
+                            >
+                                Deposit
+                            </button>
+                            <button 
+                                type="button"
+                                className={`${styles.typeButton} ${transactionType === 'withdraw' ? styles.active : ''}`}
+                                onClick={() => setTransactionType('withdraw')}
+                            >
+                                Withdraw
+                            </button>
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="amount">Amount (Credits)</label>
+                            <input
+                                id="amount"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                required
+                                max={transactionType === 'withdraw' ? balance : undefined}
+                            />
+                        </div>
+
                         <button 
-                            type="button"
-                            className={`${styles.typeButton} ${transactionType === 'deposit' ? styles.active : ''}`}
-                            onClick={() => setTransactionType('deposit')}
+                            type="submit" 
+                            className={styles.submitButton}
+                            disabled={loading || (transactionType === 'withdraw' && balance <= 0)}
                         >
-                            Deposit
+                            {loading ? 'Processing...' : `${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} Credits`}
                         </button>
+                    </form>
+                </div>
+            )}
+
+            {isSeller && (
+                <div className={styles.transactionSection}>
+                    <h2>Withdraw Earnings</h2>
+                    {error && <div className={styles.error}>{error}</div>}
+                    {success && <div className={styles.success}>{success}</div>}
+                    
+                    <form onSubmit={handleTransaction}>
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="amount">Amount ($)</label>
+                            <input
+                                id="amount"
+                                type="number"
+                                min="0"
+                                max={balance}
+                                step="0.01"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                required
+                            />
+                        </div>
+
                         <button 
-                            type="button"
-                            className={`${styles.typeButton} ${transactionType === 'withdraw' ? styles.active : ''}`}
+                            type="submit" 
+                            className={styles.submitButton}
+                            disabled={loading || balance <= 0}
                             onClick={() => setTransactionType('withdraw')}
                         >
-                            Withdraw
+                            {loading ? 'Processing...' : 'Withdraw Earnings'}
                         </button>
-                    </div>
-
-                    <div className={styles.inputGroup}>
-                        <label htmlFor="amount">Amount ($)</label>
-                        <input
-                            id="amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        className={styles.submitButton}
-                        disabled={loading}
-                    >
-                        {loading ? 'Processing...' : `${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)}`}
-                    </button>
-                </form>
-            </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 };

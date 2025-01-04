@@ -17,8 +17,10 @@ const CATEGORIES = {
 
 const Sidebar = () => {
     const location = useLocation();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [expandedCategories, setExpandedCategories] = useState({});
+
+    const isSeller = user?.subscription === 'seller';
 
     const toggleCategory = (category) => {
         setExpandedCategories(prev => ({
@@ -58,31 +60,24 @@ const Sidebar = () => {
             </Link>
             
             {isAuthenticated && (
-                <>
-                    <Link 
-                        to="/dashboard" 
-                        className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
-                    >
-                        <span className={styles.icon}>📊</span>
-                        My Ideas
-                    </Link>
-                    <Link 
-                        to="/account-settings" 
-                        className={`${styles.menuItem} ${isActive('/account-settings') ? styles.active : ''}`}
-                    >
-                        <span className={styles.icon}>💰</span>
-                        Account Settings
-                    </Link>
-                </>
+                <Link 
+                    to="/dashboard" 
+                    className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}
+                >
+                    <span className={styles.icon}>📊</span>
+                    My Ideas
+                </Link>
             )}
 
-            <Link 
-                to="/create" 
-                className={`${styles.menuItem} ${isActive('/create') ? styles.active : ''}`}
-            >
-                <span className={styles.icon}>💡</span>
-                Create New Idea
-            </Link>
+            {isSeller && (
+                <Link 
+                    to="/create" 
+                    className={`${styles.menuItem} ${isActive('/create') ? styles.active : ''}`}
+                >
+                    <span className={styles.icon}>💡</span>
+                    Create New Idea
+                </Link>
+            )}
 
             <div className={styles.section}>
                 <button 
