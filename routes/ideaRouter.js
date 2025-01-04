@@ -118,8 +118,6 @@ router.get("/search", optionalAuth, async (req, res) => {
       return res.status(400).json({ message: "Search query is required" });
     }
 
-    let searchQuery = {};
-    
     if (type === 'id') {
       // Clean up the ID by removing # and whitespace, and take last 6 characters
       const cleanId = query.replace('#', '').trim().toUpperCase().slice(-6);
@@ -142,13 +140,13 @@ router.get("/search", optionalAuth, async (req, res) => {
         {
           $match: {
             shortId: cleanId,
-            ...(!req.user ? { isSold: false } : {})
+            isSold: { $ne: true }
           }
         },
         {
           $limit: 20
         }
-      ]).exec();
+      ]);
 
       // Populate creator information
       await Idea.populate(ideas, { path: 'creator', select: 'username averageRating' });
@@ -164,21 +162,16 @@ router.get("/search", optionalAuth, async (req, res) => {
           averageRating: idea.creator?.averageRating
         },
         categories: idea.categories,
-        isSold: idea.isSold,
-        boughtAt: idea.buyers?.find(buyer => 
-          req.user && buyer.userId.toString() === req.user._id.toString()
-        )?.boughtAt
+        isSold: idea.isSold
       }));
 
       return res.json({ ideas: sanitizedIdeas });
     } else {
       // If searching by title, use case-insensitive partial match
-      searchQuery.title = new RegExp(query.trim(), 'i');
-
-      // Don't show sold ideas in search results unless the user is authenticated
-      if (!req.user) {
-        searchQuery.isSold = false;
-      }
+      const searchQuery = {
+        title: new RegExp(query.trim(), 'i'),
+        isSold: { $ne: true }
+      };
 
       const ideas = await Idea.find(searchQuery)
         .populate('creator', 'username averageRating')
@@ -195,17 +188,17 @@ router.get("/search", optionalAuth, async (req, res) => {
           averageRating: idea.creator?.averageRating
         },
         categories: idea.categories,
-        isSold: idea.isSold,
-        boughtAt: idea.buyers?.find(buyer => 
-          req.user && buyer.userId.toString() === req.user._id.toString()
-        )?.boughtAt
+        isSold: idea.isSold
       }));
 
       return res.json({ ideas: sanitizedIdeas });
     }
   } catch (error) {
     console.error('Search error:', error);
-    res.status(500).json({ message: "Error searching ideas" });
+    return res.status(500).json({ 
+      message: "Error searching ideas",
+      error: error.message
+    });
   }
 });
 
@@ -387,10 +380,12 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
       creator: sanitizeUser(idea.creator),
       isSold: idea.isSold,
       thumbnailImage: idea.thumbnailImage,
-      rating: idea.rating,
-      categories: idea.categories, // [{ main, sub }]
+      categories: idea.categories,
       createdAt: idea.createdAt,
       updatedAt: idea.updatedAt,
+      buyer: idea.buyer,
+      rating: idea.rating || null,
+      ratedAt: idea.ratedAt || null
     };
 
     // If user is authenticated, check if they're the creator or buyer
@@ -851,8 +846,8 @@ router.post('/:id/rate', authProtecter, async (req, res) => {
         }
 
         // Update or create rating
-        idea.rating = rating;
-        idea.ratedAt = new Date();
+        idea.rating = parseInt(rating);
+        idea.ratedAt = new Date().toISOString();
 
         // Update creator's average rating
         const creatorId = idea.creator;
@@ -873,11 +868,16 @@ router.post('/:id/rate', authProtecter, async (req, res) => {
         // Save the idea with new rating
         await idea.save();
 
+        // Return the updated idea data
         res.json({
             success: true,
             message: 'Rating updated successfully',
-            rating: rating,
-            averageRating: averageRating
+            idea: {
+                _id: idea._id,
+                rating: idea.rating,
+                ratedAt: idea.ratedAt,
+                averageRating: averageRating
+            }
         });
 
     } catch (error) {
