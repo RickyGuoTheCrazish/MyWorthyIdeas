@@ -17,6 +17,8 @@ const { sendMail } = require("../services/emailService");
 const User = require("../db/userModel");
 const Idea = require("../db/ideaModel");
 const uploadProfileImages = require("../middlewares/uploadProfileImages");
+const PaymentController = require('../controllers/paymentController');
+const paymentController = new PaymentController();
 
 /** 
  * Example username validator:
@@ -42,7 +44,7 @@ function validatePassword(password) {
   return hasLetter && hasDigitOrSymbol;
 }
 
-/* 
+/*
   1) REGISTER USER (Email Verification)
   POST /users/register
 */
@@ -679,34 +681,6 @@ router.get('/:userId/sold-ideas', authProtecter, async (req, res) => {
     }
 });
 
-/*
-  GET CURRENT USER
-  GET /users/me
-*/
-router.get("/me", authProtecter, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const user = await User.findById(userId).select('-passwordHash');
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    return res.status(200).json({
-      userId: user._id,
-      username: user.username,
-      subscription: user.subscription,
-      credits: user.credits,
-      earnings: user.earnings,
-      profileImage: user.profileImage,
-      averageRating: user.averageRating
-    });
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
 // Get user's financial data
 router.get('/financial-data', authProtecter, async (req, res) => {
   try {
@@ -779,6 +753,40 @@ router.post("/withdraw", authProtecter, async (req, res) => {
   } catch (error) {
     console.error("Error processing withdrawal:", error);
     return res.status(500).json({ message: "Failed to process withdrawal" });
+  }
+});
+
+// Payment routes
+router.post('/deposit/init', authProtecter, paymentController.initializeDeposit.bind(paymentController));
+router.post('/withdraw', authProtecter, paymentController.processWithdrawal.bind(paymentController));
+router.get('/transactions', authProtecter, paymentController.getTransactionHistory.bind(paymentController));
+router.post('/webhook', paymentController.handleWebhook.bind(paymentController));
+
+/*
+  GET CURRENT USER
+  GET /users/me
+*/
+router.get("/me", authProtecter, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('-passwordHash');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.status(200).json({
+      userId: user._id,
+      username: user.username,
+      subscription: user.subscription,
+      credits: user.credits,
+      earnings: user.earnings,
+      profileImage: user.profileImage,
+      averageRating: user.averageRating
+    });
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

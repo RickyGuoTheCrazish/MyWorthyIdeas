@@ -1,0 +1,56 @@
+.form {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #32325d;
+    font-weight: 500;
+}
+
+.cardElement {
+    padding: 1rem;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.cardElement:hover {
+    border-color: #1a73e8;
+}
+
+.error {
+    color: #fa755a;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.submitButton {
+    width: 100%;
+    padding: 1rem;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.submitButton:hover {
+    background: #0d47a1;
+}
+
+.submitButton:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
