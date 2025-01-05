@@ -19,11 +19,16 @@ const StripeConnectCallback = () => {
                     return;
                 }
 
-                // Fetch the latest account status
-                const accountStatus = await fetchStripeConnectStatus();
-                
-                if (accountStatus && accountStatus.accountStatus === 'active') {
-                    setStatus('success');
+                // Check if this is a success callback from Stripe
+                if (searchParams.get('success') === 'true') {
+                    // Fetch the latest account status
+                    const accountStatus = await fetchStripeConnectStatus();
+                    
+                    if (accountStatus) {
+                        setStatus('success');
+                    } else {
+                        setStatus('error');
+                    }
                 } else {
                     setStatus('error');
                 }
@@ -55,6 +60,7 @@ const StripeConnectCallback = () => {
                         <FaCheckCircle className={styles.successIcon} />
                         <h2>Successfully Connected!</h2>
                         <p>Your Stripe account has been connected. You can now receive payments for your ideas.</p>
+                        <p>Redirecting to account settings...</p>
                     </>
                 );
             case 'error':
@@ -63,13 +69,14 @@ const StripeConnectCallback = () => {
                         <FaTimesCircle className={styles.errorIcon} />
                         <h2>Connection Failed</h2>
                         <p>We couldn't connect your Stripe account. Please try again from your account settings.</p>
+                        <p>Redirecting to account settings...</p>
                     </>
                 );
             default:
                 return (
                     <>
                         <FaSpinner className={styles.spinner} />
-                        <p>Connecting your Stripe account...</p>
+                        <p>Processing your Stripe connection...</p>
                     </>
                 );
         }

@@ -37,6 +37,19 @@ const AccountSettings = () => {
     const [showStripeConnect, setShowStripeConnect] = useState(false);
     const token = user?.token;
 
+    const fetchTransactionHistory = async () => {
+        try {
+            setLoadingHistory(true);
+            const response = await paymentService.getTransactionHistory(token);
+            setBillingHistory(response.data);
+        } catch (error) {
+            console.error('Error fetching transaction history:', error);
+            setError('Failed to load transaction history');
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
     useEffect(() => {
         if (!user) {
             navigate('/recommendations');
@@ -45,18 +58,6 @@ const AccountSettings = () => {
     }, [user, navigate]);
 
     if (!user) return null;
-
-    const fetchTransactionHistory = async () => {
-        try {
-            setLoadingHistory(true);
-            const { transactions } = await paymentService.getTransactionHistory();
-            setBillingHistory(transactions);
-        } catch (error) {
-            setError('Failed to load transaction history');
-        } finally {
-            setLoadingHistory(false);
-        }
-    };
 
     const handleTransaction = async (event) => {
         event.preventDefault();

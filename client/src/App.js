@@ -143,6 +143,22 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/stripe/connect/callback"
+        element={
+          <ProtectedRoute>
+            <StripeConnectCallback />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-idea"
+        element={
+          <ProtectedRoute>
+            <CreateIdea />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
