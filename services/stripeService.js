@@ -107,6 +107,7 @@ class StripeService {
             const { fee: processingFee, percentage } = calculateProcessingFee(amount);
             const totalAmount = amount + processingFee;
 
+            const user = await User.findById(userId);
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
                 mode: 'payment',
@@ -141,7 +142,9 @@ class StripeService {
                     feePercentage: percentage.toString()
                 },
                 success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${process.env.CLIENT_URL}/account`,
+                cancel_url: `${process.env.CLIENT_URL}/account-settings`,
+                customer_email: user?.email, // Add customer email if available
+                billing_address_collection: 'required',
             });
 
             // Create a pending transaction

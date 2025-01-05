@@ -10,6 +10,7 @@ import Layout from "./components/layout/Layout";
 import CategoryPage from './pages/CategoryPage';
 import SearchResults from './pages/SearchResults';
 import AccountSettings from './pages/AccountSettings';
+import PaymentSuccess from './pages/PaymentSuccess';
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -114,6 +115,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <ProtectedRoute>
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment/success"
+        element={
+          <ProtectedRoute>
+            <PaymentSuccess />
           </ProtectedRoute>
         }
       />

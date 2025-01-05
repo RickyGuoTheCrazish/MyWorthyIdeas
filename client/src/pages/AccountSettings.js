@@ -6,7 +6,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import PaymentMethodForm from '../components/payment/PaymentMethodForm';
 import paymentService from '../services/paymentService';
 import styles from '../styles/AccountSettings.module.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { formatDate } from '../utils/dateFormatter';
 
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
@@ -17,6 +17,7 @@ const CREDIT_MULTIPLIER = 10;
 const AccountSettings = () => {
     const { user, setUser } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -29,6 +30,7 @@ const AccountSettings = () => {
     const [customCredits, setCustomCredits] = useState('');
     const [withdrawCredits, setWithdrawCredits] = useState('');
     const [isInternationalCard, setIsInternationalCard] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
     const balance = user?.credits || 0;
 
@@ -190,13 +192,19 @@ const AccountSettings = () => {
                 </div>
 
                 <div className={styles.content}>
+                    {successMessage && (
+                        <div className={styles.successMessage}>
+                            {successMessage}
+                        </div>
+                    )}
+                    
                     {activeTab === 'transactions' && (
                         <div className={styles.transactionSection}>
                             <h2>Select Credit Package</h2>
                             <div className={styles.feeInfo}>
                                 <FaExchangeAlt className={styles.exchangeIcon} />
                                 <div className={styles.feeDescription}>
-                                    <div className={styles.feePrimary}>Processing fee: {feePercentage}% (max $2 AUD)</div>
+                                    <div className={styles.feePrimary}>Processing fee: 1-3% (max $2 AUD)</div>
                                     <div className={styles.feeSecondary}>Add more credits to enjoy lower processing fees standard</div>
                                 </div>
                             </div>
