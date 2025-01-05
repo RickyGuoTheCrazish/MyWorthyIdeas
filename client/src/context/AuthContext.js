@@ -16,7 +16,99 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState(null);
     const [isTokenExpiredState, setIsTokenExpiredState] = useState(false);
+    const [stripeConnectStatus, setStripeConnectStatus] = useState(null);
     const navigate = useNavigate();
+
+    // Helper function to create consistent user object
+    const createUserObject = useCallback((data) => {
+        return {
+            userId: data.userId || data.id, // Handle both formats
+            username: data.username,
+            subscription: data.subscription,
+            stripeConnectStatus: data.stripeConnectStatus || null,
+            email: data.email || null
+        };
+    }, []);
+
+    // Function to fetch Stripe Connect account status
+    const fetchStripeConnectStatus = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch('http://localhost:6001/api/stripe/connect/account/status', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch Stripe Connect status');
+            }
+
+            const data = await response.json();
+            setStripeConnectStatus(data);
+            return data;
+        } catch (error) {
+            console.error('Failed to fetch Stripe Connect status:', error);
+            throw error;
+        }
+    }, []);
+
+    // Function to get Stripe Connect OAuth link
+    const getStripeConnectLink = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('No token found');
+
+            const response = await fetch('http://localhost:6001/api/stripe/connect/oauth/link', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get Stripe Connect link');
+            }
+
+            const data = await response.json();
+            return data.url;
+        } catch (error) {
+            console.error('Failed to get Stripe Connect link:', error);
+            throw error;
+        }
+    }, []);
+
+    // Function to create a checkout session for idea purchase
+    const createCheckoutSession = useCallback(async (amount, sellerId, ideaId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) throw new Error('No token found');
+
+            const response = await fetch('http://localhost:6001/api/stripe/connect/checkout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amount,
+                    sellerId,
+                    ideaId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create checkout session');
+            }
+
+            const data = await response.json();
+            return data.id; // Returns checkout session ID
+        } catch (error) {
+            console.error('Failed to create checkout session:', error);
+            throw error;
+        }
+    }, []);
 
     // Function to fetch financial data
     const fetchFinancialData = useCallback(async () => {
@@ -39,8 +131,6 @@ export const AuthProvider = ({ children }) => {
             // Update user state with new financial data
             setUser(prevUser => ({
                 ...prevUser,
-                credits: data.credits,
-                earnings: data.earnings,
                 subscription: data.subscription
             }));
 
@@ -51,28 +141,85 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const login = useCallback(async (userData) => {
-        localStorage.setItem('token', userData.token);
-        localStorage.setItem('userId', userData.userId);
-        localStorage.setItem('username', userData.username);
-        localStorage.setItem('subscription', userData.subscription);
-        localStorage.setItem('credits', userData.credits);
-        localStorage.setItem('earnings', userData.earnings);
-        setIsAuthenticated(true);
-        setIsTokenExpiredState(false);
-        
-        // Set basic user data
-        setUser({
-            userId: userData.userId,
-            username: userData.username,
-            subscription: userData.subscription,
-            credits: userData.credits,
-            earnings: userData.earnings
-        });
+    const login = useCallback(async (email, password) => {
+        try {
+            const response = await fetch('http://localhost:6001/api/users/login', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ email, password }),
+            });
 
-        // Fetch fresh financial data
-        await fetchFinancialData();
-    }, [fetchFinancialData]);
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Handle specific error cases
+                switch (response.status) {
+                    case 429:
+                        throw new Error('Too many attempts. Please try again later.');
+                    case 403:
+                        throw new Error('Please verify your email before logging in.');
+                    case 401:
+                        throw new Error('Invalid email or password.');
+                    case 404:
+                        throw new Error('No account found with this email.');
+                    default:
+                        throw new Error(data.message || 'Failed to login');
+                }
+            }
+
+            // Store token separately
+            localStorage.setItem('token', data.token);
+            
+            // Create consistent user object
+            const user = createUserObject(data);
+            setUser(user);
+            setIsAuthenticated(true);
+            localStorage.setItem('user', JSON.stringify(user));
+
+            return { success: true };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { 
+                success: false, 
+                error: error.message 
+            };
+        }
+    }, [createUserObject]);
+
+    const register = useCallback(async (userData) => {
+        try {
+            const response = await fetch('http://localhost:6001/api/users/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+
+            return { 
+                success: true, 
+                userId: data.userId,
+                message: data.message 
+            };
+        } catch (error) {
+            console.error('Registration error:', error);
+            return { 
+                success: false, 
+                error: error.message 
+            };
+        }
+    }, []);
+
+    const isSeller = useCallback(() => user?.subscription === 'seller', [user]);
+    const isBuyer = useCallback(() => user?.subscription === 'buyer', [user]);
 
     const logout = useCallback(async () => {
         try {
@@ -96,106 +243,80 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userId');
             localStorage.removeItem('username');
             localStorage.removeItem('subscription');
-            localStorage.removeItem('credits');
-            localStorage.removeItem('earnings');
             setIsAuthenticated(false);
             setUser(null);
-            setIsTokenExpiredState(false);
-            // Navigate to home page
-            navigate('/', { replace: true });
+            setStripeConnectStatus(null);
+            navigate('/login');
         }
     }, [navigate]);
 
-    const clearSession = useCallback(async () => {
-        // Clear localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('username');
-        localStorage.removeItem('subscription');
-        localStorage.removeItem('credits');
-        localStorage.removeItem('earnings');
-        
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsTokenExpiredState(true);
-    }, []);
-
-    // Function to check if token is expired
-    const isTokenExpired = (token) => {
-        if (!token) return true;
-        try {
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            return decodedToken.exp * 1000 < Date.now();
-        } catch (error) {
-            console.error('Token validation error:', error);
-            return true;
-        }
-    };
-
-    const checkAuth = useCallback(async () => {
-        try {
+    // Check token validity and fetch user data on mount
+    useEffect(() => {
+        const checkAuth = async () => {
             const token = localStorage.getItem('token');
             if (!token) {
-                setIsAuthenticated(false);
-                setUser(null);
                 setIsLoading(false);
                 return;
             }
 
-            // Check token expiration
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            if (decodedToken.exp * 1000 < Date.now()) {
-                logout();
-                return;
+            try {
+                const response = await fetch('http://localhost:6001/api/users/check-auth', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Token invalid');
+                }
+
+                const data = await response.json();
+                setIsAuthenticated(true);
+                
+                // Create consistent user object
+                const user = createUserObject(data);
+                setUser(user);
+
+                // Fetch fresh data
+                await Promise.all([
+                    fetchFinancialData(),
+                    fetchStripeConnectStatus()
+                ]);
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setIsAuthenticated(false);
+                setUser(null);
+                setStripeConnectStatus(null);
+                if (error.message === 'Token expired') {
+                    setIsTokenExpiredState(true);
+                }
+            } finally {
+                setIsLoading(false);
             }
+        };
 
-            // Get user info from localStorage
-            const userId = localStorage.getItem('userId');
-            const username = localStorage.getItem('username');
-            const subscription = localStorage.getItem('subscription');
-            const credits = localStorage.getItem('credits');
-            const earnings = localStorage.getItem('earnings');
-
-            if (!userId || !username) {
-                throw new Error('User info missing');
-            }
-
-            setUser({
-                userId,
-                username,
-                subscription,
-                credits: Number(credits),
-                earnings: Number(earnings)
-            });
-            setIsAuthenticated(true);
-
-            // Fetch fresh financial data
-            await fetchFinancialData();
-        } catch (error) {
-            console.error('Auth check failed:', error);
-            logout();
-        } finally {
-            setIsLoading(false);
-        }
-    }, [logout, fetchFinancialData]);
-
-    useEffect(() => {
         checkAuth();
-    }, [checkAuth]);
+    }, [fetchFinancialData, fetchStripeConnectStatus, createUserObject]);
 
-    return (
-        <AuthContext.Provider value={{ 
-            isAuthenticated, 
-            user, 
-            setUser,
-            login, 
-            logout,
-            clearSession,
-            isLoading,
-            isTokenExpiredState,
-            fetchFinancialData
-        }}>
-            {children}
-        </AuthContext.Provider>
-    );
+    const value = {
+        isAuthenticated,
+        isLoading,
+        user,
+        login,
+        logout,
+        isTokenExpiredState,
+        stripeConnectStatus,
+        getStripeConnectLink,
+        createCheckoutSession,
+        fetchStripeConnectStatus,
+        register,
+        isSeller,
+        isBuyer
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;

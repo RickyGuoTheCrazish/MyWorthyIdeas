@@ -10,20 +10,13 @@ const { authLimiter } = require("../middlewares/rateLimiter");
 const TEN_MINUTES = 10 * 60 * 1000;  // 10 minutes in ms
 const ONE_MINUTE = 60 * 1000;       // 1 minute in ms
 
-const authProtecter = require("../middlewares/auth");
+const { auth } = require("../middlewares/auth");
 const { mongoose } = require("../db/connection");
 const { sendMail } = require("../services/emailService");
 
 const User = require("../db/userModel");
 const Idea = require("../db/ideaModel");
 const uploadProfileImages = require("../middlewares/uploadProfileImages");
-const PaymentController = require('../controllers/paymentController');
-const paymentController = new PaymentController();
-
-// Bind payment controller methods to maintain 'this' context
-const handleWebhook = paymentController.handleWebhook.bind(paymentController);
-const initializeDeposit = paymentController.initializeDeposit.bind(paymentController);
-const getTransactionHistory = paymentController.getTransactionHistory.bind(paymentController);
 
 /** 
  * Example username validator:
@@ -108,34 +101,16 @@ router.post("/register", authLimiter, async (req, res) => {
       });
     }
 
-    // Hash password
-    let passwordHash;
-    try {
-      const saltRounds = 10;
-      passwordHash = await bcrypt.hash(password, saltRounds);
-    } catch (hashError) {
-      console.error("Password hashing error:", hashError);
-      return res.status(500).json({ 
-        message: "Error processing password. Please try again.",
-        errorType: "PASSWORD_HASH_ERROR"
-      });
-    }
-
-    // Generate verification token & set expiration
-    const verificationToken = crypto.randomBytes(20).toString("hex");
-    const now = new Date();
-    const verificationTokenExp = new Date(now.getTime() + TEN_MINUTES);
-
     // Create user doc
     const newUserDoc = new User({
       username,
       email,
-      passwordHash,
+      passwordHash: password, // Don't hash here, let the model's pre-save middleware handle it
       subscription,
       isVerified: false,
-      verificationToken,
-      verificationTokenExp,
-      lastVerificationSentAt: now
+      verificationToken: crypto.randomBytes(20).toString("hex"),
+      verificationTokenExp: new Date(new Date().getTime() + TEN_MINUTES),
+      lastVerificationSentAt: new Date()
     });
 
     // Save user
@@ -158,7 +133,7 @@ router.post("/register", authLimiter, async (req, res) => {
 
     // Send verification email
     try {
-      const verifyUrl = `http://localhost:6001/api/users/verify-email?token=${verificationToken}`;
+      const verifyUrl = `http://localhost:6001/api/users/verify-email?token=${newUserDoc.verificationToken}`;
       await sendMail(
         email,
         "Verify Your Email",
@@ -233,6 +208,184 @@ router.get("/verify-email", authLimiter, async (req, res) => {
 });
 
 /*
+  3) LOGIN USER
+  POST /users/login
+*/
+router.post("/login", authLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Missing email or password." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // block if not verified
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: "Email not verified. Please verify before logging in."
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // generate JWT
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    // set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+      maxAge: 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      message: "Login successful.",
+      userId: user._id,
+      username: user.username,
+      subscription: user.subscription,
+      token
+    });
+  } catch (error) {
+    console.error("Error in login route:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/*
+  4) LOGOUT USER
+  POST /users/logout
+*/
+router.post("/logout", async (req, res) => {
+  try {
+    // Clear the token cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax"
+    });
+
+    return res.status(200).json({
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    console.error("Error in logout route:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/*
+  5) UPLOAD/UPDATE PROFILE IMAGE
+  POST /users/:userId/profile-image
+*/
+router.post("/:userId/profile-image", auth, uploadProfileImages, async (req, res) => {
+  try {
+    const [profileImageUrl] = req.uploadedFiles || [];
+    if (!profileImageUrl) {
+      return res.status(400).json({ message: "No profile image uploaded." });
+    }
+
+    const userId = req.params.userId;
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profileImage: profileImageUrl },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.status(200).json({
+      message: "Profile image uploaded successfully.",
+      profileImageUrl,
+      user: {
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        profileImage: updatedUser.profileImage,
+      },
+    });
+  } catch (error) {
+    console.error("Error uploading profile image:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/*
+  6) GET CURRENT USER
+  GET /users/me
+*/
+router.get("/me", auth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId)
+      .select('-passwordHash')
+      .populate('postedIdeas')
+      .populate('boughtIdeas');
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/*
+  7) UPDATE USER SUBSCRIPTION
+  PUT /users/subscription
+*/
+router.put('/subscription', auth, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    
+    if (!['buyer', 'seller'].includes(subscription)) {
+      return res.status(400).json({ 
+        message: 'Invalid subscription type. Must be either buyer or seller.' 
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { subscription },
+      { new: true }
+    ).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Subscription updated successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        subscription: user.subscription,
+        stripeConnectStatus: user.stripeConnectStatus
+      }
+    });
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+    res.status(500).json({ 
+      message: 'Failed to update subscription',
+      error: error.message 
+    });
+  }
+});
+
+/*
   3) RESEND VERIFICATION (60s COOLDOWN)
   POST /users/resend-verification
 */
@@ -297,125 +450,10 @@ router.post("/resend-verification", authLimiter, async (req, res) => {
 });
 
 /*
-  4) LOGIN USER (Block if not isVerified)
-  POST /users/login
-*/
-router.post("/login", authLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: "Missing email or password." });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    // block if not verified
-    if (!user.isVerified) {
-      return res.status(403).json({
-        message: "Email not verified. Please verify before logging in."
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials." });
-    }
-
-    // generate JWT
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    // set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: "lax",
-      maxAge: 60 * 60 * 1000,
-    });
-
-    return res.status(200).json({
-      message: "Login successful.",
-      userId: user._id,
-      username: user.username,
-      subscription: user.subscription,
-      credits: user.credits,
-      earnings: user.earnings,
-      token
-    });
-  } catch (error) {
-    console.error("Error in login route:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-/*
-  4.5) LOGOUT USER
-  POST /users/logout
-*/
-router.post("/logout", async (req, res) => {
-  try {
-    // Clear the token cookie
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: "lax"
-    });
-
-    return res.status(200).json({
-      message: "Logged out successfully"
-    });
-  } catch (error) {
-    console.error("Error in logout route:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-/*
-  5) UPLOAD/UPDATE PROFILE IMAGE
-  POST /users/:userId/profile-image
-*/
-router.post("/:userId/profile-image", authProtecter, uploadProfileImages, async (req, res) => {
-  try {
-    const [profileImageUrl] = req.uploadedFiles || [];
-    if (!profileImageUrl) {
-      return res.status(400).json({ message: "No profile image uploaded." });
-    }
-
-    const userId = req.params.userId;
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { profileImage: profileImageUrl },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    return res.status(200).json({
-      message: "Profile image uploaded successfully.",
-      profileImageUrl,
-      user: {
-        _id: updatedUser._id,
-        username: updatedUser.username,
-        profileImage: updatedUser.profileImage,
-      },
-    });
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-/*
-  6) GET PAGINATED POSTED IDEAS (UNSOLD)
+  8) GET PAGINATED POSTED IDEAS (UNSOLD)
   GET /users/:userId/posted-ideas
 */
-router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
+router.get("/:userId/posted-ideas", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
     let { page, limit } = req.query;
@@ -472,10 +510,10 @@ router.get("/:userId/posted-ideas", authProtecter, async (req, res) => {
 });
 
 /*
-  7) GET PAGINATED & SORTED BOUGHT IDEAS
+  9) GET PAGINATED & SORTED BOUGHT IDEAS
   GET /users/:userId/bought-ideas
 */
-router.get("/:userId/bought-ideas", authProtecter, async (req, res) => {
+router.get("/:userId/bought-ideas", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
 
@@ -527,10 +565,10 @@ router.get("/:userId/bought-ideas", authProtecter, async (req, res) => {
 });
 
 /*
-  8) GET PAGINATED SOLD IDEAS
+  10) GET PAGINATED SOLD IDEAS
   GET /users/:userId/sold-ideas
 */
-router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
+router.get("/:userId/sold-ideas", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
     let { page, limit } = req.query;
@@ -595,10 +633,10 @@ router.get("/:userId/sold-ideas", authProtecter, async (req, res) => {
 });
 
 /*
-  9) CHANGE PASSWORD
+  11) CHANGE PASSWORD
   PUT /users/:userId/change-password
 */
-router.put("/:userId/change-password", authProtecter, async (req, res) => {
+router.put("/:userId/change-password", auth, async (req, res) => {
   try {
     const userId = req.params.userId;
     const { newPassword } = req.body;
@@ -649,149 +687,6 @@ router.put("/:userId/change-password", authProtecter, async (req, res) => {
     return res.status(200).json({ message: "Password changed successfully." });
   } catch (error) {
     console.error("Error in change-password route:", error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Get user's sold ideas
-router.get('/:userId/sold-ideas', authProtecter, async (req, res) => {
-    try {
-        const userId = req.params.userId;
-      
-        // Verify user is requesting their own data
-        if (req.user._id !== userId) {
-            return res.status(403).json({ message: 'Unauthorized access to user data' });
-        }
-
-        const ideas = await Idea.find({
-            creator: userId,
-            isSold: true
-        }).select('title description price rating createdAt updatedAt isSold thumbnailImage');
-
-        const user = await User.findById(userId).select('username');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json({ 
-            ideas: ideas.map(idea => ({
-                ...idea.toObject(),
-                sellerName: user.username
-            }))
-        });
-    } catch (error) {
-        console.error('Error fetching sold ideas:', error);
-        res.status(500).json({ message: 'Error fetching sold ideas' });
-    }
-});
-
-// Get user's financial data
-router.get('/financial-data', authProtecter, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('credits earnings subscription');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({
-      credits: user.credits,
-      earnings: user.earnings,
-      subscription: user.subscription
-    });
-  } catch (error) {
-    console.error('Error fetching financial data:', error);
-    res.status(500).json({ message: 'Error fetching financial data' });
-  }
-});
-
-// Deposit funds
-router.post("/deposit", authProtecter, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.credits += amount;
-    await user.save();
-
-    return res.status(200).json({
-      message: "Deposit successful",
-      newBalance: user.credits
-    });
-  } catch (error) {
-    console.error("Error processing deposit:", error);
-    return res.status(500).json({ message: "Failed to process deposit" });
-  }
-});
-
-// Withdraw funds
-router.post("/withdraw", authProtecter, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.credits < amount) {
-      return res.status(400).json({ message: "Insufficient funds" });
-    }
-
-    user.credits -= amount;
-    await user.save();
-
-    return res.status(200).json({
-      message: "Withdrawal successful",
-      newBalance: user.credits
-    });
-  } catch (error) {
-    console.error("Error processing withdrawal:", error);
-    return res.status(500).json({ message: "Failed to process withdrawal" });
-  }
-});
-
-// Payment routes
-router.post('/deposit/init', authProtecter, initializeDeposit);
-router.get('/transactions', authProtecter, getTransactionHistory);
-
-// Stripe webhook - no auth required as this is called by Stripe
-router.post('/stripe-webhook', express.raw({ type: 'application/json' }), handleWebhook);
-
-/*
-  GET CURRENT USER
-  GET /users/me
-*/
-router.get("/me", authProtecter, async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId).select('-passwordHash');
-    
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    return res.status(200).json({
-      userId: user._id,
-      username: user.username,
-      subscription: user.subscription,
-      credits: user.credits,
-      earnings: user.earnings,
-      profileImage: user.profileImage,
-      averageRating: user.averageRating
-    });
-  } catch (error) {
-    console.error("Error fetching user data:", error);
     return res.status(500).json({ error: error.message });
   }
 });

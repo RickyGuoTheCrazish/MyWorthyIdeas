@@ -505,20 +505,29 @@ const CreateIdea = () => {
                                 />
                                 <span className={styles.charCount}>{formData.brief.length}/300</span>
                             </div>
-                            <div className={styles.inputGroup}>
-                                <label>
-                                    Credits <FaCoins className={styles.priceIcon} />
+                            <div className={styles.formGroup}>
+                                <label htmlFor="price" className={styles.label}>
+                                    Price (AUD)
+                                    <span className={styles.required}>*</span>
                                 </label>
-                                <input
-                                    type="number"
-                                    name="price"
-                                    value={formData.price}
-                                    onChange={(e) => handleInputChange('price', e.target.value)}
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    placeholder="Enter price in credits"
-                                />
+                                <div className={styles.priceInputWrapper}>
+                                    <span className={styles.currencySymbol}>$</span>
+                                    <input
+                                        type="number"
+                                        id="price"
+                                        name="price"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.price}
+                                        onChange={(e) => handleInputChange('price', e.target.value)}
+                                        className={styles.priceInput}
+                                        required
+                                    />
+                                    <span className={styles.currencyCode}>AUD</span>
+                                </div>
+                                <p className={styles.helperText}>
+                                    Set your idea's price in Australian Dollars. Platform fee: 3%
+                                </p>
                             </div>
                             <div className={styles.inputGroup}>
                                 <label>Category:</label>

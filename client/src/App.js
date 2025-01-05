@@ -11,6 +11,7 @@ import CategoryPage from './pages/CategoryPage';
 import SearchResults from './pages/SearchResults';
 import AccountSettings from './pages/AccountSettings';
 import PaymentSuccess from './pages/PaymentSuccess';
+import StripeConnectCallback from './pages/StripeConnectCallback'; // Import StripeConnectCallback component
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -131,6 +132,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PaymentSuccess />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/callback"
+        element={
+          <ProtectedRoute>
+            <StripeConnectCallback />
           </ProtectedRoute>
         }
       />

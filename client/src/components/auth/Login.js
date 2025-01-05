@@ -22,56 +22,30 @@ const Login = ({ onClose, onModeChange }) => {
         e.preventDefault();
         if (isLoading) return;
 
+        // Basic validation
+        if (!formData.email || !formData.password) {
+            setError('Please fill in all fields');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
         try {
-            const response = await fetch('http://localhost:6001/api/users/login', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            // For rate limit and other errors, try to read response as text first
-            const responseText = await response.text();
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                // If parsing fails, use the text directly
-                data = { message: responseText || 'An unexpected error occurred' };
-            }
-
-            if (response.ok) {
-                login(data);
-                onClose();
-                navigate('/dashboard', { replace: true });
-            } else {
-                // Handle specific error cases
-                switch (response.status) {
-                    case 429:
-                        setError(data.message || 'Too many attempts. Please try again later.');
-                        break;
-                    case 403:
-                        setError('Please verify your email before logging in.');
-                        break;
-                    case 401:
-                        setError('Invalid email or password.');
-                        break;
-                    case 404:
-                        setError('No account found with this email.');
-                        break;
-                    default:
-                        setError(data.message || 'Login failed. Please try again.');
+            const result = await login(formData.email, formData.password);
+            
+            if (result.success) {
+                if (onClose) {
+                    onClose();
+                } else {
+                    navigate('/dashboard', { replace: true });
                 }
+            } else {
+                setError(result.error || 'Login failed. Please try again.');
             }
         } catch (err) {
             console.error('Login error:', err);
-            setError('Network error. Please check your connection and try again.');
+            setError(err.message || 'An unexpected error occurred');
         } finally {
             setIsLoading(false);
         }
@@ -81,6 +55,8 @@ const Login = ({ onClose, onModeChange }) => {
         <div className={styles.authForm}>
             <h2>Login</h2>
             <form onSubmit={handleSubmit}>
+                {error && <div className={styles.error}>{error}</div>}
+                
                 <div className={styles.formGroup}>
                     <input
                         type="email"
@@ -110,8 +86,6 @@ const Login = ({ onClose, onModeChange }) => {
                     </div>
                 </div>
 
-                {error && <div className={styles.error}>{error}</div>}
-                
                 <button 
                     type="submit" 
                     className={`${styles.submitButton} ${isLoading ? styles.loading : ''}`}

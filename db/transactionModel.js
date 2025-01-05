@@ -8,46 +8,32 @@ const transactionSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['deposit', 'withdrawal', 'purchase', 'earning'],
+        enum: ['idea_purchase', 'platform_fee', 'payout'],
         required: true
     },
-    amount: {
+    amountAUD: {
         type: Number,
         required: true
-    },
-    baseAmount: {
-        type: Number,
-        required: function() {
-            return this.type === 'deposit';
-        }
-    },
-    processingFee: {
-        type: Number,
-        required: function() {
-            return this.type === 'deposit';
-        }
     },
     status: {
         type: String,
-        enum: ['pending', 'completed', 'failed', 'cancelled'],
+        enum: ['pending', 'completed', 'failed'],
         default: 'pending'
     },
-    paymentMethod: {
-        type: String,
-        enum: ['stripe', 'bank_transfer'],
-        required: true
+    ideaId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Idea'
+    },
+    sellerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    platformFeeAUD: {
+        type: Number
     },
     paymentDetails: {
-        stripePaymentId: String,
-        stripeTransferId: String,
-        stripeSessionId: String,
-        accountNumber: String,
-        routingNumber: String
-    },
-    description: String,
-    metadata: {
-        type: Map,
-        of: String
+        stripePaymentIntentId: String,
+        stripeTransferId: String
     },
     createdAt: {
         type: Date,
@@ -59,9 +45,8 @@ const transactionSchema = new mongoose.Schema({
     }
 });
 
-// Update the updatedAt timestamp before saving
 transactionSchema.pre('save', function(next) {
-    this.updatedAt = new Date();
+    this.updatedAt = Date.now();
     next();
 });
 

@@ -26,11 +26,11 @@ const SUBCATS_BY_MAIN = {
 
 const ideaSchema = new mongoose.Schema(
     {
-        title: { type: String, required: true },
-        preview: { type: String, required: true },
+        title: { type: String, required: true, trim: true },
+        preview: { type: String, required: true, trim: true },
         contentRaw: { type: mongoose.Schema.Types.Mixed, default: {} },
         contentHtml: { type: String, default: "" },
-        price: { type: Number, required: true },
+        priceAUD: { type: Number, required: true, min: 0, description: 'Price in AUD' },
         creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         isSold: { type: Boolean, default: false },
         buyer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
@@ -42,7 +42,24 @@ const ideaSchema = new mongoose.Schema(
             type: String,
             default: ""
         },
-        
+        purchasedBy: [{
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            purchaseDate: {
+                type: Date,
+                default: Date.now
+            },
+            amountPaid: {
+                type: Number,
+                required: true
+            },
+            transactionId: {
+                type: String,
+                required: true
+            }
+        }],
         categories: [{
             main: {
                 type: String,
@@ -62,9 +79,34 @@ const ideaSchema = new mongoose.Schema(
                 }
             }
         }],
+        stripePaymentIntentId: String,
+        stripeTransferId: String,
+        paymentStatus: {
+            type: String,
+            enum: ['pending', 'completed', 'failed'],
+            default: 'pending'
+        }
     },
-    { timestamps: true }
+    { 
+        timestamps: true, 
+        toJSON: { virtuals: true }, 
+        toObject: { virtuals: true } 
+    }
 );
+
+// Index for faster searches
+ideaSchema.index({ title: 'text', preview: 'text' });
+ideaSchema.index({ creator: 1 });
+ideaSchema.index({ buyer: 1 });
+ideaSchema.index({ categories: 1 });
+ideaSchema.index({ isSold: 1 });
+ideaSchema.index({ rating: -1 });
+ideaSchema.index({ createdAt: -1 });
+
+ideaSchema.pre('save', function(next) {
+    this.updatedAt = Date.now();
+    next();
+});
 
 const IdeaModel = mongoose.model("Idea", ideaSchema);
 module.exports = IdeaModel;

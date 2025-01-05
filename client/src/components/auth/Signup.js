@@ -5,26 +5,31 @@ import styles from './Auth.module.css';
 const Signup = ({ onClose, onVerify, onModeChange }) => {
     const [formData, setFormData] = useState({
         username: '',
-        password: '',
-        rePassword: '',
         email: '',
-        subscription: 'seller',
+        password: '',
+        confirmPassword: '',
+        subscription: 'buyer' // Default to buyer
     });
     const [validations, setValidations] = useState({
         username: false,
         password: false,
-        rePassword: false,
+        confirmPassword: false,
         email: false,
     });
     const [errors, setErrors] = useState({
         username: '',
         email: '',
         password: '',
-        rePassword: '',
+        confirmPassword: '',
         general: ''
     });
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+
+    const subscriptionOptions = [
+        { value: 'buyer', label: 'Buyer - Purchase and collect great ideas' },
+        { value: 'seller', label: 'Seller - Create and sell your ideas' }
+    ];
 
     const validateUsername = (username) => {
         const usernameRegex = /^[A-Za-z0-9_\- ]+$/;
@@ -51,13 +56,13 @@ const Signup = ({ onClose, onVerify, onModeChange }) => {
                 setValidations(prev => ({ 
                     ...prev, 
                     password: isPasswordValid,
-                    rePassword: isPasswordValid && value === formData.rePassword
+                    confirmPassword: isPasswordValid && value === formData.confirmPassword
                 }));
                 break;
-            case 'rePassword':
+            case 'confirmPassword':
                 setValidations(prev => ({ 
                     ...prev, 
-                    rePassword: validatePassword(formData.password) && value === formData.password 
+                    confirmPassword: validatePassword(formData.password) && value === formData.password 
                 }));
                 break;
             case 'email':
@@ -75,17 +80,17 @@ const Signup = ({ onClose, onVerify, onModeChange }) => {
         e.preventDefault();
         if (isLoading) return;
         
-        if (formData.password !== formData.rePassword) {
+        if (formData.password !== formData.confirmPassword) {
             setErrors(prev => ({ 
                 ...prev, 
                 password: 'Passwords do not match',
-                rePassword: 'Passwords do not match'
+                confirmPassword: 'Passwords do not match'
             }));
             return;
         }
 
         setIsLoading(true);
-        setErrors({ username: '', email: '', password: '', rePassword: '', general: '' });
+        setErrors({ username: '', email: '', password: '', confirmPassword: '', general: '' });
 
         try {
             const response = await fetch('http://localhost:6001/api/users/register', {
@@ -214,19 +219,19 @@ const Signup = ({ onClose, onVerify, onModeChange }) => {
                     )}
                 </div>
 
-                <div className={`${styles.formGroup} ${validations.rePassword ? styles.valid : ''} ${errors.rePassword ? styles.error : ''}`}>
+                <div className={`${styles.formGroup} ${validations.confirmPassword ? styles.valid : ''} ${errors.confirmPassword ? styles.error : ''}`}>
                     <input
                         type="password"
-                        name="rePassword"
+                        name="confirmPassword"
                         placeholder="Re-enter password"
-                        value={formData.rePassword}
+                        value={formData.confirmPassword}
                         onChange={handleChange}
                         required
                         disabled={isLoading}
                     />
-                    {validations.rePassword && <span className={styles.validationIcon}>✓</span>}
-                    {errors.rePassword ? (
-                        <small className={styles.errorMessage}>{errors.rePassword}</small>
+                    {validations.confirmPassword && <span className={styles.validationIcon}>✓</span>}
+                    {errors.confirmPassword ? (
+                        <small className={styles.errorMessage}>{errors.confirmPassword}</small>
                     ) : (
                         <small className={styles.hint}>
                             Re-enter your password
@@ -263,11 +268,12 @@ const Signup = ({ onClose, onVerify, onModeChange }) => {
                         required
                         disabled={isLoading}
                     >
-                        <option value="seller">Seller</option>
-                        <option value="buyer">Buyer</option>
+                        {subscriptionOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                     </select>
                     <small className={styles.hint}>
-                        Choose your account type. Sellers can post ideas, while buyers can purchase them.
+                        Choose your account type
                     </small>
                 </div>
 

@@ -37,3 +37,37 @@
 .btnBack:hover {
     background: #C8D5DE;
 }
+
+.callbackContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    font-size: 2rem;
+    color: #635bff;
+    margin-bottom: 1rem;
+}
+
+.successIcon {
+    font-size: 3rem;
+    color: #32CD32;
+    margin-bottom: 1rem;
+}
+
+.errorIcon {
+    font-size: 3rem;
+    color: #FF4444;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

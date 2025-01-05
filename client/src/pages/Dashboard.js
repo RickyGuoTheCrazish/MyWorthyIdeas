@@ -12,13 +12,25 @@ const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const subscription = localStorage.getItem('subscription');
-    const isSeller = subscription === 'seller';
+    const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+
+    // Redirect if not authenticated
+    useEffect(() => {
+        if (!authLoading && !isAuthenticated) {
+            navigate('/login');
+        }
+    }, [authLoading, isAuthenticated, navigate]);
+
+    // Determine user type
+    const isSeller = user?.subscription === 'seller';
 
     useEffect(() => {
         const fetchIdeas = async () => {
+            if (authLoading || !user?.userId) return; // Wait for user data
+
             try {
+                setLoading(true);
+                setError(null);
                 const token = localStorage.getItem('token');
                 if (!token) {
                     throw new Error('No token found');
@@ -47,27 +59,31 @@ const Dashboard = () => {
                 const data = await response.json();
                 setIdeas(isSeller ? (data.ideas || []) : (data.boughtIdeas || []));
                 setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
-                setLoading(false);
             } catch (err) {
-                console.error('Dashboard error:', err);
+                console.error('Error fetching ideas:', err);
                 setError(err.message);
+            } finally {
                 setLoading(false);
             }
         };
 
         fetchIdeas();
-    }, [activeTab, currentPage, user.userId, isSeller]);
+    }, [user?.userId, isSeller, activeTab, currentPage, authLoading]);
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-    };
-
-    if (loading) {
+    if (authLoading) {
         return <div className={styles.loading}>Loading...</div>;
+    }
+
+    if (!isAuthenticated) {
+        return null; // Will be redirected by the first useEffect
     }
 
     if (error) {
         return <div className={styles.error}>Error: {error}</div>;
+    }
+
+    if (loading) {
+        return <div className={styles.loading}>Loading...</div>;
     }
 
     return (
@@ -117,7 +133,7 @@ const Dashboard = () => {
                     <button 
                         className={styles.pageNav} 
                         disabled={currentPage === 1}
-                        onClick={() => handlePageChange(currentPage - 1)}
+                        onClick={() => setCurrentPage(currentPage - 1)}
                     >
                         ←
                     </button>
@@ -131,7 +147,7 @@ const Dashboard = () => {
                             return (
                                 <button
                                     key={pageNum}
-                                    onClick={() => handlePageChange(pageNum)}
+                                    onClick={() => setCurrentPage(pageNum)}
                                     className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
                                 >
                                     {pageNum}
@@ -148,7 +164,7 @@ const Dashboard = () => {
                     <button 
                         className={styles.pageNav}
                         disabled={currentPage === totalPages}
-                        onClick={() => handlePageChange(currentPage + 1)}
+                        onClick={() => setCurrentPage(currentPage + 1)}
                     >
                         →
                     </button>

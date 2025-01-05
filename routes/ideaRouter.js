@@ -3,8 +3,8 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const Idea = require("../db/ideaModel");
 const User = require("../db/userModel");
-const authProtecter = require("../middlewares/auth");
-const optionalAuth = require("../middlewares/optionalAuth");
+const { auth, sellerAuth, buyerAuth } = require("../middlewares/auth");
+const stripeService = require("../services/stripeService");
 const { mongoose } = require("../db/connection");
 const { ideaCreationLimiter, ideaPurchaseLimiter } = require("../middlewares/rateLimiter");
 const uploadIdeaImages = require("../middlewares/uploadIdeaImages");
@@ -12,6 +12,32 @@ const uploadIdeaImages = require("../middlewares/uploadIdeaImages");
 // Middlewares for uploading images
 const uploadCoverImages = require("../middlewares/uploadCoverImages");
 const uploadContentImages = require("../middlewares/uploadContentImages");
+
+// Validation middleware for idea creation/update
+const validateIdeaFields = (req, res, next) => {
+    const { title, preview, priceAUD, categories } = req.body;
+    
+    if (!title?.trim()) {
+        return res.status(400).json({ error: 'Title is required' });
+    }
+    if (!preview?.trim()) {
+        return res.status(400).json({ error: 'Preview is required' });
+    }
+    if (!categories) {
+        return res.status(400).json({ error: 'Categories are required' });
+    }
+    
+    // Validate price
+    const numPrice = Number(priceAUD);
+    if (isNaN(numPrice) || numPrice < 0) {
+        return res.status(400).json({ error: 'Price must be a positive number' });
+    }
+    
+    // Convert price to number with 2 decimal places
+    req.body.priceAUD = Math.round(numPrice * 100) / 100;
+    
+    next();
+};
 
 // GET ideas by category (must be before :ideaId routes)
 router.get("/by-category", async (req, res) => {
@@ -40,10 +66,10 @@ router.get("/by-category", async (req, res) => {
     let sortOptions = {};
     switch (sortBy) {
       case 'price-low':
-        sortOptions = { price: 1 };
+        sortOptions = { priceAUD: 1 };
         break;
       case 'price-high':
-        sortOptions = { price: -1 };
+        sortOptions = { priceAUD: -1 };
         break;
       case 'rating':
         sortOptions = { rating: -1 };
@@ -58,7 +84,7 @@ router.get("/by-category", async (req, res) => {
 
     // Fetch ideas
     const ideas = await Idea.find(categoryFilter)
-      .select("title preview price thumbnailImage rating categories creator createdAt")
+      .select("title preview priceAUD thumbnailImage rating categories creator createdAt")
       .populate({
         path: 'creator',
         select: 'username averageRating'
@@ -110,7 +136,7 @@ router.get("/by-category", async (req, res) => {
 });
 
 // Search ideas by title or ID (must be before :ideaId routes)
-router.get("/search", optionalAuth, async (req, res) => {
+router.get("/search", auth, async (req, res) => {
   try {
     const { type = 'title', query = '' } = req.query;
     
@@ -155,7 +181,7 @@ router.get("/search", optionalAuth, async (req, res) => {
       const sanitizedIdeas = ideas.map(idea => ({
         _id: idea._id,
         title: idea.title,
-        price: idea.price,
+        priceAUD: idea.priceAUD,
         thumbnailImage: idea.thumbnailImage,
         creator: {
           username: idea.creator?.username,
@@ -181,7 +207,7 @@ router.get("/search", optionalAuth, async (req, res) => {
       const sanitizedIdeas = ideas.map(idea => ({
         _id: idea._id,
         title: idea.title,
-        price: idea.price,
+        priceAUD: idea.priceAUD,
         thumbnailImage: idea.thumbnailImage,
         creator: {
           username: idea.creator?.username,
@@ -206,20 +232,20 @@ router.get("/search", optionalAuth, async (req, res) => {
  * CREATE A NEW IDEA (basic info).
  * POST /ideas/create
  */
-router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
+router.post("/create", auth, sellerAuth, ideaCreationLimiter, validateIdeaFields, async (req, res) => {
   try {
-    const { title, preview, price, categories } = req.body;
+    const { title, preview, priceAUD, categories } = req.body;
     // 'categories' is expected to be an array of objects like:
     // [{
     //   main: "Technology",
     //   sub: "Computer"
     // }]
-    const creator = req.user._id; // from authProtecter (the logged-in user)
+    const creator = req.user._id; // from auth (the logged-in user)
 
     const newIdea = new Idea({
       title,
       preview,
-      price,
+      priceAUD,
       creator,
 
       isSold: false,
@@ -251,7 +277,7 @@ router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
         _id: newIdea._id,
         title: newIdea.title,
         preview: newIdea.preview,
-        price: newIdea.price,
+        priceAUD: newIdea.priceAUD,
         categories: newIdea.categories, // [{ main, sub }]
         isSold: newIdea.isSold,
       },
@@ -269,10 +295,10 @@ router.post("/create", authProtecter, ideaCreationLimiter, async (req, res) => {
  * BUY AN IDEA (one-time sale)
  * POST /ideas/:ideaId/buy
  */
-router.post("/:ideaId/buy", authProtecter, ideaPurchaseLimiter, async (req, res) => {
+router.post("/:ideaId/buy", auth, buyerAuth, ideaPurchaseLimiter, async (req, res) => {
   try {
     const ideaId = req.params.ideaId;
-    const idea = await Idea.findById(ideaId).select("price isSold buyer creator");
+    const idea = await Idea.findById(ideaId).select("priceAUD isSold buyer creator");
     if (!idea) {
       return res.status(404).json({ message: "Idea not found" });
     }
@@ -281,25 +307,18 @@ router.post("/:ideaId/buy", authProtecter, ideaPurchaseLimiter, async (req, res)
       return res.status(400).json({ message: "Idea is already sold." });
     }
 
-    // 1) Check the buyer is actually allowed to buy (subscription + credits)
+    // 1) Check the buyer is actually allowed to buy 
     const buyerId = req.user._id;
     const buyerUser = await User.findById(buyerId).select(
-      "subscription credits boughtIdeas"
+      "subscription"
     );
     if (!buyerUser) {
       return res.status(404).json({ message: "Buyer user not found." });
     }
 
-    // subscription must be "buyer" or "premium"
-    if (buyerUser.subscription !== "buyer" && buyerUser.subscription !== "premium") {
-      return res.status(403).json({ message: "User is not a buyer or premium subscriber" });
-    }
-
-    // Check buyer’s credits
-    if (buyerUser.credits < idea.price) {
-      return res.status(400).json({
-        message: `Insufficient credits. Price: ${idea.price}, your credits: ${buyerUser.credits}`,
-      });
+    // subscription must be "buyer" 
+    if (buyerUser.subscription !== "buyer") {
+      return res.status(403).json({ message: "Only buyers can purchase ideas" });
     }
 
     // 2) Mark idea as sold
@@ -307,17 +326,14 @@ router.post("/:ideaId/buy", authProtecter, ideaPurchaseLimiter, async (req, res)
     idea.buyer = buyerUser._id;
     idea.boughtAt = new Date();
 
-    // 3) Deduct buyer's credits
-    buyerUser.credits -= idea.price;
-
-    // 4) Increase seller's earnings
+    // 3) Increase seller's earnings
     const sellerUser = await User.findById(idea.creator).select("earnings");
     if (!sellerUser) {
       return res.status(404).json({ message: "Seller not found." });
     }
-    sellerUser.earnings += idea.price;
+    sellerUser.earnings += idea.priceAUD;
 
-    // 5) Save the updated idea and users
+    // 4) Save the updated idea and users
     await idea.save();
     buyerUser.boughtIdeas.push(idea._id);
     await buyerUser.save();
@@ -342,7 +358,7 @@ router.post("/:ideaId/buy", authProtecter, ideaPurchaseLimiter, async (req, res)
  * GET /ideas/:ideaId
  * Public endpoint - returns basic info for everyone, full content for creator/buyer
  */
-router.get("/:ideaId", optionalAuth, async (req, res) => {
+router.get("/:ideaId", auth, async (req, res) => {
   try {
     const ideaId = req.params.ideaId;
     
@@ -376,7 +392,7 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
       _id: idea._id,
       title: idea.title,
       preview: idea.preview,
-      price: idea.price,
+      priceAUD: idea.priceAUD,
       creator: sanitizeUser(idea.creator),
       isSold: idea.isSold,
       thumbnailImage: idea.thumbnailImage,
@@ -422,7 +438,7 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
  * GET A PAGINATED LIST OF IDEAS (partial info), BUT ONLY UNSOLD ONES
  * GET /ideas
  */
-router.get("/", optionalAuth, async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -463,14 +479,14 @@ router.get("/", optionalAuth, async (req, res) => {
       _id: idea._id,
       title: idea.title,
       preview: idea.preview,
-      price: idea.price,
+      priceAUD: idea.priceAUD,
       rating: idea.rating || 0,
       thumbnailImage: idea.thumbnailImage,
       categories: idea.categories,
-      seller: {
+      seller: idea.creator ? {
         _id: idea.creator._id,
         username: idea.creator.username
-      },
+      } : null,
       createdAt: idea.createdAt
     }));
 
@@ -493,7 +509,7 @@ router.get("/", optionalAuth, async (req, res) => {
  * POST /ideas/:ideaId/cover
  * after the middleware passes, we know the user is the creator
  */
-router.post("/:ideaId/cover", authProtecter, uploadCoverImages, async (req, res) => {
+router.post("/:ideaId/cover", auth, sellerAuth, uploadCoverImages, async (req, res) => {
   try {
     // 1) We already verified ownership in the middleware
     // 2) We have the uploaded file in req.uploadedFiles
@@ -530,7 +546,7 @@ router.post("/:ideaId/cover", authProtecter, uploadCoverImages, async (req, res)
  * POST /ideas/:ideaId/content-images
  * Upload content images for an idea. Only the creator can do this.
  */
-router.post("/:ideaId/content-images", authProtecter, uploadContentImages, async (req, res) => {
+router.post("/:ideaId/content-images", auth, sellerAuth, uploadContentImages, async (req, res) => {
     try {
         // 1) Find the idea and check if it exists
         const idea = await Idea.findById(req.params.ideaId);
@@ -573,7 +589,7 @@ router.post("/:ideaId/content-images", authProtecter, uploadContentImages, async
  * Remove a single image URL from contentImages.
  * Only the creator can do this.
  */
-router.delete("/:ideaId/content-images", authProtecter, async (req, res) => {
+router.delete("/:ideaId/content-images", auth, sellerAuth, async (req, res) => {
   try {
     const { imageToRemove } = req.body;
     if (!imageToRemove) {
@@ -627,7 +643,7 @@ router.delete("/:ideaId/content-images", authProtecter, async (req, res) => {
  * PUT /ideas/:ideaId/content
  * Update textual content (both raw and HTML). Only the idea's creator can do this.
  */
-router.put("/:ideaId/content", authProtecter, async (req, res) => {
+router.put("/:ideaId/content", auth, sellerAuth, async (req, res) => {
   try {
     const { contentRaw, contentHtml } = req.body;
     if (!contentRaw && !contentHtml) {
@@ -680,15 +696,15 @@ router.put("/:ideaId/content", authProtecter, async (req, res) => {
 
 /**
  * PUT /ideas/:ideaId
- * Update limited fields: title, preview, price, categories
+ * Update limited fields: title, preview, priceAUD, categories
  * Reject requests with disallowed fields.
  * Only the idea's creator can do this.
  * Minimally load data & limit creator fields.
  */
-router.put("/:ideaId", authProtecter, async (req, res) => {
+router.put("/:ideaId", auth, sellerAuth, validateIdeaFields, async (req, res) => {
   try {
     // 1) Allowed fields
-    const allowedFields = ["title", "preview", "price", "categories"];
+    const allowedFields = ["title", "preview", "priceAUD", "categories"];
     const requestedFields = Object.keys(req.body);
     const disallowed = requestedFields.filter((f) => !allowedFields.includes(f));
     if (disallowed.length > 0) {
@@ -699,7 +715,7 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
 
     // 2) Load minimal fields + optionally populate minimal creator
     const idea = await Idea.findById(req.params.ideaId)
-      .select("creator title preview price categories")
+      .select("creator title preview priceAUD categories")
       .populate({
         path: "creator",
         select: "username" // only load username & _id
@@ -718,7 +734,12 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
     //    If user wants to update categories, we expect an array of objects { main, sub } in req.body.categories
     if (req.body.title !== undefined) idea.title = req.body.title;
     if (req.body.preview !== undefined) idea.preview = req.body.preview;
-    if (req.body.price !== undefined) idea.price = req.body.price;
+    if (req.body.priceAUD !== undefined) {
+      if (req.body.priceAUD < 0) {
+        return res.status(400).json({ error: 'Price cannot be negative' });
+      }
+      idea.priceAUD = req.body.priceAUD;
+    }
 
     if (req.body.categories !== undefined) {
       idea.categories = req.body.categories || [];
@@ -739,7 +760,7 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
         _id: idea._id,
         title: idea.title,
         preview: idea.preview,
-        price: idea.price,
+        priceAUD: idea.priceAUD,
         categories: idea.categories, // [{ main, sub }]
         creator: sanitizedCreator
       },
@@ -758,7 +779,7 @@ router.put("/:ideaId", authProtecter, async (req, res) => {
  * Comprehensive update route for editing an entire idea.
  * Only the creator can use this, and only if the idea hasn't been sold.
  */
-router.put("/:ideaId/edit", authProtecter, async (req, res) => {
+router.put("/:ideaId/edit", auth, sellerAuth, validateIdeaFields, async (req, res) => {
     try {
         // 1) Find the idea and check if it exists
         const idea = await Idea.findById(req.params.ideaId);
@@ -784,7 +805,12 @@ router.put("/:ideaId/edit", authProtecter, async (req, res) => {
         // 4) Update fields directly on the document
         if (req.body.title !== undefined) idea.title = req.body.title;
         if (req.body.preview !== undefined) idea.preview = req.body.preview;
-        if (req.body.price !== undefined) idea.price = req.body.price;
+        if (req.body.priceAUD !== undefined) {
+          if (req.body.priceAUD < 0) {
+            return res.status(400).json({ error: 'Price cannot be negative' });
+          }
+          idea.priceAUD = req.body.priceAUD;
+        }
         if (categories !== undefined) idea.categories = categories;
 
         // 5) Save the updated idea
@@ -797,7 +823,7 @@ router.put("/:ideaId/edit", authProtecter, async (req, res) => {
                 _id: idea._id,
                 title: idea.title,
                 preview: idea.preview,
-                price: idea.price,
+                priceAUD: idea.priceAUD,
                 categories: idea.categories,
                 thumbnailImage: idea.thumbnailImage,
                 contentImages: idea.contentImages,
@@ -815,7 +841,7 @@ router.put("/:ideaId/edit", authProtecter, async (req, res) => {
 });
 
 // Rate an idea - only available to buyers who own the idea
-router.post('/:id/rate', authProtecter, async (req, res) => {
+router.post('/:id/rate', auth, buyerAuth, async (req, res) => {
     try {
         const { rating } = req.body;
         const ideaId = req.params.id;

@@ -5,6 +5,7 @@ import AuthModal from '../components/modals/AuthModal';
 import PurchaseModal from '../components/modals/PurchaseModal';
 import PurchaseSuccessModal from '../components/modals/PurchaseSuccessModal';
 import PurchaseErrorModal from '../components/modals/PurchaseErrorModal';
+import IdeaPurchaseButton from '../components/idea/IdeaPurchaseButton';
 import styles from './ViewIdea.module.css';
 import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt, FaTimes } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
@@ -340,7 +341,7 @@ const ViewIdea = () => {
                     </div>
                     <div className={styles.price}>
                         <FaCoins className={styles.priceIcon} />
-                        {idea.price.toFixed(2)}
+                        {idea.priceAUD.toFixed(2)} AUD
                     </div>
                 </div>
             </div>
@@ -353,12 +354,28 @@ const ViewIdea = () => {
                             dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
                         />
                     ) : (
-                        <div className={styles.lockedContent}>
-                            <h3>Content Locked</h3>
-                            <FaLock size={48} />
-                            <p>Wondering what's inside? </p>
-                            <p> Login and buy this to view full contents!</p>
-                            <small style={{ color: '#FF12ab' }}>*if not having a buyer account yet, welcome to sign up a new one at anytime!</small>
+                        <div className={styles.ideaContent}>
+                            {idea.preview}
+                            
+                            {!hasFullAccess && (
+                                <div className={styles.purchaseSection}>
+                                    <div className={styles.previewOverlay} />
+                                    <div className={styles.purchasePrompt}>
+                                        <h3>Purchase this idea to view full content</h3>
+                                        <p className={styles.price}>${idea.priceAUD.toFixed(2)} AUD</p>
+                                        <IdeaPurchaseButton idea={idea} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {(hasFullAccess) && (
+                                <div className={styles.fullContent}>
+                                    <div
+                                        className="ql-editor"
+                                        dangerouslySetInnerHTML={{ __html: idea.contentHtml }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
