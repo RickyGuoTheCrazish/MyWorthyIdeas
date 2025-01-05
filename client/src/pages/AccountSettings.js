@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FaCoins, FaExchangeAlt, FaSpinner, FaInfoCircle } from 'react-icons/fa';
+import { FaCoins, FaExchangeAlt, FaSpinner, FaInfoCircle, FaCreditCard } from 'react-icons/fa';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentMethodForm from '../components/payment/PaymentMethodForm';
@@ -465,8 +465,8 @@ const AccountSettings = () => {
                                     {billingHistory.map((transaction, index) => (
                                         <div key={index} className={`${styles.transactionItem} ${styles[transaction.status]}`}>
                                             <div className={styles.transactionIcon}>
-                                                {transaction.status === 'complete' ? (
-                                                    <div className={styles.successIcon}><FaCoins /></div>
+                                                {transaction.status === 'paid' ? (
+                                                    <div className={styles.successIcon}><FaCreditCard /></div>
                                                 ) : transaction.status === 'pending' ? (
                                                     <div className={styles.pendingIcon}><FaSpinner /></div>
                                                 ) : (
@@ -489,10 +489,10 @@ const AccountSettings = () => {
                                                     <div className={styles.transactionRight}>
                                                         <div className={styles.amountDetails}>
                                                             <div className={styles.creditAmount}>
-                                                                +{(transaction.amount * CREDIT_MULTIPLIER).toFixed(0)} Credits
+                                                                +{Math.floor((transaction.amount - (transaction.processingFee || 0)) * CREDIT_MULTIPLIER)} Credits
                                                             </div>
                                                             <div className={styles.moneyAmount}>
-                                                                ${transaction.amount.toFixed(2)} USD
+                                                                ${(transaction.amount - (transaction.processingFee || 0)).toFixed(2)} AUD
                                                             </div>
                                                         </div>
                                                     </div>
@@ -501,7 +501,7 @@ const AccountSettings = () => {
                                                     <div className={styles.transactionFee}>
                                                         <div className={styles.feeLabel}>Processing Fee:</div>
                                                         <div className={styles.feeAmount}>
-                                                            ${transaction.processingFee.toFixed(2)} USD
+                                                            ${transaction.processingFee.toFixed(2)} AUD
                                                         </div>
                                                     </div>
                                                 )}

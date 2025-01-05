@@ -206,13 +206,20 @@ class StripeService {
                         return;
                     }
 
-                    console.log('Updating user credits:', {
-                        before: user.credits,
-                        adding: parseInt(credits),
-                        after: user.credits + parseInt(credits)
+                    const baseAmount = session.amount_total / 100 - parseFloat(processingFee);
+                    const creditsToAdd = Math.floor(baseAmount * CREDIT_MULTIPLIER);
+                    
+                    console.log('Credit calculation details:', {
+                        baseAmount,
+                        processingFee: parseFloat(processingFee),
+                        totalAmount: session.amount_total / 100,
+                        creditsToAdd,
+                        creditsBeforeUpdate: user.credits,
+                        creditsAfterUpdate: user.credits + creditsToAdd,
+                        metadata: session.metadata
                     });
 
-                    user.credits += parseInt(credits);
+                    user.credits += creditsToAdd;
                     await user.save();
 
                     // Update existing transaction or create new one

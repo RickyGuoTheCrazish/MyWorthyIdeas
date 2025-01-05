@@ -51,14 +51,21 @@ class PaymentController {
             // Filter sessions for this user and transform to our format
             const transactions = checkoutSessions.data
                 .filter(session => session.metadata?.userId === userId.toString())
-                .map(session => ({
-                    id: session.id,
-                    type: 'deposit',
-                    amount: session.amount_total / 100, // Convert from cents to dollars
-                    status: session.payment_status,
-                    createdAt: new Date(session.created * 1000), // Convert from Unix timestamp
-                    processingFee: session.metadata?.processingFee ? parseFloat(session.metadata.processingFee) : 0
-                }));
+                .map(session => {
+                    const processingFee = session.metadata?.processingFee ? parseFloat(session.metadata.processingFee) : 0;
+                    const totalAmount = session.amount_total / 100;
+                    const baseAmount = totalAmount - processingFee;
+                    
+                    return {
+                        id: session.id,
+                        type: 'deposit',
+                        amount: totalAmount,
+                        baseAmount: baseAmount,
+                        status: session.payment_status,
+                        createdAt: new Date(session.created * 1000),
+                        processingFee
+                    };
+                });
 
             console.log('Transactions found:', transactions);
 
