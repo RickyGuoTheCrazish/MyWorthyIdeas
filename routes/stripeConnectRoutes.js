@@ -19,7 +19,22 @@ router.get('/oauth/link', auth, async (req, res, next) => {
 }, stripeConnectController.getConnectLink);
 
 // Handle OAuth redirect
-router.get('/oauth/callback', auth, stripeConnectController.handleOAuthRedirect);
+router.post('/oauth/callback', auth, async (req, res) => {
+    try {
+        const { code } = req.body;
+        const userId = req.user._id;
+
+        if (!code) {
+            return res.status(400).json({ error: 'Missing authorization code' });
+        }
+
+        await stripeConnectController.handleOAuthRedirect(code, userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error handling OAuth redirect:', error);
+        res.status(500).json({ error: 'Failed to handle OAuth callback' });
+    }
+});
 
 // Get seller's account status - no sellerAuth needed as we want to check if they're connected
 router.get('/account/status', auth, stripeConnectController.getAccountStatus);

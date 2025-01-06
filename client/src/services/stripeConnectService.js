@@ -66,6 +66,21 @@ class StripeConnectService {
         );
         return response.data;
     }
+
+    /**
+     * Handle OAuth callback with authorization code
+     * @param {string} code - The authorization code from Stripe
+     */
+    async handleOAuthCallback(code) {
+        console.log('Sending code to backend:', code);
+        const response = await axios.post(
+            `${API_URL}/stripe/connect/oauth/callback`,
+            { code },
+            this.getAuthConfig()
+        );
+        console.log('Backend response:', response.data);
+        return response.data;
+    }
 }
 
 export default new StripeConnectService();

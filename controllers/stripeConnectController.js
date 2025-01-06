@@ -26,20 +26,17 @@ class StripeConnectController {
     /**
      * Handle OAuth redirect
      */
-    async handleOAuthRedirect(req, res) {
+    async handleOAuthRedirect(code, userId) {
         try {
-            const { code } = req.query;
-            const userId = req.user._id;
-
             if (!code) {
-                return res.status(400).json({ error: 'Missing authorization code' });
+                throw new Error('Missing authorization code');
             }
 
             await stripeConnectService.handleOAuthRedirect(code, userId);
-            res.redirect('/account-settings?connect=success');
+            return { success: true };
         } catch (error) {
             console.error('Error handling OAuth redirect:', error);
-            res.redirect('/account-settings?connect=error');
+            throw error;
         }
     }
 
