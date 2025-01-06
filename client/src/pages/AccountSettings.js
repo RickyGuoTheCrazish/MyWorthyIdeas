@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FaSpinner } from 'react-icons/fa';
 import styles from '../styles/AccountSettings.module.css';
@@ -9,26 +9,30 @@ import { useLocation } from 'react-router-dom';
 const AccountSettings = () => {
     const { user } = useAuth();
     const location = useLocation();
+    const processedCode = useRef(false);
 
     useEffect(() => {
-        const handleStripeCallback = async () => {
-            const searchParams = new URLSearchParams(location.search);
-            const code = searchParams.get('code');
+        const searchParams = new URLSearchParams(location.search);
+        const code = searchParams.get('code');
+        
+        if (code && !processedCode.current) {
+            processedCode.current = true;
             
-            if (code) {
-                try {
-                    console.log('Got code from Stripe:', code);
-                    await stripeConnectService.handleOAuthCallback(code);
+            // Clear the code from URL immediately
+            window.history.replaceState({}, document.title, "/account-settings");
+            
+            console.log('Got code from Stripe:', code);
+            stripeConnectService.handleOAuthCallback(code)
+                .then(() => {
                     console.log('Successfully connected Stripe account');
                     window.location.reload();
-                } catch (error) {
+                })
+                .catch(error => {
                     console.error('Error handling Stripe callback:', error);
-                }
-            }
-        };
-
-        handleStripeCallback();
-    }, [location]);
+                    processedCode.current = false; // Reset in case we need to try again
+                });
+        }
+    }, [location.search]); // Only run when search params change
 
     if (!user) {
         return (

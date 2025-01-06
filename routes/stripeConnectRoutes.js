@@ -1,46 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const stripeConnectController = require('../controllers/stripeConnectController');
 const { auth, sellerAuth } = require('../middlewares/auth');
 const User = require('../db/userModel');
-const stripe = require('../services/stripeService').stripe;
+const { stripeConnectService } = require('../services');
+const stripe = require('../services').stripe;
+
+// Create controller instance with injected service
+const StripeConnectController = require('../controllers/stripeConnectController');
+const controller = new StripeConnectController(stripeConnectService);
+
+// Get account status
+router.get('/status', auth, controller.getAccountStatus);
 
 // Get OAuth link for connecting Stripe account
-router.get('/oauth/link', auth, async (req, res, next) => {
+router.get('/oauth/link', auth, (req, res, next) => {
     console.log('OAuth link route hit by user:', req.user._id);
-    // Only check if user is a seller
-    if (req.user.subscription !== 'seller') {
-        console.log('User is not a seller:', req.user.subscription);
-        return res.status(403).json({ 
-            message: "Only sellers can access this resource" 
+    if (!req.user._id) {
+        return res.status(401).json({
+            error: 'User not authenticated'
         });
     }
     next();
-}, stripeConnectController.getConnectLink);
+}, controller.getConnectLink);
 
 // Handle OAuth redirect
 router.post('/oauth/callback', auth, async (req, res) => {
     try {
         const { code } = req.body;
-        const userId = req.user._id;
-
         if (!code) {
             return res.status(400).json({ error: 'Missing authorization code' });
         }
-
-        await stripeConnectController.handleOAuthRedirect(code, userId);
-        res.json({ success: true });
+        const result = await controller.handleOAuthRedirect(code, req.user._id);
+        res.json(result);
     } catch (error) {
         console.error('Error handling OAuth redirect:', error);
-        res.status(500).json({ error: 'Failed to handle OAuth callback' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Get seller's account status - no sellerAuth needed as we want to check if they're connected
-router.get('/account/status', auth, stripeConnectController.getAccountStatus);
-
 // Create checkout session for idea purchase
-router.post('/checkout', auth, stripeConnectController.createCheckoutSession);
+router.post('/checkout', auth, controller.createCheckoutSession);
 
 // Create Stripe Connect account
 router.post('/create-account', auth, sellerAuth, async (req, res) => {
@@ -94,42 +93,11 @@ router.post('/create-account', auth, sellerAuth, async (req, res) => {
 // Get Stripe Connect account status
 router.get('/account-status', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        if (!user.stripeConnectAccountId) {
-            return res.json({
-                connected: false,
-                message: 'No Stripe Connect account found'
-            });
-        }
-
-        // Retrieve the account from Stripe
-        const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
-
-        // Update local status if it's changed
-        if (user.stripeConnectStatus.chargesEnabled !== account.charges_enabled ||
-            user.stripeConnectStatus.payoutsEnabled !== account.payouts_enabled ||
-            user.stripeConnectStatus.detailsSubmitted !== account.details_submitted) {
-            
-            user.stripeConnectStatus = {
-                chargesEnabled: account.charges_enabled,
-                payoutsEnabled: account.payouts_enabled,
-                detailsSubmitted: account.details_submitted
-            };
-            await user.save();
-        }
-
-        res.json({
-            connected: true,
-            status: user.stripeConnectStatus
-        });
+        const status = await stripeConnectService.getAccountStatus(req.user.id);
+        res.json(status);
     } catch (error) {
-        console.error('Error getting Stripe Connect account status:', error);
-        res.status(500).json({ error: 'Failed to get account status' });
+        console.error('Error getting account status:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

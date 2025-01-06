@@ -12,6 +12,10 @@ const stripeConnectSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    accessToken: {
+        type: String,
+        required: true
+    },
     accountStatus: {
         type: String,
         enum: ['pending', 'active', 'restricted', 'disabled'],

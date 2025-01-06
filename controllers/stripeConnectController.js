@@ -1,7 +1,11 @@
 const stripeConnectService = require('../services/stripeConnectService');
 
 class StripeConnectController {
-    constructor() {
+    constructor(stripeConnectService) {
+        if (!stripeConnectService) {
+            throw new Error('stripeConnectService is required');
+        }
+        this.stripeConnectService = stripeConnectService;
         this.getConnectLink = this.getConnectLink.bind(this);
         this.handleOAuthRedirect = this.handleOAuthRedirect.bind(this);
         this.getAccountStatus = this.getAccountStatus.bind(this);
@@ -14,7 +18,7 @@ class StripeConnectController {
     async getConnectLink(req, res) {
         try {
             console.log('Generating connect link for user:', req.user._id);
-            const link = await stripeConnectService.createConnectAccountLink();
+            const link = await this.stripeConnectService.createConnectAccountLink();
             console.log('Generated link:', link);
             res.json({ url: link });
         } catch (error) {
@@ -32,7 +36,7 @@ class StripeConnectController {
                 throw new Error('Missing authorization code');
             }
 
-            await stripeConnectService.handleOAuthRedirect(code, userId);
+            await this.stripeConnectService.handleOAuthRedirect(code, userId);
             return { success: true };
         } catch (error) {
             console.error('Error handling OAuth redirect:', error);
@@ -46,11 +50,11 @@ class StripeConnectController {
     async getAccountStatus(req, res) {
         try {
             const userId = req.user._id;
-            const status = await stripeConnectService.getAccountStatus(userId);
+            const status = await this.stripeConnectService.getAccountStatus(userId);
             res.json(status);
         } catch (error) {
             console.error('Error getting account status:', error);
-            res.status(500).json({ error: 'Failed to get account status' });
+            res.status(500).json({ error: error.message || 'Failed to get account status' });
         }
     }
 
@@ -59,21 +63,9 @@ class StripeConnectController {
      */
     async createCheckoutSession(req, res) {
         try {
-            const { amount, sellerId, ideaId } = req.body;
-            const buyerId = req.user._id;
-
-            if (!amount || !sellerId || !ideaId) {
-                return res.status(400).json({ error: 'Missing required parameters' });
-            }
-
-            const session = await stripeConnectService.createSellerCheckoutSession({
-                amount: Math.round(amount * 100), // Convert to cents
-                sellerId,
-                buyerId,
-                ideaId
-            });
-
-            res.json({ id: session.id });
+            const { ideaId, priceId } = req.body;
+            const session = await this.stripeConnectService.createSellerCheckoutSession(ideaId, priceId, req.user._id);
+            res.json({ sessionId: session.id });
         } catch (error) {
             console.error('Error creating checkout session:', error);
             res.status(500).json({ error: 'Failed to create checkout session' });
@@ -81,4 +73,4 @@ class StripeConnectController {
     }
 }
 
-module.exports = new StripeConnectController();
+module.exports = StripeConnectController;

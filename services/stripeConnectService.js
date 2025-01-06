@@ -1,9 +1,9 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const StripeConnect = require('../db/stripeConnectModel');
 const User = require('../db/userModel');
 
 class StripeConnectService {
-    constructor() {
+    constructor(stripe) {
+        this.stripe = stripe;
         this.createConnectAccountLink = this.createConnectAccountLink.bind(this);
         this.handleOAuthRedirect = this.handleOAuthRedirect.bind(this);
         this.createSellerCheckoutSession = this.createSellerCheckoutSession.bind(this);
@@ -25,23 +25,33 @@ class StripeConnectService {
      */
     async handleOAuthRedirect(code, userId) {
         try {
+            console.log('Starting OAuth redirect handling for user:', userId);
+            
             // Exchange code for access token and connected account ID
-            const response = await stripe.oauth.token({
+            const response = await this.stripe.oauth.token({
                 grant_type: 'authorization_code',
                 code,
             });
 
-            // Get the connected account ID
+            console.log('Received OAuth response for user:', userId);
+
+            // Get the connected account ID and access token
             const connectedAccountId = response.stripe_user_id;
+            const accessToken = response.access_token;
+
+            console.log('Got connected account ID:', connectedAccountId);
 
             // Retrieve the account details
-            const account = await stripe.accounts.retrieve(connectedAccountId);
+            const account = await this.stripe.accounts.retrieve(connectedAccountId);
+
+            console.log('Retrieved account details for:', connectedAccountId);
 
             // Create or update the StripeConnect record
             const stripeConnect = await StripeConnect.findOneAndUpdate(
                 { userId },
                 {
                     stripeAccountId: connectedAccountId,
+                    accessToken: accessToken,
                     accountStatus: account.charges_enabled ? 'active' : 'pending',
                     payoutsEnabled: account.payouts_enabled,
                     chargesEnabled: account.charges_enabled,
@@ -51,78 +61,59 @@ class StripeConnectService {
                 { upsert: true, new: true }
             );
 
-            // Update the User model with Stripe Connect info
+            console.log('Updated StripeConnect record for user:', userId);
+
+            // Update the user's seller status
             await User.findByIdAndUpdate(userId, {
-                stripeConnectAccountId: connectedAccountId,
-                stripeConnectStatus: {
-                    accountStatus: stripeConnect.accountStatus,
-                    chargesEnabled: stripeConnect.chargesEnabled,
-                    payoutsEnabled: stripeConnect.payoutsEnabled,
-                    detailsSubmitted: stripeConnect.detailsSubmitted
-                }
+                stripeConnectId: connectedAccountId,
+                subscription: 'seller'
             });
 
-            return connectedAccountId;
+            console.log('Updated user record with Stripe Connect ID');
+
+            return stripeConnect;
         } catch (error) {
-            console.error('Error handling OAuth redirect:', error);
+            console.error('Error in handleOAuthRedirect:', error);
             throw error;
         }
     }
 
     /**
-     * Get seller's Stripe Connect account status
+     * Get account status for a connected account
      * @param {string} userId User ID
      */
     async getAccountStatus(userId) {
         try {
-            // First get the local record
-            const connect = await StripeConnect.findOne({ userId });
-            if (!connect) {
+            // Get the StripeConnect record for this user
+            const stripeConnect = await StripeConnect.findOne({ userId });
+            
+            if (!stripeConnect || !stripeConnect.stripeAccountId) {
                 return {
                     connected: false,
-                    accountStatus: 'not_connected'
+                    message: 'Not connected to Stripe'
                 };
             }
 
-            // Fetch latest status from Stripe
-            const account = await stripe.accounts.retrieve(connect.stripeAccountId);
-            
-            // Update local records with latest status
-            const updatedStatus = {
-                accountStatus: account.charges_enabled ? 'active' : 'pending',
-                chargesEnabled: account.charges_enabled,
-                payoutsEnabled: account.payouts_enabled,
-                detailsSubmitted: account.details_submitted
-            };
-
-            // Update StripeConnect record
-            await StripeConnect.findOneAndUpdate(
-                { userId },
-                {
-                    accountStatus: updatedStatus.accountStatus,
-                    chargesEnabled: updatedStatus.chargesEnabled,
-                    payoutsEnabled: updatedStatus.payoutsEnabled,
-                    detailsSubmitted: updatedStatus.detailsSubmitted
-                }
-            );
-
-            // Update User record
-            await User.findByIdAndUpdate(userId, {
-                stripeConnectStatus: updatedStatus
-            });
+            // Retrieve account details using the platform's secret key
+            const account = await this.stripe.accounts.retrieve(stripeConnect.stripeAccountId);
 
             return {
                 connected: true,
-                accountStatus: updatedStatus.accountStatus,
-                status: {
-                    chargesEnabled: updatedStatus.chargesEnabled,
-                    payoutsEnabled: updatedStatus.payoutsEnabled,
-                    detailsSubmitted: updatedStatus.detailsSubmitted
-                }
+                accountId: stripeConnect.stripeAccountId,
+                chargesEnabled: account.charges_enabled,
+                payoutsEnabled: account.payouts_enabled,
+                detailsSubmitted: account.details_submitted,
+                country: account.country
             };
         } catch (error) {
             console.error('Error getting account status:', error);
-            throw error;
+            if (error.type === 'StripeAuthenticationError') {
+                throw new Error('Invalid or expired API key. Please check your configuration.');
+            }
+            if (error.type === 'StripePermissionError') {
+                throw new Error('Lost connection to Stripe account. Please reconnect.');
+            }
+            throw new Error('Failed to fetch account status. Please try again.');
         }
     }
 
@@ -143,7 +134,7 @@ class StripeConnectService {
             throw new Error('Seller has not connected their Stripe account');
         }
 
-        const session = await stripe.checkout.sessions.create({
+        const session = await this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
                 price_data: {
@@ -175,4 +166,4 @@ class StripeConnectService {
     }
 }
 
-module.exports = new StripeConnectService();
+module.exports = StripeConnectService;
