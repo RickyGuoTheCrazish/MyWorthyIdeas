@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import stripeConnectService from '../services/stripeConnectService';
 
 const AuthContext = createContext(null);
 
@@ -32,23 +33,10 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    // Function to fetch Stripe Connect account status
+    // Function to fetch Stripe Connect status
     const fetchStripeConnectStatus = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await fetch('http://localhost:6001/api/stripe/connect/account/status', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch Stripe Connect status');
-            }
-
-            const data = await response.json();
+            const data = await stripeConnectService.getAccountStatus();
             setStripeConnectStatus(data);
             return data;
         } catch (error) {
@@ -60,21 +48,8 @@ export const AuthProvider = ({ children }) => {
     // Function to get Stripe Connect OAuth link
     const getStripeConnectLink = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('No token found');
-
-            const response = await fetch('http://localhost:6001/api/stripe/connect/oauth/link', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to get Stripe Connect link');
-            }
-
-            const data = await response.json();
-            return data.url;
+            const { url } = await stripeConnectService.getConnectLink();
+            return url;
         } catch (error) {
             console.error('Failed to get Stripe Connect link:', error);
             throw error;
@@ -289,7 +264,10 @@ export const AuthProvider = ({ children }) => {
         isTokenExpiredState,
         isSeller,
         isBuyer,
-        register
+        register,
+        fetchStripeConnectStatus,
+        getStripeConnectLink,
+        createCheckoutSession
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

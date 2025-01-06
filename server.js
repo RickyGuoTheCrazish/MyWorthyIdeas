@@ -34,10 +34,14 @@ mongoose.connect(process.env.ATLAS_URL)
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch(err => console.error('Could not connect to MongoDB:', err));
 
-// Routes
-app.use('/api/users', userRouter);
-app.use('/api/ideas', ideaRouter);
-app.use('/api/stripe/connect', stripeConnectRoutes);
+// Create API router
+const apiRouter = express.Router();
+app.use('/api', apiRouter);
+
+// Mount routes on API router
+apiRouter.use('/users', userRouter);
+apiRouter.use('/ideas', ideaRouter);
+apiRouter.use('/stripe/connect', stripeConnectRoutes);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
