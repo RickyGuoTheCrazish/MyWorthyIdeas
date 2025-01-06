@@ -3,6 +3,9 @@ const User = require('../db/userModel');
 
 class StripeConnectService {
     constructor(stripe) {
+        if (!stripe) {
+            throw new Error('stripe is required');
+        }
         this.stripe = stripe;
         this.createConnectAccountLink = this.createConnectAccountLink.bind(this);
         this.handleOAuthRedirect = this.handleOAuthRedirect.bind(this);
@@ -118,22 +121,20 @@ class StripeConnectService {
     }
 
     /**
-     * Create a Checkout Session for a specific seller
-     * @param {Object} params Parameters for creating checkout session
-     * @param {string} params.amount Amount in cents
-     * @param {string} params.sellerId Seller's user ID
-     * @param {string} params.buyerId Buyer's user ID
-     * @param {string} params.ideaId ID of the idea being purchased
+     * Create a checkout session for an idea purchase
+     * @param {Object} params Parameters for creating the checkout session
+     * @returns {Promise<Stripe.Checkout.Session>} The created checkout session
      */
     async createSellerCheckoutSession(params) {
         const { amount, sellerId, buyerId, ideaId } = params;
 
-        // Get seller's connected account
-        const connect = await StripeConnect.findOne({ userId: sellerId });
-        if (!connect || !connect.stripeAccountId) {
-            throw new Error('Seller has not connected their Stripe account');
+        // Get the seller's Stripe account ID
+        const seller = await StripeConnect.findOne({ userId: sellerId });
+        if (!seller || !seller.stripeAccountId) {
+            throw new Error('Seller not found or not connected to Stripe');
         }
 
+        // Create the session
         const session = await this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
@@ -147,18 +148,19 @@ class StripeConnectService {
                 quantity: 1,
             }],
             mode: 'payment',
-            success_url: `${process.env.CLIENT_URL}/ideas/purchased?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.CLIENT_URL}/ideas`,
+            success_url: `${process.env.CLIENT_URL}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL}/purchase/cancel`,
             payment_intent_data: {
-                application_fee_amount: Math.round(amount * 0.05), // 5% platform fee
+                application_fee_amount: Math.round(amount * 0.1), // 10% platform fee
                 transfer_data: {
-                    destination: connect.stripeAccountId,
+                    destination: seller.stripeAccountId,
                 },
             },
             metadata: {
                 ideaId,
                 buyerId,
-                sellerId
+                sellerId,
+                type: 'idea_purchase'
             }
         });
 

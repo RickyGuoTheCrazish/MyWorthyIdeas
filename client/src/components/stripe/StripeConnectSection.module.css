@@ -1,8 +1,10 @@
 .container {
-    padding: 24px;
-    background: #fff;
+    padding: 20px;
     border-radius: 8px;
+    background-color: #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .header {
@@ -34,11 +36,11 @@
 }
 
 .error {
-    padding: 12px;
-    background: #fed7d7;
-    color: #c53030;
+    color: #dc3545;
+    margin: 10px 0;
+    padding: 10px;
     border-radius: 4px;
-    margin-bottom: 16px;
+    background-color: #f8d7da;
 }
 
 .connect {
@@ -46,6 +48,8 @@
     flex-direction: column;
     align-items: center;
     padding: 24px;
+    text-align: center;
+    margin-top: 20px;
 }
 
 .connectButton {
@@ -84,6 +88,20 @@
     padding: 16px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
+    margin-top: 20px;
+}
+
+.status ul {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+}
+
+.status li {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
 
 .statusHeader {
@@ -136,6 +154,27 @@
 
 .enabled {
     color: #48bb78;
+}
+
+.stripeButton {
+    background-color: #635bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 16px;
+}
+
+.stripeButton:hover {
+    background-color: #5851db;
+}
+
+.stripeButton:disabled {
+    background-color: #a8a8a8;
+    cursor: not-allowed;
 }
 
 @keyframes spin {

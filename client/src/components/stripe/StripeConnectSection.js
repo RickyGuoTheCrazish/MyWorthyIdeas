@@ -52,6 +52,10 @@ const StripeConnectSection = () => {
         }
     };
 
+    const handleStripeAccess = () => {
+        window.open('https://stripe.com', '_blank');
+    };
+
     if (loading) {
         return (
             <div className={styles.container}>
@@ -93,6 +97,12 @@ const StripeConnectSection = () => {
                             <p>Details Submitted: {accountStatus.status.detailsSubmitted ? 'Yes' : 'No'}</p>
                         </div>
                     )}
+                    <button 
+                        className={styles.stripeButton}
+                        onClick={handleStripeAccess}
+                    >
+                        Go to Stripe
+                    </button>
                 </div>
             ) : (
                 <div className={styles.connect}>

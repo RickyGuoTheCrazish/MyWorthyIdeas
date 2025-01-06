@@ -51,6 +51,18 @@ class StripeConnectService {
     }
 
     /**
+     * Get login link for Stripe dashboard
+     * @returns {Promise<{url: string}>}
+     */
+    async getLoginLink() {
+        const response = await axios.get(
+            `${API_URL}/stripe/connect/login-link`,
+            this.getAuthConfig()
+        );
+        return response.data;
+    }
+
+    /**
      * Create checkout session for idea purchase
      * @param {Object} params
      * @param {number} params.amount Amount in AUD
