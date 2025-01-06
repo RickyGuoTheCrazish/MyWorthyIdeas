@@ -19,40 +19,32 @@ const Recommendations = () => {
                 setLoading(true);
                 setError(null);
                 
-                const token = localStorage.getItem('token');
-                const headers = {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` })
-                };
-
-                console.log('Fetching recommendations with headers:', headers);
                 const response = await fetch(
                     `http://localhost:6001/api/ideas?page=${currentPage}&limit=12&type=recommendations`, 
                     {
-                        headers,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         credentials: 'include'
                     }
                 );
 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch recommendations');
+                    throw new Error('Failed to fetch ideas');
                 }
 
                 const data = await response.json();
-                console.log('Received recommendations data:', data);
                 
                 if (Array.isArray(data.ideas)) {
-                    console.log('Setting ideas:', data.ideas);
                     setIdeas(data.ideas);
                     setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
                 } else {
                     console.error('Invalid data format:', data);
                     throw new Error('Invalid data format received');
                 }
-            } catch (err) {
-                console.error('Recommendations error:', err);
-                setError(err.message);
-                setIdeas([]);
+            } catch (error) {
+                console.error('Error fetching ideas:', error);
+                setError('Failed to load ideas. Please try again later.');
             } finally {
                 setLoading(false);
             }
@@ -62,17 +54,19 @@ const Recommendations = () => {
     }, [currentPage]);
 
     const handlePageChange = (newPage) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-            window.scrollTo(0, 0);
-        }
+        setCurrentPage(newPage);
+        window.scrollTo(0, 0);
+    };
+
+    const handleIdeaClick = (ideaId) => {
+        navigate(`/ideas/${ideaId}`);
     };
 
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
-                <div className={styles.loadingSpinner}></div>
-                <p>Loading recommendations...</p>
+                <div className={styles.spinner}></div>
+                <p>Loading ideas...</p>
             </div>
         );
     }
@@ -81,72 +75,51 @@ const Recommendations = () => {
         return (
             <div className={styles.errorContainer}>
                 <p className={styles.errorMessage}>{error}</p>
+                <button onClick={() => window.location.reload()} className={styles.retryButton}>
+                    Try Again
+                </button>
             </div>
         );
     }
 
     return (
-        <div className={styles.recommendationsPage}>
-            <h1>Recommended Ideas</h1>
+        <div className={styles.recommendationsContainer}>
+            <h1 className={styles.title}>Recommended Ideas</h1>
+            
             {ideas.length === 0 ? (
                 <div className={styles.noIdeas}>
-                    <p>No recommendations available at the moment.</p>
-                    <p>Check back later for new ideas!</p>
+                    <p>No ideas found. Check back later!</p>
                 </div>
             ) : (
                 <>
-                    <div className={styles.ideaGrid}>
+                    <div className={styles.ideasGrid}>
                         {ideas.map(idea => (
                             <IdeaCard
                                 key={idea._id}
                                 idea={idea}
-                                mode="view"
-                                showRating={true}
+                                onClick={() => handleIdeaClick(idea._id)}
                             />
                         ))}
                     </div>
 
                     {totalPages > 1 && (
                         <div className={styles.pagination}>
-                            <button 
-                                className={styles.pageNav} 
-                                disabled={currentPage === 1}
+                            <button
                                 onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className={styles.pageButton}
                             >
-                                ←
+                                Previous
                             </button>
-                            
-                            {[...Array(totalPages)].map((_, index) => {
-                                const pageNum = index + 1;
-                                if (
-                                    pageNum === 1 ||
-                                    pageNum === totalPages ||
-                                    (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                                ) {
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => handlePageChange(pageNum)}
-                                            className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                } else if (
-                                    pageNum === currentPage - 3 ||
-                                    pageNum === currentPage + 3
-                                ) {
-                                    return <span key={pageNum} className={styles.ellipsis}>...</span>;
-                                }
-                                return null;
-                            })}
-                            
-                            <button 
-                                className={styles.pageNav} 
-                                disabled={currentPage === totalPages}
+                            <span className={styles.pageInfo}>
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
                                 onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className={styles.pageButton}
                             >
-                                →
+                                Next
                             </button>
                         </div>
                     )}

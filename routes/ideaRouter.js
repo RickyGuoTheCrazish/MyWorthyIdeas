@@ -438,71 +438,39 @@ router.get("/:ideaId", auth, async (req, res) => {
  * GET A PAGINATED LIST OF IDEAS (partial info), BUT ONLY UNSOLD ONES
  * GET /ideas
  */
-router.get("/", auth, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const type = req.query.type || 'all';
-    const skip = (page - 1) * limit;
+router.get("/", async (req, res) => {
+    try {
+        const { page = 1, limit = 12, type = 'all' } = req.query;
+        const skip = (page - 1) * limit;
 
-    // Base query
-    let query = { isSold: false };
+        // Base query to get only unsold ideas
+        const query = { isSold: false };
 
-    // Add type-specific filters
-    if (type === 'recommendations') {
-      // For recommendations:
-      // 1. If user is logged in, exclude their ideas
-      // 2. Sort by rating and recency
-      query = {
-        ...query,
-        ...(req.user && { creator: { $ne: req.user._id } })  // Exclude user's ideas if logged in
-      };
+        // Get ideas with pagination
+        const ideas = await Idea.find(query)
+            .select('title preview priceAUD categories coverImages rating totalRatings createdAt')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .populate('creator', 'username');
+
+        // Count total documents for pagination
+        const totalIdeas = await Idea.countDocuments(query);
+        const totalPages = Math.ceil(totalIdeas / limit);
+
+        res.json({
+            ideas,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalIdeas,
+                hasMore: page < totalPages
+            }
+        });
+    } catch (error) {
+        console.error('Error getting ideas:', error);
+        res.status(500).json({ error: 'Failed to get ideas' });
     }
-
-    // Get total count for pagination
-    const total = await Idea.countDocuments(query);
-    const totalPages = Math.ceil(total / limit);
-
-    // Get ideas with pagination and sorting
-    let ideas = await Idea.find(query)
-      .sort({ 
-        rating: -1,        // Higher rated first
-        createdAt: -1      // Then newer ones
-      })
-      .skip(skip)
-      .limit(limit)
-      .populate('creator', 'username email')
-      .lean();
-
-    // Process ideas
-    ideas = ideas.map(idea => ({
-      _id: idea._id,
-      title: idea.title,
-      preview: idea.preview,
-      priceAUD: idea.priceAUD,
-      rating: idea.rating || 0,
-      thumbnailImage: idea.thumbnailImage,
-      categories: idea.categories,
-      seller: idea.creator ? {
-        _id: idea.creator._id,
-        username: idea.creator.username
-      } : null,
-      createdAt: idea.createdAt
-    }));
-
-    res.json({
-      ideas,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: total,
-        hasMore: page < totalPages
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching ideas:', error);
-    res.status(500).json({ message: "Error fetching ideas", error: error.message });
-  }
 });
 
 /**

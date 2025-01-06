@@ -15,7 +15,8 @@ class StripeConnectService {
      */
     createConnectAccountLink() {
         //should be changed to call back to our platform later
-        return `https://connect.stripe.com/oauth/authorize?redirect_uri=https://connect.stripe.com/hosted/oauth&client_id=ca_RWwuBQmHD44xMYJDdpvHJkltXxy2ulPB&state=onbrd_${Date.now()}&response_type=code&scope=read_write&stripe_user[country]=AU`;
+        // return `https://connect.stripe.com/oauth/authorize?redirect_uri=https://connect.stripe.com/hosted/oauth&client_id=ca_RWwuBQmHD44xMYJDdpvHJkltXxy2ulPB&state=onbrd_${Date.now()}&response_type=code&scope=read_write&stripe_user[country]=AU`;
+        return process.env.STRIPE_CONNECT_REDIRECT_URI
     }
 
     /**
