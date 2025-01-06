@@ -31,7 +31,6 @@ class StripeConnectService {
      * @returns {Promise<{url: string}>}
      */
     async getConnectLink() {
-        // Get the connect link from backend instead of generating it here
         const response = await axios.get(
             `${API_URL}/stripe/connect/oauth/link`,
             this.getAuthConfig()

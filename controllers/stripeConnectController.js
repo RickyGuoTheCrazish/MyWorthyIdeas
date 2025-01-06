@@ -13,7 +13,9 @@ class StripeConnectController {
      */
     async getConnectLink(req, res) {
         try {
+            console.log('Generating connect link for user:', req.user._id);
             const link = await stripeConnectService.createConnectAccountLink();
+            console.log('Generated link:', link);
             res.json({ url: link });
         } catch (error) {
             console.error('Error creating connect link:', error);

@@ -1,5 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const StripeConnect = require('../db/stripeConnectModel');
+const User = require('../db/userModel');
 
 class StripeConnectService {
     constructor() {
@@ -14,9 +15,7 @@ class StripeConnectService {
      * @returns {string} OAuth link
      */
     createConnectAccountLink() {
-        //should be changed to call back to our platform later
-        // return `https://connect.stripe.com/oauth/authorize?redirect_uri=https://connect.stripe.com/hosted/oauth&client_id=ca_RWwuBQmHD44xMYJDdpvHJkltXxy2ulPB&state=onbrd_${Date.now()}&response_type=code&scope=read_write&stripe_user[country]=AU`;
-        return process.env.STRIPE_CONNECT_REDIRECT_URI
+        return process.env.STRIPE_CONNECT_LINK;
     }
 
     /**
@@ -39,7 +38,7 @@ class StripeConnectService {
             const account = await stripe.accounts.retrieve(connectedAccountId);
 
             // Create or update the StripeConnect record
-            await StripeConnect.findOneAndUpdate(
+            const stripeConnect = await StripeConnect.findOneAndUpdate(
                 { userId },
                 {
                     stripeAccountId: connectedAccountId,
@@ -51,6 +50,17 @@ class StripeConnectService {
                 },
                 { upsert: true, new: true }
             );
+
+            // Update the User model with Stripe Connect info
+            await User.findByIdAndUpdate(userId, {
+                stripeConnectAccountId: connectedAccountId,
+                stripeConnectStatus: {
+                    accountStatus: stripeConnect.accountStatus,
+                    chargesEnabled: stripeConnect.chargesEnabled,
+                    payoutsEnabled: stripeConnect.payoutsEnabled,
+                    detailsSubmitted: stripeConnect.detailsSubmitted
+                }
+            });
 
             return connectedAccountId;
         } catch (error) {
@@ -65,6 +75,7 @@ class StripeConnectService {
      */
     async getAccountStatus(userId) {
         try {
+            // First get the local record
             const connect = await StripeConnect.findOne({ userId });
             if (!connect) {
                 return {
@@ -73,13 +84,40 @@ class StripeConnectService {
                 };
             }
 
+            // Fetch latest status from Stripe
+            const account = await stripe.accounts.retrieve(connect.stripeAccountId);
+            
+            // Update local records with latest status
+            const updatedStatus = {
+                accountStatus: account.charges_enabled ? 'active' : 'pending',
+                chargesEnabled: account.charges_enabled,
+                payoutsEnabled: account.payouts_enabled,
+                detailsSubmitted: account.details_submitted
+            };
+
+            // Update StripeConnect record
+            await StripeConnect.findOneAndUpdate(
+                { userId },
+                {
+                    accountStatus: updatedStatus.accountStatus,
+                    chargesEnabled: updatedStatus.chargesEnabled,
+                    payoutsEnabled: updatedStatus.payoutsEnabled,
+                    detailsSubmitted: updatedStatus.detailsSubmitted
+                }
+            );
+
+            // Update User record
+            await User.findByIdAndUpdate(userId, {
+                stripeConnectStatus: updatedStatus
+            });
+
             return {
                 connected: true,
-                accountStatus: connect.accountStatus,
+                accountStatus: updatedStatus.accountStatus,
                 status: {
-                    chargesEnabled: connect.chargesEnabled,
-                    payoutsEnabled: connect.payoutsEnabled,
-                    detailsSubmitted: connect.detailsSubmitted
+                    chargesEnabled: updatedStatus.chargesEnabled,
+                    payoutsEnabled: updatedStatus.payoutsEnabled,
+                    detailsSubmitted: updatedStatus.detailsSubmitted
                 }
             };
         } catch (error) {

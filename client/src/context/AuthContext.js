@@ -22,11 +22,13 @@ export const AuthProvider = ({ children }) => {
     // Helper function to create consistent user object
     const createUserObject = useCallback((data) => {
         return {
-            userId: data.userId || data.id, // Handle both formats
+            userId: data.userId || data._id,
             username: data.username,
-            subscription: data.subscription,
+            email: data.email,
+            subscription: data.subscription || 'buyer',
             stripeConnectStatus: data.stripeConnectStatus || null,
-            email: data.email || null
+            postedIdeas: data.postedIdeas || [],
+            boughtIdeas: data.boughtIdeas || []
         };
     }, []);
 
@@ -106,37 +108,6 @@ export const AuthProvider = ({ children }) => {
             return data.id; // Returns checkout session ID
         } catch (error) {
             console.error('Failed to create checkout session:', error);
-            throw error;
-        }
-    }, []);
-
-    // Function to fetch financial data
-    const fetchFinancialData = useCallback(async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await fetch('http://localhost:6001/api/users/financial-data', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch financial data');
-            }
-
-            const data = await response.json();
-            
-            // Update user state with new financial data
-            setUser(prevUser => ({
-                ...prevUser,
-                subscription: data.subscription
-            }));
-
-            return data;
-        } catch (error) {
-            console.error('Failed to fetch financial data:', error);
             throw error;
         }
     }, []);
@@ -277,11 +248,13 @@ export const AuthProvider = ({ children }) => {
                 const user = createUserObject(data);
                 setUser(user);
 
-                // Fetch fresh data
-                await Promise.all([
-                    fetchFinancialData(),
-                    fetchStripeConnectStatus()
-                ]);
+                // Fetch fresh data - don't let these errors affect auth
+                try {
+                    await fetchStripeConnectStatus().catch(err => console.error('Failed to fetch Stripe status:', err));
+                } catch (error) {
+                    console.error('Error fetching additional data:', error);
+                    // Don't log out - just continue
+                }
             } catch (error) {
                 console.error('Auth check failed:', error);
                 localStorage.removeItem('token');
@@ -298,22 +271,25 @@ export const AuthProvider = ({ children }) => {
         };
 
         checkAuth();
-    }, [fetchFinancialData, fetchStripeConnectStatus, createUserObject]);
+    }, [fetchStripeConnectStatus, createUserObject]);
 
     const value = {
         isAuthenticated,
         isLoading,
-        user,
+        user: {
+            userId: user?.userId,
+            username: user?.username,
+            email: user?.email,
+            subscription: user?.subscription,
+            postedIdeas: user?.postedIdeas,
+            boughtIdeas: user?.boughtIdeas
+        },
         login,
         logout,
         isTokenExpiredState,
-        stripeConnectStatus,
-        getStripeConnectLink,
-        createCheckoutSession,
-        fetchStripeConnectStatus,
-        register,
         isSeller,
-        isBuyer
+        isBuyer,
+        register
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

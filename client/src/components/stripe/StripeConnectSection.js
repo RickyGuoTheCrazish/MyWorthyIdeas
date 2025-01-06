@@ -35,9 +35,11 @@ const StripeConnectSection = () => {
 
     const handleConnect = async () => {
         try {
+            console.log('Connect button clicked');
             setLoading(true);
             setError('');
             const { url } = await stripeConnectService.getConnectLink();
+            console.log('Received connect URL:', url);
             if (url) {
                 window.location.href = url;
             } else {

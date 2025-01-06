@@ -44,25 +44,7 @@ class PaymentService {
      * @returns {{percentage: number, fee: number}} Fee percentage and amount
      */
     calculateProcessingFee(amount) {
-        const numAmount = Number(amount);
-        let feePercentage;
-        
-        // Tiered fee structure
-        if (numAmount < 20) {
-            feePercentage = 0.03; // 3% for small amounts
-        } else if (numAmount < 50) {
-            feePercentage = 0.02; // 2% for medium amounts
-        } else if (numAmount < 100) {
-            feePercentage = 0.015; // 1.5% for larger amounts
-        } else {
-            feePercentage = 0.01; // 1% for very large amounts
-        }
-
-        const fee = Math.min(numAmount * feePercentage, 2); // Cap at $2 USD
-        return {
-            percentage: feePercentage * 100, // Return as percentage (e.g., 3 for 3%)
-            fee: Number(fee.toFixed(2))
-        };
+        return calculateProcessingFee(amount);
     }
 
     /**
@@ -103,26 +85,6 @@ class PaymentService {
             }
         } catch (error) {
             console.error('Deposit init error:', error.response?.data || error.message);
-            throw this.handleError(error);
-        }
-    }
-
-    /**
-     * Get transaction history
-     * @param {number} page Page number
-     * @param {number} limit Items per page
-     * @returns {Promise<{transactions: Array, totalPages: number, currentPage: number}>}
-     */
-    async getTransactionHistory(page = 1, limit = 10) {
-        try {
-            console.log('Sending transaction history request:', { page, limit });
-            const response = await axios.get(`${API_BASE_URL}/transactions`, {
-                params: { page, limit }
-            });
-            console.log('Transaction history response:', response.data);
-            return response.data;
-        } catch (error) {
-            console.error('Transaction history error:', error.response?.data || error.message);
             throw this.handleError(error);
         }
     }

@@ -7,8 +7,10 @@ const stripe = require('../services/stripeService').stripe;
 
 // Get OAuth link for connecting Stripe account
 router.get('/oauth/link', auth, async (req, res, next) => {
+    console.log('OAuth link route hit by user:', req.user._id);
     // Only check if user is a seller
     if (req.user.subscription !== 'seller') {
+        console.log('User is not a seller:', req.user.subscription);
         return res.status(403).json({ 
             message: "Only sellers can access this resource" 
         });
@@ -17,10 +19,10 @@ router.get('/oauth/link', auth, async (req, res, next) => {
 }, stripeConnectController.getConnectLink);
 
 // Handle OAuth redirect
-router.get('/oauth/callback', auth, sellerAuth, stripeConnectController.handleOAuthRedirect);
+router.get('/oauth/callback', auth, stripeConnectController.handleOAuthRedirect);
 
-// Get seller's account status
-router.get('/account/status', auth, sellerAuth, stripeConnectController.getAccountStatus);
+// Get seller's account status - no sellerAuth needed as we want to check if they're connected
+router.get('/account/status', auth, stripeConnectController.getAccountStatus);
 
 // Create checkout session for idea purchase
 router.post('/checkout', auth, stripeConnectController.createCheckoutSession);
@@ -75,7 +77,7 @@ router.post('/create-account', auth, sellerAuth, async (req, res) => {
 });
 
 // Get Stripe Connect account status
-router.get('/account-status', auth, sellerAuth, async (req, res) => {
+router.get('/account-status', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         
