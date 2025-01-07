@@ -73,14 +73,8 @@ const userSchema = new mongoose.Schema({
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
-    if (!this.isModified('passwordHash')) return next();
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-        next();
-    } catch (error) {
-        next(error);
-    }
+    // Remove password hashing from pre-save middleware
+    next();
 });
 
 // Create indexes for unique fields
@@ -88,12 +82,8 @@ userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ email: 1 }, { unique: true });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-    try {
-        return await bcrypt.compare(candidatePassword, this.passwordHash);
-    } catch (error) {
-        throw error;
-    }
+userSchema.methods.comparePassword = function(candidatePassword) {
+    return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
 // Virtual: averageRating

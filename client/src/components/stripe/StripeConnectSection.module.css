@@ -1,187 +1,280 @@
 .container {
-    padding: 20px;
-    border-radius: 8px;
-    background-color: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    max-width: 900px;
     margin: 0 auto;
 }
 
 .header {
-    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
 }
 
 .header h2 {
-    margin: 0 0 8px;
-    color: #2d3748;
-}
-
-.header p {
-    margin: 0;
-    color: #718096;
-}
-
-.loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px;
-}
-
-.spinner {
-    animation: spin 1s linear infinite;
     font-size: 24px;
-    color: #667eea;
-    margin-bottom: 12px;
+    font-weight: 600;
+    color: #1a1f36;
+    margin: 0;
 }
 
-.error {
-    color: #dc3545;
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: #f8d7da;
+.stripeIcon {
+    font-size: 32px;
+    color: #635bff;
 }
 
-.connect {
+/* Connected State */
+.connectedContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.statusBanner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #f6f9fc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e6ebf1;
+}
+
+.statusText {
+    flex: 1;
+}
+
+.statusText h3 {
+    margin: 0;
+    color: #1a1f36;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.statusText p {
+    margin: 4px 0 0;
+    color: #697386;
+}
+
+.checkIcon {
+    color: #0ba360;
+    font-size: 24px;
+}
+
+.infoCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin: 24px 0;
+}
+
+.infoCard {
+    background: #ffffff;
+    border: 1px solid #e6ebf1;
+    border-radius: 12px;
+    padding: 24px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.infoCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.lightningIcon {
+    color: #ff9900;
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.infoCard h4 {
+    color: #1a1f36;
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.infoCard p {
+    color: #697386;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.statusDetails ul {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+}
+
+.statusDetails li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    color: #1a1f36;
+}
+
+.enabled .statusIcon {
+    color: #0ba360;
+}
+
+.disabled .statusIcon {
+    color: #697386;
+}
+
+.actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.stripeButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #635bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.stripeButton:hover {
+    background: #5851db;
+}
+
+.hint {
+    color: #697386;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Connect State */
+.connectContainer {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.connectCard {
+    background: #f6f9fc;
+    border: 1px solid #e6ebf1;
+    border-radius: 12px;
+    padding: 32px;
     text-align: center;
-    margin-top: 20px;
+    max-width: 480px;
+    width: 100%;
+}
+
+.clockIcon {
+    color: #635bff;
+    font-size: 32px;
+    margin-bottom: 16px;
+}
+
+.connectCard h3 {
+    color: #1a1f36;
+    font-size: 24px;
+    margin: 0 0 12px;
+}
+
+.connectCard p {
+    color: #697386;
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.benefitsList {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px;
+    text-align: left;
+}
+
+.benefitsList li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    color: #1a1f36;
 }
 
 .connectButton {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 24px;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.connectButton:hover {
-    background: #5a67d8;
-}
-
-.stripeIcon {
-    font-size: 24px;
-}
-
-.linkIcon {
-    font-size: 14px;
-}
-
-.info {
-    margin-top: 12px;
-    color: #718096;
-    text-align: center;
-}
-
-.status {
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    margin-top: 20px;
-}
-
-.status ul {
-    list-style: none;
-    padding: 0;
-    margin: 10px 0;
-}
-
-.status li {
-    margin: 8px 0;
-    padding: 8px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-}
-
-.statusHeader {
-    display: flex;
-    align-items: center;
+    justify-content: center;
     gap: 8px;
-    margin-bottom: 16px;
-}
-
-.statusIcon {
-    color: #48bb78;
-    font-size: 20px;
-}
-
-.statusHeader h3 {
-    margin: 0;
-    color: #2d3748;
-}
-
-.statusDetails {
-    display: grid;
-    gap: 12px;
-}
-
-.statusItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.statusItem span:first-child {
-    color: #718096;
-}
-
-.active {
-    color: #48bb78;
-}
-
-.pending {
-    color: #ecc94b;
-}
-
-.restricted {
-    color: #ed8936;
-}
-
-.disabled {
-    color: #e53e3e;
-}
-
-.enabled {
-    color: #48bb78;
-}
-
-.stripeButton {
-    background-color: #635bff;
+    width: 100%;
+    background: #635bff;
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 4px;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    margin-top: 16px;
 }
 
-.stripeButton:hover {
-    background-color: #5851db;
+.connectButton:hover {
+    background: #5851db;
 }
 
-.stripeButton:disabled {
-    background-color: #a8a8a8;
-    cursor: not-allowed;
+.buttonIcon {
+    font-size: 20px;
+}
+
+/* Loading State */
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    gap: 16px;
+}
+
+.loadingSpinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #635bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.errorContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff1f0;
+    border: 1px solid #ffccc7;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.errorIcon {
+    color: #ff4d4f;
+    font-size: 20px;
+}
+
+.errorContainer p {
+    color: #cf1322;
+    margin: 0;
 }

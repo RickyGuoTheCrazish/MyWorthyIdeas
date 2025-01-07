@@ -102,10 +102,13 @@ router.post("/register", authLimiter, async (req, res) => {
     }
 
     // Create user doc
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newUserDoc = new User({
       username,
       email,
-      passwordHash: password, // Don't hash here, let the model's pre-save middleware handle it
+      passwordHash: hashedPassword,
       subscription,
       isVerified: false,
       verificationToken: crypto.randomBytes(20).toString("hex"),
@@ -213,25 +216,39 @@ router.get("/verify-email", authLimiter, async (req, res) => {
 */
 router.post("/login", authLimiter, async (req, res) => {
   try {
+    console.log('Login attempt for email:', req.body.email);
+    
     const { email, password } = req.body;
     if (!email || !password) {
+      console.log('Missing email or password');
       return res.status(400).json({ message: "Missing email or password." });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+passwordHash');
+    console.log('Found user:', user ? 'yes' : 'no');
+    
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      console.log('User not found');
+      return res.status(401).json({ message: "Invalid credentials." });
     }
+
+    console.log('User subscription:', user.subscription);
+    console.log('User verified:', user.isVerified);
 
     // block if not verified
     if (!user.isVerified) {
+      console.log('User not verified');
       return res.status(403).json({
         message: "Email not verified. Please verify before logging in."
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    console.log('Comparing passwords');
+    const isMatch = await user.comparePassword(password);
+    console.log('Password match:', isMatch);
+
     if (!isMatch) {
+      console.log('Password does not match');
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
@@ -240,24 +257,22 @@ router.post("/login", authLimiter, async (req, res) => {
       expiresIn: "1h",
     });
 
-    // set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: "lax",
-      maxAge: 60 * 60 * 1000,
-    });
+    console.log('Login successful, sending response');
 
+    // Return user data and token
     return res.status(200).json({
-      message: "Login successful.",
+      token,
       userId: user._id,
       username: user.username,
+      email: user.email,
       subscription: user.subscription,
-      token
+      postedIdeas: user.postedIdeas,
+      boughtIdeas: user.boughtIdeas,
+      stripeConnectStatus: user.stripeConnectStatus
     });
   } catch (error) {
-    console.error("Error in login route:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Server error during login." });
   }
 });
 

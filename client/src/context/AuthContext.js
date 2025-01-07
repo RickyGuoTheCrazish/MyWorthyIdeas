@@ -92,47 +92,38 @@ export const AuthProvider = ({ children }) => {
             const response = await fetch('http://localhost:6001/api/users/login', {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle specific error cases
-                switch (response.status) {
-                    case 429:
-                        throw new Error('Too many attempts. Please try again later.');
-                    case 403:
-                        throw new Error('Please verify your email before logging in.');
-                    case 401:
-                        throw new Error('Invalid email or password.');
-                    case 404:
-                        throw new Error('No account found with this email.');
-                    default:
-                        throw new Error(data.message || 'Failed to login');
-                }
+                throw new Error(data.message || 'Failed to login');
             }
 
-            // Store token separately
+            // Store token in localStorage
             localStorage.setItem('token', data.token);
             
             // Create consistent user object
             const user = createUserObject(data);
             setUser(user);
             setIsAuthenticated(true);
-            localStorage.setItem('user', JSON.stringify(user));
+            setIsTokenExpiredState(false);
+            
+            // Store minimal user info
+            localStorage.setItem('user', JSON.stringify({
+                userId: user.userId,
+                email: user.email,
+                username: user.username,
+                subscription: user.subscription
+            }));
 
             return { success: true };
         } catch (error) {
             console.error('Login error:', error);
-            return { 
-                success: false, 
-                error: error.message 
-            };
+            throw error;
         }
     }, [createUserObject]);
 
