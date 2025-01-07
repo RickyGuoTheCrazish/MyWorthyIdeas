@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FaSpinner } from 'react-icons/fa';
 import styles from '../styles/AccountSettings.module.css';
@@ -7,9 +7,45 @@ import stripeConnectService from '../services/stripeConnectService';
 import { useLocation } from 'react-router-dom';
 
 const AccountSettings = () => {
-    const { user } = useAuth();
+    const { isAuthenticated } = useAuth();
+    const [userData, setUserData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const location = useLocation();
     const processedCode = useRef(false);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const response = await fetch('http://localhost:6001/api/users/myinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                setUserData(data);
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchUserData();
+        }
+    }, [isAuthenticated]);
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -32,12 +68,28 @@ const AccountSettings = () => {
                     processedCode.current = false; // Reset in case we need to try again
                 });
         }
-    }, [location.search]); // Only run when search params change
+    }, [location.search]);
 
-    if (!user) {
+    if (isLoading) {
         return (
             <div className={styles.loadingContainer}>
                 <FaSpinner className={styles.spinnerIcon} />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className={styles.errorContainer}>
+                <p>Error loading account settings: {error}</p>
+            </div>
+        );
+    }
+
+    if (!userData) {
+        return (
+            <div className={styles.loadingContainer}>
+                <p>Please log in to view account settings.</p>
             </div>
         );
     }
@@ -49,12 +101,12 @@ const AccountSettings = () => {
                     <h2>Account Settings</h2>
                     
                     <div className={styles.profileInfo}>
-                        <p><strong>Username:</strong> {user.username}</p>
-                        <p><strong>Email:</strong> {user.email}</p>
-                        <p><strong>Account Type:</strong> {user.subscription}</p>
+                        <p><strong>Username:</strong> {userData.username}</p>
+                        <p><strong>Email:</strong> {userData.email}</p>
+                        <p><strong>Account Type:</strong> {userData.subscription}</p>
                     </div>
 
-                    {user.subscription === 'seller' && (
+                    {userData.subscription === 'seller' && (
                         <div className={styles.stripeConnectSection}>
                             <h3>Stripe Connect</h3>
                             <StripeConnectSection />

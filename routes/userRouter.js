@@ -337,24 +337,22 @@ router.post("/:userId/profile-image", auth, uploadProfileImages, async (req, res
 
 /*
   6) GET CURRENT USER
-  GET /users/me
+  GET /users/myinfo
 */
-router.get("/me", auth, async (req, res) => {
+router.get("/myinfo", auth, async (req, res) => {
   try {
-    const userId = req.user._id;
-    const user = await User.findById(userId)
-      .select('-passwordHash')
-      .populate('postedIdeas')
-      .populate('boughtIdeas');
+    const user = await User.findById(req.user._id)
+      .select('username email subscription')
+      .lean();
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     res.json(user);
   } catch (error) {
-    console.error("Error fetching user data:", error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -725,6 +723,24 @@ router.get("/check-auth", auth, async (req, res) => {
   } catch (error) {
     console.error("Error in check-auth route:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get user subscription type
+router.get('/subscription-type', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('subscription')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ subscription: user.subscription });
+  } catch (error) {
+    console.error('Error fetching subscription type:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -9,19 +9,53 @@ import { FaSearch, FaUser, FaCoins, FaCog, FaSignOutAlt, FaChevronDown } from 'r
 import { Link } from 'react-router-dom';
 
 const Layout = ({ children }) => {
-    const { user, logout, isAuthenticated } = useAuth();
+    const { logout, isAuthenticated } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login', email: '' });
     const [showGuestIndicator, setShowGuestIndicator] = useState(false);
-    const [searchType, setSearchType] = useState('title'); // 'title' or 'id'
+    const [searchType, setSearchType] = useState('title');
     const [searchQuery, setSearchQuery] = useState('');
+    const [userInfo, setUserInfo] = useState(null);
     const menuRef = useRef(null);
     const navigate = useNavigate();
+
+    // Get user info from token
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const response = await fetch('http://localhost:6001/api/users/myinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                setUserInfo(data);
+
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchUserData();
+        } else {
+            setUserInfo(null);
+        }
+    }, [isAuthenticated]);
 
     // Show guest indicator when not authenticated
     useEffect(() => {
         if (!isAuthenticated) {
-            // Don't show on auth page
             if (!window.location.pathname.includes('/auth')) {
                 setShowGuestIndicator(true);
             }
@@ -32,7 +66,6 @@ const Layout = ({ children }) => {
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {
-            // Navigate to search results page with query parameters
             navigate(`/search?type=${searchType}&query=${encodeURIComponent(searchQuery.trim())}`);
         }
     };
@@ -78,19 +111,19 @@ const Layout = ({ children }) => {
     };
 
     const renderAuthSection = () => {
-        if (isAuthenticated) {
+        if (isAuthenticated && userInfo) {
             return (
                 <div className={styles.userSection}>
                     <div className={styles.credits}>
                         <FaCoins className={styles.creditsIcon} />
-                        {user?.subscription === 'buyer' ? (
-                            <span>{user?.credits?.toFixed(2)} Credits</span>
+                        {userInfo.subscription === 'buyer' ? (
+                            'buyer'
                         ) : (
-                            <span>{user?.earnings?.toFixed(2)} Credits</span>
+                            'seller'
                         )}
                     </div>
                     <div className={styles.userInfo} ref={menuRef}>
-                        <div className={styles.userName}>{user?.username}</div>
+                        <div className={styles.userName}>{userInfo.username}</div>
                         <button 
                             className={styles.userMenuButton} 
                             onClick={() => setIsMenuOpen(!isMenuOpen)}

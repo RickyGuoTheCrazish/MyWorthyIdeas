@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await fetch('http://localhost:6001/api/users/login', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ email, password }),
@@ -105,27 +105,28 @@ export const AuthProvider = ({ children }) => {
 
             // Store token in localStorage
             localStorage.setItem('token', data.token);
-            
+
             // Create consistent user object
-            const user = createUserObject(data);
-            setUser(user);
+            // const user = createUserObject(data);
+            // setUser(user);
             setIsAuthenticated(true);
             setIsTokenExpiredState(false);
-            
+
             // Store minimal user info
-            localStorage.setItem('user', JSON.stringify({
-                userId: user.userId,
-                email: user.email,
-                username: user.username,
-                subscription: user.subscription
-            }));
+            // localStorage.setItem('user', JSON.stringify({
+            //     userId: user.userId,
+            //     email: user.email,
+            //     username: user.username,
+            //     subscription: user.subscription
+            // }));
 
             return { success: true };
         } catch (error) {
             console.error('Login error:', error);
             throw error;
         }
-    }, [createUserObject]);
+    }, []);
+
 
     const register = useCallback(async (userData) => {
         try {
@@ -141,16 +142,16 @@ export const AuthProvider = ({ children }) => {
                 throw new Error(data.message || 'Registration failed');
             }
 
-            return { 
-                success: true, 
+            return {
+                success: true,
                 userId: data.userId,
-                message: data.message 
+                message: data.message
             };
         } catch (error) {
             console.error('Registration error:', error);
-            return { 
-                success: false, 
-                error: error.message 
+            return {
+                success: false,
+                error: error.message
             };
         }
     }, []);
@@ -209,10 +210,10 @@ export const AuthProvider = ({ children }) => {
 
                 const data = await response.json();
                 setIsAuthenticated(true);
-                
+
                 // Create consistent user object
-                const user = createUserObject(data);
-                setUser(user);
+                // const user = createUserObject(data);
+                // setUser(user);
 
                 // Fetch fresh data - don't let these errors affect auth
                 try {
@@ -237,19 +238,17 @@ export const AuthProvider = ({ children }) => {
         };
 
         checkAuth();
-    }, [fetchStripeConnectStatus, createUserObject]);
+    }, [fetchStripeConnectStatus]);
 
     const value = {
         isAuthenticated,
         isLoading,
-        user: {
-            userId: user?.userId,
-            username: user?.username,
-            email: user?.email,
-            subscription: user?.subscription,
-            postedIdeas: user?.postedIdeas,
-            boughtIdeas: user?.boughtIdeas
-        },
+        // user: {
+        //     userId: user?.userId,
+        //     username: user?.username,
+        //     email: user?.email,
+        //     subscription: user?.subscription
+        // },
         login,
         logout,
         isTokenExpiredState,

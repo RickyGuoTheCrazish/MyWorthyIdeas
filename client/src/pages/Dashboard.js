@@ -11,8 +11,9 @@ const Dashboard = () => {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [userType, setUserType] = useState(null);
     const navigate = useNavigate();
-    const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+    const { isLoading: authLoading, isAuthenticated } = useAuth();
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -21,12 +22,44 @@ const Dashboard = () => {
         }
     }, [authLoading, isAuthenticated, navigate]);
 
-    // Determine user type
-    const isSeller = user?.subscription === 'seller';
+    // Fetch user subscription type
+    useEffect(() => {
+        const fetchUserType = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No token found');
+                }
+
+                const response = await fetch('http://localhost:6001/api/users/subscription-type', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user type');
+                }
+
+                const data = await response.json();
+                setUserType(data.subscription);
+            } catch (error) {
+                console.error('Error fetching user type:', error);
+                setError(error.message);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchUserType();
+        }
+    }, [isAuthenticated]);
+
+    // Determine if user is seller
+    const isSeller = userType === 'seller';
 
     useEffect(() => {
         const fetchIdeas = async () => {
-            if (authLoading || !user?.userId) return; // Wait for user data
+            if (authLoading || !userType) return; // Wait for user type
 
             try {
                 setLoading(true);
@@ -37,13 +70,17 @@ const Dashboard = () => {
                 }
 
                 let endpoint;
+
+                const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                let me = tokenPayload.userId;
+
                 if (isSeller) {
                     endpoint = activeTab === 'unsold' 
-                        ? `/api/users/${user.userId}/posted-ideas`
-                        : `/api/users/${user.userId}/sold-ideas`;
+                        ? `/api/users/${me}/posted-ideas`
+                        : `/api/users/${me}/sold-ideas`;
                 } else {
                     // For buyers, only show bought ideas
-                    endpoint = `/api/users/${user.userId}/bought-ideas`;
+                    endpoint = `/api/users/${me}/bought-ideas`;
                 }
 
                 const response = await fetch(`http://localhost:6001${endpoint}?page=${currentPage}&limit=12`, {
@@ -57,8 +94,8 @@ const Dashboard = () => {
                 }
 
                 const data = await response.json();
-                setIdeas(isSeller ? (data.ideas || []) : (data.boughtIdeas || []));
-                setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
+                setIdeas(data.ideas);
+                setTotalPages(data.totalPages);
             } catch (err) {
                 console.error('Error fetching ideas:', err);
                 setError(err.message);
@@ -68,106 +105,63 @@ const Dashboard = () => {
         };
 
         fetchIdeas();
-    }, [user?.userId, isSeller, activeTab, currentPage, authLoading]);
+    }, [authLoading, userType, isSeller, activeTab, currentPage]);
 
-    if (authLoading) {
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
+    if (loading || authLoading) {
         return <div className={styles.loading}>Loading...</div>;
-    }
-
-    if (!isAuthenticated) {
-        return null; // Will be redirected by the first useEffect
     }
 
     if (error) {
         return <div className={styles.error}>Error: {error}</div>;
     }
 
-    if (loading) {
-        return <div className={styles.loading}>Loading...</div>;
-    }
-
     return (
         <div className={styles.dashboard}>
-            <h1>{isSeller ? 'My Ideas' : 'Purchased Ideas'}</h1>
-            
-            {isSeller && (
-                <div className={styles.tabs}>
-                    <button 
-                        className={`${styles.tab} ${activeTab === 'unsold' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('unsold')}
-                    >
-                        Posted Ideas (Unsold)
-                    </button>
-                    <button 
-                        className={`${styles.tab} ${activeTab === 'sold' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('sold')}
-                    >
-                        Sold Ideas (History)
-                    </button>
-                </div>
-            )}
-
-            <div className={styles.ideaGrid}>
-                {ideas.length > 0 ? (
-                    ideas.map(idea => (
-                        <IdeaCard
-                            key={idea._id}
-                            idea={idea}
-                            mode={isSeller ? "edit" : "view"}
-                            showRating={isSeller ? (activeTab === 'sold') : true}
-                        />
-                    ))
-                ) : (
-                    <div className={styles.noIdeas}>
-                        {isSeller 
-                            ? (activeTab === 'unsold' 
-                                ? 'You haven\'t posted any ideas yet.' 
-                                : 'You haven\'t sold any ideas yet.')
-                            : 'You haven\'t purchased any ideas yet.'}
+            <div className={styles.header}>
+                <h1>{isSeller ? 'Seller Dashboard' : 'Buyer Dashboard'}</h1>
+                {isSeller && (
+                    <div className={styles.tabs}>
+                        <button
+                            className={`${styles.tab} ${activeTab === 'unsold' ? styles.active : ''}`}
+                            onClick={() => setActiveTab('unsold')}
+                        >
+                            Unsold Ideas
+                        </button>
+                        <button
+                            className={`${styles.tab} ${activeTab === 'sold' ? styles.active : ''}`}
+                            onClick={() => setActiveTab('sold')}
+                        >
+                            Sold Ideas
+                        </button>
                     </div>
                 )}
             </div>
 
-            {ideas.length > 0 && (
+            <div className={styles.ideasGrid}>
+                {ideas.map(idea => (
+                    <IdeaCard
+                        key={idea._id}
+                        idea={idea}
+                        showStatus={true}
+                    />
+                ))}
+            </div>
+
+            {totalPages > 1 && (
                 <div className={styles.pagination}>
-                    <button 
-                        className={styles.pageNav} 
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                    >
-                        ←
-                    </button>
-                    {[...Array(totalPages)].map((_, index) => {
-                        const pageNum = index + 1;
-                        if (
-                            pageNum === 1 ||
-                            pageNum === totalPages ||
-                            (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
-                        ) {
-                            return (
-                                <button
-                                    key={pageNum}
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`${styles.pageButton} ${currentPage === pageNum ? styles.active : ''}`}
-                                >
-                                    {pageNum}
-                                </button>
-                            );
-                        } else if (
-                            pageNum === currentPage - 3 ||
-                            pageNum === currentPage + 3
-                        ) {
-                            return <span key={pageNum} className={styles.ellipsis}>...</span>;
-                        }
-                        return null;
-                    })}
-                    <button 
-                        className={styles.pageNav}
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                    >
-                        →
-                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ''}`}
+                        >
+                            {page}
+                        </button>
+                    ))}
                 </div>
             )}
         </div>
