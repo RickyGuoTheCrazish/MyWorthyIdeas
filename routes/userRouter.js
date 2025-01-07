@@ -341,9 +341,17 @@ router.post("/:userId/profile-image", auth, uploadProfileImages, async (req, res
 */
 router.get("/myinfo", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
+    let user;
+    if (!req.user) {
+       user = await User.findById(req.userId)
+       .select('username email subscription')
+      .lean();
+    }else{
+       user = await User.findById(req.user._id)
       .select('username email subscription')
       .lean();
+    }
+    
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -554,6 +562,8 @@ router.get("/:userId/bought-ideas", auth, async (req, res) => {
 
     const totalPages = Math.ceil(totalCount / limit);
 
+
+
     return res.status(200).json({
       message: "Bought ideas fetched successfully (by boughtAt desc)",
       pagination: {
@@ -562,7 +572,7 @@ router.get("/:userId/bought-ideas", auth, async (req, res) => {
         pageSize: limit,
         totalCount,
       },
-      boughtIdeas: purchasedIdeas.map(idea => ({
+      ideas: purchasedIdeas.map(idea => ({
         ...idea.toObject(),
         seller: {
           _id: idea.creator._id,
@@ -729,7 +739,7 @@ router.get("/check-auth", auth, async (req, res) => {
 // Get user subscription type
 router.get('/subscription-type', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
+    const user = await User.findById(req.userId)
       .select('subscription')
       .lean();
 

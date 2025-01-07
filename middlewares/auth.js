@@ -1,6 +1,7 @@
 // /middlewares/auth.js
 const jwt = require("jsonwebtoken");
 const User = require("../db/userModel");
+const { UploadPartCopyRequestFilterSensitiveLog } = require("@aws-sdk/client-s3");
 
 /**
  * Authentication middleware
@@ -25,19 +26,9 @@ const auth = async (req, res, next) => {
             return res.status(401).json({ message: 'Invalid token' });
         }
 
-        // Get user
-        const user = await User.findById(decoded.userId).select('-passwordHash');
-        if (!user) {
-            return res.status(401).json({ message: 'User not found' });
-        }
-
-        if (!user.isVerified) {
-            return res.status(403).json({ message: "Email not verified" });
-        }
-
-        // Attach user to request
-        req.user = user;
+        // Attach token and decoded info to request
         req.token = token;
+        req.userId = decoded.userId;
         next();
     } catch (error) {
         console.error("Auth middleware error:", error);
@@ -49,6 +40,27 @@ const auth = async (req, res, next) => {
 };
 
 /**
+ * Helper function to get user info efficiently from database
+ */
+const getUserInfo = async (userId) => {
+    // Only select the fields we need
+    const user = await User.findById(userId)
+        .select('username email subscription stripeConnectAccountId stripeConnectStatus isVerified')
+        .lean(); // Use lean() for better performance
+    
+        console.log(UploadPartCopyRequestFilterSensitiveLog)
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    if (!user.isVerified) {
+        throw new Error('Email not verified');
+    }
+
+    return user;
+};
+
+/**
  * Seller authentication middleware
  * Verifies user is a seller with a valid Stripe Connect account
  */
@@ -56,27 +68,40 @@ const sellerAuth = async (req, res, next) => {
     try {
         // First run normal auth
         await auth(req, res, async () => {
-            const user = req.user;
+            try {
+                const user = await getUserInfo(req.userId);
 
-            if (user.subscription !== 'seller') {
-                return res.status(403).json({ 
-                    message: "Only sellers can access this resource" 
-                });
+                if (user.subscription !== 'seller') {
+                    return res.status(403).json({ 
+                        message: "Only sellers can access this resource" 
+                    });
+                }
+
+                if (!user.stripeConnectAccountId) {
+                    return res.status(403).json({ 
+                        message: "Stripe Connect account required" 
+                    });
+                }
+
+                if (!user.stripeConnectStatus?.chargesEnabled) {
+                    return res.status(403).json({ 
+                        message: "Stripe Connect account not fully setup" 
+                    });
+                }
+
+                // Attach user info to request for route handlers
+                req.user = user;
+                next();
+            } catch (error) {
+                if (error.message === 'User not found') {
+                    return res.status(401).json({ message: 'User not found' });
+                }
+                if (error.message === 'Email not verified') {
+                    return res.status(403).json({ message: 'Email not verified' });
+                }
+                console.error("Error fetching user data:", error);
+                return res.status(500).json({ message: 'Failed to verify user' });
             }
-
-            if (!user.stripeConnectAccountId) {
-                return res.status(403).json({ 
-                    message: "Stripe Connect account required" 
-                });
-            }
-
-            if (!user.stripeConnectStatus.chargesEnabled) {
-                return res.status(403).json({ 
-                    message: "Stripe Connect account not fully setup" 
-                });
-            }
-
-            next();
         });
     } catch (error) {
         console.error("Seller auth middleware error:", error);
@@ -92,15 +117,28 @@ const buyerAuth = async (req, res, next) => {
     try {
         // First run normal auth
         await auth(req, res, async () => {
-            const user = req.user;
+            try {
+                const user = await getUserInfo(req.userId);
 
-            if (user.subscription !== 'buyer') {
-                return res.status(403).json({ 
-                    message: "Only buyers can access this resource" 
-                });
+                if (user.subscription !== 'buyer') {
+                    return res.status(403).json({ 
+                        message: "Only buyers can access this resource" 
+                    });
+                }
+
+                // Attach user info to request for route handlers
+                req.user = user;
+                next();
+            } catch (error) {
+                if (error.message === 'User not found') {
+                    return res.status(401).json({ message: 'User not found' });
+                }
+                if (error.message === 'Email not verified') {
+                    return res.status(403).json({ message: 'Email not verified' });
+                }
+                console.error("Error fetching user data:", error);
+                return res.status(500).json({ message: 'Failed to verify user' });
             }
-
-            next();
         });
     } catch (error) {
         console.error("Buyer auth middleware error:", error);

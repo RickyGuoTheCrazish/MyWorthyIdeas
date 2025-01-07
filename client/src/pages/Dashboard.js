@@ -92,8 +92,8 @@ const Dashboard = () => {
                 if (!response.ok) {
                     throw new Error('Failed to fetch ideas');
                 }
-
                 const data = await response.json();
+
                 setIdeas(data.ideas);
                 setTotalPages(data.totalPages);
             } catch (err) {
@@ -142,7 +142,7 @@ const Dashboard = () => {
             </div>
 
             <div className={styles.ideasGrid}>
-                {ideas.map(idea => (
+                {ideas && ideas.map(idea => (
                     <IdeaCard
                         key={idea._id}
                         idea={idea}
