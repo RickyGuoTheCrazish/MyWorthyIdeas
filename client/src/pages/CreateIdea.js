@@ -17,7 +17,7 @@ const CreateIdea = () => {
     const [formData, setFormData] = useState({
         title: '',
         brief: '',
-        price: '',
+        priceAUD: '',
         content: '',
         images: [],
         contentImages: []
@@ -310,16 +310,18 @@ const CreateIdea = () => {
 
         try {
             // Validate required fields
-            if (!formData.title || !formData.brief || !formData.price || categories.length === 0) {
-                alert('Please fill in all required fields (title, brief, price) and select at least one category');
+            if (!formData.title || !formData.brief || !formData.priceAUD || categories.length === 0) {
+                alert('Please fill in all required fields (title, brief, priceAUD) and select at least one category');
                 return;
             }
+
+            const token = localStorage.getItem('token');
 
             // First, create the idea with basic info
             const basicData = {
                 title: formData.title,
                 preview: formData.brief,
-                price: formData.price,
+                priceAUD: formData.priceAUD,
                 categories: categories  // Now sending all categories
             };
 
@@ -327,9 +329,10 @@ const CreateIdea = () => {
 
             const createResponse = await fetch('http://localhost:6001/api/ideas/create', {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+
                 },
                 body: JSON.stringify(basicData)
             });
@@ -355,8 +358,10 @@ const CreateIdea = () => {
 
                 const imagesResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/content-images`, {
                     method: 'POST',
-                    credentials: 'include',
-                    headers: {},
+                    // credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: contentImagesFormData
                 });
 
@@ -393,8 +398,10 @@ const CreateIdea = () => {
 
                 const thumbnailResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/cover`, {
                     method: 'POST',
-                    credentials: 'include',
-                    headers: {},
+                    // credentials: 'include',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: thumbnailFormData
                 });
 
@@ -407,9 +414,10 @@ const CreateIdea = () => {
             console.log('Content to save:', contentToSave.substring(0, 100)); // Debug log
             const updateResponse = await fetch(`http://localhost:6001/api/ideas/${idea._id}/content`, {
                 method: 'PUT',
-                credentials: 'include',
+                // credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     contentHtml: contentToSave,
@@ -506,7 +514,7 @@ const CreateIdea = () => {
                                 <span className={styles.charCount}>{formData.brief.length}/300</span>
                             </div>
                             <div className={styles.formGroup}>
-                                <label htmlFor="price" className={styles.label}>
+                                <label htmlFor="priceAUD" className={styles.label}>
                                     Price (AUD)
                                     <span className={styles.required}>*</span>
                                 </label>
@@ -514,12 +522,12 @@ const CreateIdea = () => {
                                     <span className={styles.currencySymbol}>$</span>
                                     <input
                                         type="number"
-                                        id="price"
-                                        name="price"
+                                        id="priceAUD"
+                                        name="priceAUD"
                                         min="0"
-                                        step="0.01"
-                                        value={formData.price}
-                                        onChange={(e) => handleInputChange('price', e.target.value)}
+                                        step="1"
+                                        value={formData.priceAUD}
+                                        onChange={(e) => handleInputChange('priceAUD', e.target.value)}
                                         className={styles.priceInput}
                                         required
                                     />
