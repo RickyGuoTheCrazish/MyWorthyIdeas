@@ -68,7 +68,7 @@ class StripeConnectService {
 
             // Update the user's seller status
             await User.findByIdAndUpdate(userId, {
-                stripeConnectId: connectedAccountId,
+                stripeConnectAccountId: connectedAccountId,
                 subscription: 'seller'
             });
 
