@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
@@ -17,10 +17,43 @@ const CATEGORIES = {
 
 const Sidebar = () => {
     const location = useLocation();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [expandedCategories, setExpandedCategories] = useState({});
+    const [userInfo, setUserInfo] = useState(null);
 
-    const isSeller = user?.subscription === 'seller';
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const response = await fetch('http://localhost:6001/api/users/myinfo', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const data = await response.json();
+                setUserInfo(data);
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchUserData();
+        } else {
+            setUserInfo(null);
+        }
+    }, [isAuthenticated]);
+
+    const isSeller = userInfo?.subscription === 'seller';
 
     const toggleCategory = (category) => {
         setExpandedCategories(prev => ({
@@ -158,18 +191,18 @@ const Sidebar = () => {
 };
 
 // Helper function to get category icons
-const getCategoryIcon = (category) => {
+function getCategoryIcon(category) {
     const icons = {
-        'Technology': '💻',
-        'Games': '🎮',
-        'Business': '💼',
-        'Life': '🌱',
-        'Arts & Design': '🎨',
-        'Science': '🔬',
-        'Health & Wellness': '❤️',
-        'Other': '📦'
+        "Technology": "💻",
+        "Games": "🎮",
+        "Business": "💼",
+        "Life": "🌱",
+        "Arts & Design": "🎨",
+        "Science": "🔬",
+        "Health & Wellness": "❤️",
+        "Other": "📦"
     };
-    return icons[category] || '📁';
-};
+    return icons[category] || "📦";
+}
 
 export default Sidebar;
