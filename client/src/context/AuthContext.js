@@ -20,6 +20,14 @@ export const AuthProvider = ({ children }) => {
     const [stripeConnectStatus, setStripeConnectStatus] = useState(null);
     const navigate = useNavigate();
 
+    const clearSession = useCallback(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsTokenExpiredState(false);
+    }, []);
+
     // Helper function to create consistent user object
     const createUserObject = useCallback((data) => {
         return {
@@ -252,6 +260,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         isTokenExpiredState,
+        clearSession,
         isSeller,
         isBuyer,
         register,
