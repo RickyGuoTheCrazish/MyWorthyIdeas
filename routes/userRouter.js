@@ -720,10 +720,8 @@ router.put("/:userId/change-password", auth, async (req, res) => {
 */
 router.get("/check-auth", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select('-passwordHash')
-      .populate('postedIdeas')
-      .populate('boughtIdeas');
+    const user = await User.findById(req.userId)
+      .select('_id username email subscription')
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });

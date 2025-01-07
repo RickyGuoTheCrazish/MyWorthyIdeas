@@ -17,7 +17,7 @@ class StripeConnectController {
      */
     async getConnectLink(req, res) {
         try {
-            console.log('Generating connect link for user:', req.user._id);
+            console.log('Generating connect link for user:', req.userId);
             const link = await this.stripeConnectService.createConnectAccountLink();
             console.log('Generated link:', link);
             res.json({ url: link });
@@ -49,7 +49,7 @@ class StripeConnectController {
      */
     async getAccountStatus(req, res) {
         try {
-            const userId = req.user._id;
+            const userId = req.userId;
             const status = await this.stripeConnectService.getAccountStatus(userId);
             res.json(status);
         } catch (error) {
@@ -64,7 +64,7 @@ class StripeConnectController {
     async createCheckoutSession(req, res) {
         try {
             const { ideaId, priceId } = req.body;
-            const session = await this.stripeConnectService.createSellerCheckoutSession(ideaId, priceId, req.user._id);
+            const session = await this.stripeConnectService.createSellerCheckoutSession(ideaId, priceId, req.userId);
             res.json({ sessionId: session.id });
         } catch (error) {
             console.error('Error creating checkout session:', error);

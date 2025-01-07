@@ -12,8 +12,8 @@ router.get('/account/status', auth, controller.getAccountStatus);
 
 // Get OAuth link for connecting Stripe account
 router.get('/oauth/link', auth, (req, res, next) => {
-    console.log('OAuth link route hit by user:', req.user._id);
-    if (!req.user._id) {
+    console.log('OAuth link route hit by user:', req.userId);
+    if (!req.userId) {
         return res.status(401).json({
             error: 'User not authenticated'
         });
@@ -28,7 +28,7 @@ router.post('/oauth/callback', auth, async (req, res) => {
         if (!code) {
             return res.status(400).json({ error: 'Missing authorization code' });
         }
-        const result = await controller.handleOAuthRedirect(code, req.user._id);
+        const result = await controller.handleOAuthRedirect(code, req.userId);
         res.json(result);
     } catch (error) {
         console.error('Error handling OAuth redirect:', error);
