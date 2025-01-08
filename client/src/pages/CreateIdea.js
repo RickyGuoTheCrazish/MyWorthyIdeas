@@ -132,7 +132,7 @@ const CreateIdea = () => {
     const handleCategorySubmit = () => {
         if (!validateToken()) return;
         if (currentCategory.main && currentCategory.sub) {
-            if (categories.some(cat => 
+            if (categories.some(cat =>
                 cat.main === currentCategory.main && cat.sub === currentCategory.sub
             )) {
                 alert('This category combination already exists');
@@ -181,7 +181,7 @@ const CreateIdea = () => {
             alert('Maximum 10 images allowed');
             return;
         }
-        
+
         const validFiles = files.filter(file => file.size <= 40 * 1024 * 1024); // 40MB limit
         if (validFiles.length !== files.length) {
             alert('Some images were skipped as they exceed 40MB limit');
@@ -223,7 +223,7 @@ const CreateIdea = () => {
     const handleRemoveImage = (index) => {
         if (!validateToken()) return;
         const imageToRemove = formData.images[index];
-        
+
         // Remove from formData
         setFormData(prev => ({
             ...prev,
@@ -234,7 +234,7 @@ const CreateIdea = () => {
         if (quillRef.current) {
             const quill = quillRef.current.getEditor();
             const delta = quill.getContents();
-            
+
             // Create a new delta without the removed image
             const newDelta = {
                 ops: delta.ops.reduce((acc, op) => {
@@ -285,18 +285,18 @@ const CreateIdea = () => {
         if (quillRef.current) {
             const quill = quillRef.current.getEditor();
             const range = quill.getSelection(true);
-            
+
             // Insert a line break before if not at the start
             if (range.index > 0) {
                 quill.insertText(range.index, '\n');
             }
-            
+
             // Insert the image
             quill.insertEmbed(range.index, 'image', base64Url);
-            
+
             // Insert a line break after
             quill.insertText(range.index + 1, '\n');
-            
+
             // Move cursor after the image
             quill.setSelection(range.index + 2);
         }
@@ -371,7 +371,7 @@ const CreateIdea = () => {
                     // Get the S3 URLs from response
                     const { idea: { contentImages: uploadedImages } } = await imagesResponse.json();
                     contentImages = uploadedImages;
-                    
+
                     console.log('Replacing base64 URLs with S3 URLs...'); // Debug log
                     // Create a mapping of files to their S3 URLs
                     const fileToS3Map = new Map();
@@ -471,10 +471,9 @@ const CreateIdea = () => {
                         {[1, 2, 3].map((step) => (
                             <div
                                 key={step}
-                                className={`${styles.stepItem} ${
-                                    currentStep === step ? styles.activeStep :
-                                    currentStep > step ? styles.completedStep : ''
-                                }`}
+                                className={`${styles.stepItem} ${currentStep === step ? styles.activeStep :
+                                        currentStep > step ? styles.completedStep : ''
+                                    }`}
                             >
                                 Step {step}
                             </div>
@@ -515,11 +514,14 @@ const CreateIdea = () => {
                             </div>
                             <div className={styles.formGroup}>
                                 <label htmlFor="priceAUD" className={styles.label}>
-                                    Price (AUD)
+                                    Price
                                     <span className={styles.required}>*</span>
                                 </label>
-                                <div className={styles.priceInputWrapper}>
-                                    <span className={styles.currencySymbol}>$</span>
+                                <div className={styles.modernPriceInput}>
+                                    <div className={styles.currencyPrefix}>
+                                        <span className={styles.currencySymbol}>$</span>
+                                        <span className={styles.currencyDivider}></span>
+                                    </div>
                                     <input
                                         type="number"
                                         id="priceAUD"
@@ -528,14 +530,15 @@ const CreateIdea = () => {
                                         step="1"
                                         value={formData.priceAUD}
                                         onChange={(e) => handleInputChange('priceAUD', e.target.value)}
-                                        className={styles.priceInput}
+                                        placeholder="0"
                                         required
                                     />
-                                    <span className={styles.currencyCode}>AUD</span>
+                                    <div className={styles.currencySuffix}>
+                                        <span className={styles.currencyDivider}></span>
+                                        <span className={styles.currencyCode}>AUD</span>
+                                    </div>
                                 </div>
-                                <p className={styles.helperText}>
-                                    Set your idea's price in Australian Dollars. Platform fee: 3%
-                                </p>
+                                <span className={styles.priceHint}>Enter whole numbers only</span>
                             </div>
                             <div className={styles.inputGroup}>
                                 <label>Category:</label>
@@ -562,7 +565,7 @@ const CreateIdea = () => {
                                         <div className={styles.modalContent}>
                                             <div className={styles.selectGroup}>
                                                 <label>Main Category</label>
-                                                <select 
+                                                <select
                                                     value={currentCategory.main}
                                                     onChange={(e) => handleMainCategoryChange(e.target.value)}
                                                     className={styles.categorySelect}
@@ -574,7 +577,7 @@ const CreateIdea = () => {
                                             </div>
                                             <div className={styles.selectGroup}>
                                                 <label>Sub Category</label>
-                                                <select 
+                                                <select
                                                     value={currentCategory.sub}
                                                     onChange={(e) => handleSubCategoryChange(e.target.value)}
                                                     className={styles.categorySelect}
@@ -586,13 +589,13 @@ const CreateIdea = () => {
                                             </div>
                                         </div>
                                         <div className={styles.modalActions}>
-                                            <button 
+                                            <button
                                                 className={styles.cancelBtn}
                                                 onClick={() => setShowCategoryModal(false)}
                                             >
                                                 Cancel
                                             </button>
-                                            <button 
+                                            <button
                                                 className={styles.confirmBtn}
                                                 onClick={handleCategorySubmit}
                                             >
@@ -649,7 +652,7 @@ const CreateIdea = () => {
                             </div>
                             <div className={styles.imageUploadContainer}>
                                 <div className={styles.buttonContainer}>
-                                    <button 
+                                    <button
                                         type="button"
                                         className={styles.insertImageButton}
                                         onClick={() => setShowImagePicker(true)}
@@ -664,8 +667,8 @@ const CreateIdea = () => {
                                     <div className={styles.uploadedImages}>
                                         {formData.images && formData.images.map((image, index) => (
                                             <div key={index} className={styles.imageContainer}>
-                                                <img 
-                                                    src={URL.createObjectURL(image)} 
+                                                <img
+                                                    src={URL.createObjectURL(image)}
                                                     alt={`Upload ${index + 1}`}
                                                     className={styles.uploadedImage}
                                                 />
@@ -712,7 +715,7 @@ const CreateIdea = () => {
                                 Back
                             </button>
                         )}
-                        <button 
+                        <button
                             className={styles.cancelBtn}
                             onClick={handleCancel}
                         >

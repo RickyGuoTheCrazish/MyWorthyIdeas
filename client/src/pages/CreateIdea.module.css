@@ -706,6 +706,89 @@
     background-color: #1976d2;
 }
 
+.modernPriceInput {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.modernPriceInput:focus-within {
+    border-color: #E0C19E;
+    box-shadow: 0 0 0 2px rgba(224, 193, 158, 0.2);
+}
+
+.modernPriceInput input {
+    border: none !important;
+    padding: 12px 8px !important;
+    flex: 1;
+    font-size: 1.1em !important;
+    outline: none;
+    text-align: left;
+    min-width: 0;
+    background: transparent;
+}
+
+.modernPriceInput input::-webkit-outer-spin-button,
+.modernPriceInput input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.modernPriceInput input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.currencyPrefix, .currencySuffix {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: #f8f9fa;
+    color: #666;
+    font-weight: 500;
+}
+
+.currencySymbol {
+    font-size: 1.1em;
+    color: #333;
+}
+
+.currencyCode {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #666;
+}
+
+.currencyDivider {
+    width: 1px;
+    height: 20px;
+    background: #ddd;
+    margin: 0 12px;
+}
+
+.priceHint {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 6px;
+    margin-left: 4px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.required {
+    color: #d32f2f;
+    margin-left: 4px;
+}
+
 /* Add some breathing room for mobile devices */
 @media (max-width: 600px) {
     .navigation {
