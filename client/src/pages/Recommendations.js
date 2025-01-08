@@ -30,6 +30,7 @@ const Recommendations = () => {
                     `http://localhost:6001/api/ideas?${queryParams}`, 
                     {
                         headers: {
+                            'Accept': 'application/json',
                             'Content-Type': 'application/json'
                         }
                     }
@@ -75,32 +76,36 @@ const Recommendations = () => {
             {loading ? (
                 <div className={styles.loadingContainer}>
                     <div className={styles.spinner}></div>
-                    <p>Loading ideas...</p>
                 </div>
             ) : error ? (
-                <div className={styles.errorContainer}>
-                    <p className={styles.errorMessage}>{error}</p>
-                    <button onClick={() => window.location.reload()} className={styles.retryButton}>
-                        Try Again
-                    </button>
+                <div className={styles.noIdeas}>
+                    <img 
+                        src="/images/empty-ideas.svg" 
+                        alt="No ideas found" 
+                        className={styles.emptyStateImage}
+                    />
+                    <h2>No Ideas Found</h2>
+                    <p>There was an error loading ideas.</p>
+                    <p>Please try again later.</p>
                 </div>
             ) : ideas.length === 0 ? (
                 <div className={styles.noIdeas}>
-                    <p>No ideas found. Check back later!</p>
+                    <img 
+                        src="/images/empty-ideas.svg" 
+                        alt="No ideas found" 
+                        className={styles.emptyStateImage}
+                    />
+                    <h2>No Ideas Found</h2>
+                    <p>Check back later for new ideas!</p>
                 </div>
             ) : (
                 <>
                     <div className={styles.ideasGrid}>
                         {ideas.map(idea => (
-                            <IdeaCard
-                                key={idea._id}
-                                idea={idea}
-                                onClick={() => navigate(`/ideas/${idea._id}`)}
-                            />
+                            <IdeaCard key={idea._id} idea={idea} />
                         ))}
                     </div>
                     
-                    {/* Pagination */}
                     <div className={styles.pagination}>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                             <button
