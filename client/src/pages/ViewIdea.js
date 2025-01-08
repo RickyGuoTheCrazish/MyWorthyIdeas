@@ -62,13 +62,9 @@ const ViewIdea = () => {
         const fetchIdea = async () => {
             try {
                 const headers = {};
-
-                // Add auth header only if user is logged in
-                if (isAuthenticated) {
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        headers['Authorization'] = `Bearer ${token}`;
-                    }
+                const token = localStorage.getItem('token');
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
                 }
 
                 const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
@@ -83,9 +79,8 @@ const ViewIdea = () => {
                 const data = await response.json();
                 console.log('Fetched idea:', data.idea);
                 setIdea(data.idea);
-
-                // If the user has already rated this idea
-                if (isAuthenticated  && data.idea.rating) {
+                
+                if (token && data.idea.rating) {
                     console.log('Current rating:', data.idea.rating);
                     setUserRating(data.idea.rating);
                 }
@@ -97,9 +92,8 @@ const ViewIdea = () => {
             }
         };
 
-        // Always fetch idea data, regardless of authentication status
         fetchIdea();
-    }, [ideaId, isAuthenticated ]);
+    }, [ideaId]);
 
     const handleBuy = async () => {
         if (!isAuthenticated) {

@@ -358,9 +358,21 @@ router.post("/:ideaId/buy", auth, buyerAuth, ideaPurchaseLimiter, async (req, re
  * GET /ideas/:ideaId
  * Public endpoint - returns basic info for everyone, full content for creator/buyer
  */
-router.get("/:ideaId", auth, async (req, res) => {
+router.get("/:ideaId", async (req, res) => {
   try {
     const ideaId = req.params.ideaId;
+    let userId = null;
+    
+    // Check for authentication token
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.userId;
+      } catch (err) {
+        console.log('Invalid token, proceeding as unauthenticated user');
+      }
+    }
     
     // Populate the creator => postedIdeas => rating, also the buyer if needed
     const idea = await Idea.findById(ideaId)
@@ -399,38 +411,38 @@ router.get("/:ideaId", auth, async (req, res) => {
       categories: idea.categories,
       createdAt: idea.createdAt,
       updatedAt: idea.updatedAt,
-      buyer: idea.buyer,
-      rating: idea.rating || null,
-      ratedAt: idea.ratedAt || null
+      rating: idea.rating
     };
 
-    // If user is authenticated, check if they're the creator or buyer
-    if (req.user) {
-      const requestingUserId = req.user.userId;
-      const creatorId = idea.creator?._id?.toString();
-      const buyerId = idea.buyer?._id?.toString();
-      
-      // If user is the creator or buyer => can see contentRaw/contentHtml
-      const isOwnerOrBuyer = requestingUserId === creatorId || requestingUserId === buyerId;
-
-      if (isOwnerOrBuyer) {
-        baseIdea.contentRaw = idea.contentRaw;
-        baseIdea.contentHtml = idea.contentHtml;
-        baseIdea.contentImages = idea.contentImages;
-        if (idea.buyer) {
-          baseIdea.buyer = sanitizeUser(idea.buyer);
-          baseIdea.boughtAt = idea.boughtAt;
-        }
-      }
+    // If user is not authenticated, return only public info
+    if (!userId) {
+      return res.json({ idea: baseIdea });
     }
 
-    return res.status(200).json({
-      message: "Idea fetched successfully",
-      idea: baseIdea,
-    });
+    // Check if user is creator or buyer
+    const isCreator = idea.creator._id.toString() === userId;
+    const isBuyer = idea.buyer && idea.buyer._id.toString() === userId;
+
+    // If user is creator or buyer, include full content
+    if (isCreator || isBuyer) {
+      return res.json({
+        idea: {
+          ...baseIdea,
+          contentHtml: idea.contentHtml,
+          buyer: sanitizeUser(idea.buyer),
+          boughtAt: idea.boughtAt,
+          coverImage: idea.coverImage,
+          contentImages: idea.contentImages
+        }
+      });
+    }
+
+    // For authenticated users who are not creator/buyer, return public info
+    return res.json({ idea: baseIdea });
+    
   } catch (error) {
-    console.error('Error fetching idea:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Error in GET /:ideaId:', error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
