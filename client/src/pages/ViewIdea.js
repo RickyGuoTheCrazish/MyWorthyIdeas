@@ -385,11 +385,31 @@ const ViewIdea = () => {
 
                             {!hasFullAccess && (
                                 <div className={styles.purchaseSection}>
-                                    <div className={styles.previewOverlay} />
+                                    <div className={styles.previewOverlay}>
+                                        <div className={styles.lockIconContainer}>
+                                            <FaLock className={styles.lockIcon} />
+                                        </div>
+                                    </div>
                                     <div className={styles.purchasePrompt}>
-                                        <h3>Purchase this idea to view full content</h3>
-                                        <p className={styles.price}>${idea.priceAUD.toFixed(2)} AUD</p>
-                                        <IdeaPurchaseButton idea={idea} />
+                                        <div className={styles.purchasePromptContent}>
+                                            <FaLock className={styles.purchaseIcon} />
+                                            <h3>Unlock Full Content</h3>
+                                            <p className={styles.purchaseDescription}>
+                                                Get instant access to the complete idea details, implementation guide, and business insights
+                                            </p>
+                                            <div className={styles.purchasePrice}>
+                                                <FaCoins className={styles.coinIcon} />
+                                                <span className={styles.priceAmount}>${idea.priceAUD.toFixed(2)} AUD</span>
+                                            </div>
+                                            {!isAuthenticated ? (
+                                                <button className={styles.purchaseButton} onClick={handleLogin}>
+                                                    <FaSignInAlt className={styles.buttonIcon} />
+                                                    Sign in to Purchase
+                                                </button>
+                                            ) : (
+                                                <IdeaPurchaseButton idea={idea} />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}

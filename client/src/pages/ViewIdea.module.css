@@ -749,11 +749,10 @@
 
 .purchaseSection {
     position: relative;
-    margin-top: 24px;
-    padding: 24px;
-    border-radius: 8px;
-    background: #f7fafc;
-    text-align: center;
+    margin-top: 2rem;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .previewOverlay {
@@ -762,65 +761,121 @@
     left: 0;
     right: 0;
     height: 200px;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #f7fafc);
-    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.95));
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lockIconContainer {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+}
+
+.lockIcon {
+    font-size: 24px;
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .purchasePrompt {
-    padding: 24px;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-top: 100px;
+}
+
+.purchasePromptContent {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.purchaseIcon {
+    font-size: 2rem;
+    color: #2c974b;
+    margin-bottom: 1rem;
 }
 
 .purchasePrompt h3 {
-    margin: 0 0 16px;
-    color: #2d3748;
-}
-
-.price {
-    font-size: 24px;
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 1rem;
     font-weight: 600;
-    color: #4a5568;
-    margin-bottom: 16px;
 }
 
-.fullContent {
-    margin-top: 24px;
-    padding: 24px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.purchaseDescription {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
 }
 
-.priceInputWrapper {
-    position: relative;
+.purchasePrice {
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    padding: 0.75rem 1.5rem;
+    border-radius: 20px;
+    display: inline-flex;
 }
 
-.currencySymbol {
-    position: absolute;
-    left: 12px;
-    color: #4a5568;
+.coinIcon {
+    color: #f0b000;
+    font-size: 1.25rem;
 }
 
-.currencyCode {
-    position: absolute;
-    right: 12px;
-    color: #4a5568;
+.priceAmount {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c974b;
 }
 
-.priceInput {
-    padding: 8px 12px 8px 28px;
+.purchaseButton {
+    background: #2c974b;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     width: 100%;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 16px;
+    transition: background-color 0.2s ease;
 }
 
-.helperText {
-    margin-top: 4px;
-    font-size: 14px;
-    color: #718096;
+.purchaseButton:hover {
+    background: #248f3f;
+}
+
+.buttonIcon {
+    font-size: 1rem;
 }
