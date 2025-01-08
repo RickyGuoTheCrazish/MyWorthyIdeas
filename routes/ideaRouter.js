@@ -439,38 +439,67 @@ router.get("/:ideaId", auth, async (req, res) => {
  * GET /ideas
  */
 router.get("/", async (req, res) => {
-    try {
-        const { page = 1, limit = 12, type = 'all' } = req.query;
-        const skip = (page - 1) * limit;
+  try {
+      let { page = 1, limit = 12, sortBy = 'newest' } = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
 
-        // Base query to get only unsold ideas
-        const query = { isSold: false };
+      // Base query to get only unsold ideas
+      const query = { isSold: false };
 
-        // Get ideas with pagination
-        const ideas = await Idea.find(query)
-            .select('title preview priceAUD categories coverImages rating totalRatings createdAt')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit)
-            .populate('creator', 'username');
+      // Determine sort order
+      let sortOptions = {};
+      switch (sortBy) {
+          case 'price-low':
+              sortOptions = { priceAUD: 1 };
+              break;
+          case 'price-high':
+              sortOptions = { priceAUD: -1 };
+              break;
+          case 'rating':
+              sortOptions = { rating: -1 };
+              break;
+          case 'newest':
+          default:
+              sortOptions = { createdAt: -1 };
+      }
 
-        // Count total documents for pagination
-        const totalIdeas = await Idea.countDocuments(query);
-        const totalPages = Math.ceil(totalIdeas / limit);
+      // Get ideas with pagination
+      const ideas = await Idea.find(query)
+          .select('title preview priceAUD categories thumbnailImage rating createdAt creator')
+          .sort(sortOptions)
+          .skip(skip)
+          .limit(limit)
+          .populate('creator', 'username averageRating');
 
-        res.json({
-            ideas,
-            pagination: {
-                currentPage: page,
-                totalPages,
-                totalIdeas,
-                hasMore: page < totalPages
-            }
-        });
-    } catch (error) {
-        console.error('Error getting ideas:', error);
-        res.status(500).json({ error: 'Failed to get ideas' });
-    }
+      // Count total documents for pagination
+      const totalIdeas = await Idea.countDocuments(query);
+      const totalPages = Math.ceil(totalIdeas / limit);
+
+      // Format response to match category route
+      const formattedIdeas = ideas.map(idea => ({
+          ...idea.toObject(),
+          seller: {
+              _id: idea.creator._id,
+              username: idea.creator.username,
+              averageRating: idea.creator.averageRating || 0
+          }
+      }));
+
+      res.json({
+          ideas: formattedIdeas,
+          pagination: {
+              currentPage: page,
+              totalPages,
+              pageSize: limit,
+              totalItems: totalIdeas
+          }
+      });
+  } catch (error) {
+      console.error('Error getting ideas:', error);
+      res.status(500).json({ error: 'Failed to get ideas' });
+  }
 });
 
 /**

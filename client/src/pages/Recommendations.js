@@ -10,6 +10,7 @@ const Recommendations = () => {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [sortBy, setSortBy] = useState('newest');
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
 
@@ -19,13 +20,18 @@ const Recommendations = () => {
                 setLoading(true);
                 setError(null);
                 
+                const queryParams = new URLSearchParams({
+                    page: currentPage,
+                    limit: 12,
+                    sortBy
+                });
+                
                 const response = await fetch(
-                    `http://localhost:6001/api/ideas?page=${currentPage}&limit=12&type=recommendations`, 
+                    `http://localhost:6001/api/ideas?${queryParams}`, 
                     {
                         headers: {
                             'Content-Type': 'application/json'
-                        },
-                        credentials: 'include'
+                        }
                     }
                 );
 
@@ -34,14 +40,8 @@ const Recommendations = () => {
                 }
 
                 const data = await response.json();
-                
-                if (Array.isArray(data.ideas)) {
-                    setIdeas(data.ideas);
-                    setTotalPages(Math.max(1, data.pagination?.totalPages || 1));
-                } else {
-                    console.error('Invalid data format:', data);
-                    throw new Error('Invalid data format received');
-                }
+                setIdeas(data.ideas);
+                setTotalPages(data.pagination.totalPages);
             } catch (error) {
                 console.error('Error fetching ideas:', error);
                 setError('Failed to load ideas. Please try again later.');
@@ -51,42 +51,40 @@ const Recommendations = () => {
         };
 
         fetchIdeas();
-    }, [currentPage]);
+    }, [currentPage, sortBy]);
 
     const handlePageChange = (newPage) => {
         setCurrentPage(newPage);
         window.scrollTo(0, 0);
     };
 
-    const handleIdeaClick = (ideaId) => {
-        navigate(`/ideas/${ideaId}`);
-    };
-
-    if (loading) {
-        return (
-            <div className={styles.loadingContainer}>
-                <div className={styles.spinner}></div>
-                <p>Loading ideas...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className={styles.errorContainer}>
-                <p className={styles.errorMessage}>{error}</p>
-                <button onClick={() => window.location.reload()} className={styles.retryButton}>
-                    Try Again
-                </button>
-            </div>
-        );
-    }
-
     return (
         <div className={styles.recommendationsContainer}>
-            <h1 className={styles.title}>Recommended Ideas</h1>
+            <div className={styles.header}>
+                <h1 className={styles.title}>Recommended Ideas</h1>
+                <div className={styles.sortDropdown}>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="newest">Newest First</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="rating">Highest Rated</option>
+                    </select>
+                </div>
+            </div>
             
-            {ideas.length === 0 ? (
+            {loading ? (
+                <div className={styles.loadingContainer}>
+                    <div className={styles.spinner}></div>
+                    <p>Loading ideas...</p>
+                </div>
+            ) : error ? (
+                <div className={styles.errorContainer}>
+                    <p className={styles.errorMessage}>{error}</p>
+                    <button onClick={() => window.location.reload()} className={styles.retryButton}>
+                        Try Again
+                    </button>
+                </div>
+            ) : ideas.length === 0 ? (
                 <div className={styles.noIdeas}>
                     <p>No ideas found. Check back later!</p>
                 </div>
@@ -97,32 +95,23 @@ const Recommendations = () => {
                             <IdeaCard
                                 key={idea._id}
                                 idea={idea}
-                                onClick={() => handleIdeaClick(idea._id)}
+                                onClick={() => navigate(`/ideas/${idea._id}`)}
                             />
                         ))}
                     </div>
-
-                    {totalPages > 1 && (
-                        <div className={styles.pagination}>
+                    
+                    {/* Pagination */}
+                    <div className={styles.pagination}>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                             <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className={styles.pageButton}
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ''}`}
                             >
-                                Previous
+                                {page}
                             </button>
-                            <span className={styles.pageInfo}>
-                                Page {currentPage} of {totalPages}
-                            </span>
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className={styles.pageButton}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
+                        ))}
+                    </div>
                 </>
             )}
         </div>
