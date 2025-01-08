@@ -15,7 +15,7 @@ import 'react-quill/dist/quill.bubble.css';
 const ViewIdea = () => {
     const { ideaId } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated, updateUserFinancials, fetchFinancialData } = useAuth();
+    const { isAuthenticated, fetchFinancialData } = useAuth();
     const [idea, setIdea] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -28,6 +28,35 @@ const ViewIdea = () => {
     const [userRating, setUserRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [ratingLoading, setRatingLoading] = useState(false);
+
+    const [userInfo, setUserInfo] = useState(null);
+
+
+    const fetchUserInfo = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:6001/api/users/myinfo', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setUserInfo(data);
+            }
+        } catch (error) {
+            console.error('Error fetching user info:', error);
+        }
+    };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+
+        if (token) {
+            fetchUserInfo();
+        }
+    }, []);
 
     useEffect(() => {
         const fetchIdea = async () => {
@@ -53,11 +82,10 @@ const ViewIdea = () => {
 
                 const data = await response.json();
                 console.log('Fetched idea:', data.idea);
-                console.log('Current user:', user);
                 setIdea(data.idea);
-                
+
                 // If the user has already rated this idea
-                if (isAuthenticated && user && data.idea.rating) {
+                if (isAuthenticated  && data.idea.rating) {
                     console.log('Current rating:', data.idea.rating);
                     setUserRating(data.idea.rating);
                 }
@@ -71,11 +99,11 @@ const ViewIdea = () => {
 
         // Always fetch idea data, regardless of authentication status
         fetchIdea();
-    }, [ideaId, isAuthenticated, user]);
+    }, [ideaId, isAuthenticated ]);
 
     const handleBuy = async () => {
         if (!isAuthenticated) {
-            setShowAuthModal(true); 
+            setShowAuthModal(true);
             return;
         }
 
@@ -121,7 +149,7 @@ const ViewIdea = () => {
 
     const handleRating = async (newRating) => {
         if (!isAuthenticated || !isBuyer) return;
-        
+
         // Don't allow rating if user has already rated
         if (userRating > 0) {
             toast.error('You have already rated this idea');
@@ -148,7 +176,7 @@ const ViewIdea = () => {
             const data = await response.json();
             setUserRating(newRating);
             setShowRatingModal(false);
-            
+
             // Update the idea state while preserving all existing data
             setIdea(prev => ({
                 ...prev,
@@ -158,7 +186,7 @@ const ViewIdea = () => {
                     averageRating: data.averageRating || prev.creator.averageRating
                 }
             }));
-            
+
             toast.success('Rating submitted successfully!');
         } catch (error) {
             console.error('Error updating rating:', error);
@@ -246,11 +274,17 @@ const ViewIdea = () => {
     }
 
     // Access level checks
-    const isCreator = isAuthenticated && user?.userId === idea.creator._id;
-    const isBuyer = isAuthenticated && idea.buyer && idea.buyer._id === user?.userId;
+    // const isCreator = isAuthenticated && user?.userId === idea.creator._id;
+    // const isBuyer = isAuthenticated && idea.buyer && idea.buyer._id === user?.userId;
+    // const hasFullAccess = isCreator || isBuyer;
+    // const isIdeaSold = idea.isSold || !!idea.buyer;
+    // const canBuy = isAuthenticated && !isCreator && !isBuyer && user?.subscription === 'buyer' && !isIdeaSold;
+
+    const isCreator = isAuthenticated && userInfo && idea?.creator._id === userInfo._id;
+    const isBuyer = isAuthenticated && userInfo && idea?.buyer && idea.buyer._id === userInfo._id;
     const hasFullAccess = isCreator || isBuyer;
-    const isIdeaSold = idea.isSold || !!idea.buyer;
-    const canBuy = isAuthenticated && !isCreator && !isBuyer && user?.subscription === 'buyer' && !isIdeaSold;
+    const isIdeaSold = idea?.isSold || !!idea?.buyer;
+    const canBuy = isAuthenticated && !isCreator && !isBuyer && userInfo?.subscription === 'buyer' && !isIdeaSold;
 
     console.log('Access check:', {
         isAuthenticated,
@@ -260,7 +294,7 @@ const ViewIdea = () => {
         canBuy,
         isIdeaSold,
         hasBuyer: !!idea.buyer,
-        userSubscription: user?.subscription
+        userSubscription: userInfo?.subscription
     });
 
     return (
@@ -273,21 +307,13 @@ const ViewIdea = () => {
                     onClose={() => setShowAuthModal(false)}
                 />
             )}
+
             {showPurchaseModal && (
                 <PurchaseModal
                     idea={idea}
-                    userCredits={user?.credits || 0}
+                    userCredits={userInfo?.credits || 0}
                     onClose={() => setShowPurchaseModal(false)}
                     onConfirm={handleBuy}
-                />
-            )}
-            {showSuccessModal && (
-                <PurchaseSuccessModal
-                    idea={idea}
-                    onClose={() => {
-                        setShowSuccessModal(false);
-                        // window.location.reload();
-                    }}
                 />
             )}
             {purchaseError && (
@@ -300,7 +326,7 @@ const ViewIdea = () => {
             {showRatingModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.ratingModal}>
-                        <button 
+                        <button
                             className={styles.closeButton}
                             onClick={() => setShowRatingModal(false)}
                         >
@@ -356,7 +382,7 @@ const ViewIdea = () => {
                     ) : (
                         <div className={styles.ideaContent}>
                             {idea.preview}
-                            
+
                             {!hasFullAccess && (
                                 <div className={styles.purchaseSection}>
                                     <div className={styles.previewOverlay} />
