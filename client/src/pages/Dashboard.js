@@ -145,7 +145,10 @@ const Dashboard = () => {
                 {ideas && ideas.map(idea => (
                     <IdeaCard
                         key={idea._id}
-                        idea={idea}
+                        idea={{
+                            ...idea,
+                            creator: idea.seller // Map seller info to creator
+                        }}
                         showStatus={true}
                     />
                 ))}
