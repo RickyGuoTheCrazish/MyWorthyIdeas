@@ -154,13 +154,13 @@ class StripeService {
                 throw new Error('Idea not found');
             }
          
-            // Calculate base amount and platform fee
-            const baseAmount = Math.floor(amount); // $12.00
+            // Calculate amounts
+            const amountInCents = Math.round(amount * 100);
             const platformFeePercent = 3;
-            const platformFeeAmount = Math.round((amount - baseAmount) * 100); // $0.36 in cents
+            const platformFeeAmount = Math.round(amountInCents * platformFeePercent / 100);
 
             console.log('Creating Stripe Checkout Session with:', JSON.stringify({
-                baseAmount,
+                amountInCents,
                 platformFeeAmount,
                 totalAmount: amount,
                 currency: 'aud',
@@ -180,7 +180,7 @@ class StripeService {
                                 description: 'Purchase of idea content and rights',
                                 images: idea.images || []
                             },
-                            unit_amount: Math.round(baseAmount * 100), // Convert to cents
+                            unit_amount: amountInCents,
                         },
                         quantity: 1,
                     }],
@@ -195,7 +195,9 @@ class StripeService {
                         buyerId,
                         sellerId,
                         type: 'idea_purchase',
-                        platformFee: platformFeeAmount / 100 // Store in dollars
+                        amount: amount,
+                        platformFee: platformFeeAmount / 100,
+                        connectedAccountId: sellerStripeConnect.stripeAccountId
                     }
                 },
                 {
@@ -212,7 +214,8 @@ class StripeService {
 
             return {
                 url: session.url,
-                sessionId: session.id
+                sessionId: session.id,
+                connectedAccountId: sellerStripeConnect.stripeAccountId
             };
         } catch (error) {
             console.error('Error in createIdeaCheckoutSession:', error);
@@ -229,60 +232,54 @@ class StripeService {
         }
     }
 
-    /**
-     * Handle successful payment webhook
-     * @param {Object} stripeSession Stripe session object
-     */
-    async handleSuccessfulPayment(stripeSession) {
-        const { ideaId, buyerId, sellerId } = stripeSession.metadata;
-
-        // Start a transaction
-        const mongoSession = await mongoose.startSession();
-        mongoSession.startTransaction();
-
+    async handleSuccessfulPayment(sessionId, connectedAccountId) {
         try {
-            // Update idea
-            const idea = await Idea.findByIdAndUpdate(
-                ideaId,
-                {
-                    isSold: true,
-                    buyer: buyerId,
-                    boughtAt: new Date()
-                },
-                { session: mongoSession }
+            console.log('Retrieving session with ID:', sessionId, 'from account:', connectedAccountId);
+            
+            // Retrieve the session using the connected account
+            const session = await stripe.checkout.sessions.retrieve(
+                sessionId
             );
 
-            if (!idea) {
-                throw new Error('Idea not found');
+            console.log('Retrieved session:', JSON.stringify({
+                id: session.id?.substring(0, 10) + '...',
+                paymentStatus: session.payment_status,
+                metadata: session.metadata
+            }, null, 2));
+
+            if (!session) {
+                throw new Error('Session not found');
             }
 
-            // Update buyer's purchased ideas
-            await User.findByIdAndUpdate(
-                buyerId,
-                {
-                    $push: { boughtIdeas: ideaId }
-                },
-                { session: mongoSession }
-            );
+            if (session.payment_status !== 'paid') {
+                throw new Error('Payment not completed');
+            }
+
+            const { ideaId, buyerId, sellerId, amount, platformFee } = session.metadata;
 
             // Create transaction record
-            await Transaction.create([{
-                type: 'idea_purchase',
-                amount: stripeSession.amount_total / 100, // Convert cents to dollars
-                status: 'completed',
+            const transaction = new Transaction({
+                ideaId,
                 buyerId,
                 sellerId,
-                ideaId,
-                stripeSessionId: stripeSession.id,
-                applicationFee: stripeSession.application_fee_amount / 100
-            }], { session: mongoSession });
+                amount: parseFloat(amount),
+                platformFee: parseFloat(platformFee),
+                stripeSessionId: session.id,
+                status: 'completed',
+                paymentIntentId: session.payment_intent
+            });
 
-            await mongoSession.commitTransaction();
+            await transaction.save();
+
+            // Update idea status
+            await Idea.findByIdAndUpdate(ideaId, {
+                $set: { status: 'sold', buyerId }
+            });
+
+            return transaction;
         } catch (error) {
-            await mongoSession.abortTransaction();
+            console.error('Error handling successful payment:', error);
             throw error;
-        } finally {
-            mongoSession.endSession();
         }
     }
 
@@ -317,7 +314,7 @@ class StripeService {
                     await this.handlePaymentFailure(event.data.object);
                     break;
                 case 'checkout.session.completed':
-                    await this.handleSuccessfulPayment(event.data.object);
+                    await this.handleSuccessfulPayment(event.data.object.id, event.data.object.metadata.connectedAccountId);
                     break;
                 default:
                     console.log('Unhandled event type:', event.type);
