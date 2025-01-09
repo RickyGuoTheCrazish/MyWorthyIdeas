@@ -559,15 +559,26 @@ router.get("/:userId/bought-ideas", auth, async (req, res) => {
       .select("title preview priceAUD thumbnailImage rating categories isSold boughtAt creator")
       .populate({
         path: 'creator',
-        select: 'username averageRating'
+        select: 'username'
       })
       .sort({ boughtAt: -1 })
       .skip(skip)
       .limit(limit);
 
+    // Get average rating for each creator
+    const ideasWithRatings = await Promise.all(purchasedIdeas.map(async (idea) => {
+      const averageRating = await User.getAverageRating(idea.creator._id);
+      return {
+        ...idea.toObject(),
+        seller: {
+          _id: idea.creator._id,
+          username: idea.creator.username,
+          averageRating: averageRating
+        }
+      };
+    }));
+
     const totalPages = Math.ceil(totalCount / limit);
-
-
 
     return res.status(200).json({
       message: "Bought ideas fetched successfully (by boughtAt desc)",
@@ -577,14 +588,7 @@ router.get("/:userId/bought-ideas", auth, async (req, res) => {
         pageSize: limit,
         totalCount,
       },
-      ideas: purchasedIdeas.map(idea => ({
-        ...idea.toObject(),
-        seller: {
-          _id: idea.creator._id,
-          username: idea.creator.username,
-          averageRating: idea.creator.averageRating || 0
-        }
-      })),
+      ideas: ideasWithRatings,
     });
   } catch (error) {
     console.error("Error fetching bought ideas:", error);
