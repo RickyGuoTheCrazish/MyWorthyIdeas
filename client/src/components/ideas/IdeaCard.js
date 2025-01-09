@@ -19,7 +19,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         _id = '',
         title = 'Untitled',
         rating = 0,
-        price = 0,
+        priceAUD = 0,
         seller = {},
         creator = {},
         thumbnailImage = '',
@@ -47,13 +47,13 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         }
     }
 
-    console.log('Destructured idea properties:', { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt });
+    console.log('Destructured idea properties:', { _id, title, rating, priceAUD, seller, creator, thumbnailImage, boughtAt });
 
-    const formatPrice = (price) => {
-        if (typeof price !== 'number' || isNaN(price)) {
+    const formatPrice = (priceAUD) => {
+        if (typeof priceAUD !== 'number' || isNaN(priceAUD)) {
             return '0.00';
         }
-        return price.toLocaleString('en-US', {
+        return priceAUD.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
@@ -96,7 +96,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         }}>
             <div className={styles.priceTag}>
                 <FaDollarSign className={styles.currencyIcon} />
-                <span className={styles.amount}>{formatPrice(price)}</span>
+                <span className={styles.amount}>{formatPrice(priceAUD)}</span>
             </div>
             <h3 className={styles.title}>{title}</h3>
 

@@ -485,7 +485,7 @@ router.get("/:userId/posted-ideas", auth, async (req, res) => {
     const user = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: false },  // Only get unsold ideas
-      select: "title preview price thumbnailImage rating categories isSold createdAt",
+      select: "title preview priceAUD thumbnailImage rating categories isSold createdAt",
       options: {
         skip,
         limit,
@@ -551,7 +551,7 @@ router.get("/:userId/bought-ideas", auth, async (req, res) => {
     const totalCount = await Idea.countDocuments({ _id: { $in: user.boughtIdeas } });
 
     const purchasedIdeas = await Idea.find({ _id: { $in: user.boughtIdeas } })
-      .select("title preview price thumbnailImage rating categories isSold boughtAt creator")
+      .select("title preview priceAUD thumbnailImage rating categories isSold boughtAt creator")
       .populate({
         path: 'creator',
         select: 'username averageRating'
@@ -602,7 +602,7 @@ router.get("/:userId/sold-ideas", auth, async (req, res) => {
     const user = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: true },  // Only get sold ideas
-      select: "title preview price thumbnailImage rating categories isSold createdAt",
+      select: "title preview priceAUD thumbnailImage rating categories isSold createdAt",
       options: {
         skip,
         limit,
