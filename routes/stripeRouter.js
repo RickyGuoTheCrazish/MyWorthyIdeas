@@ -70,25 +70,4 @@ router.get('/payment-status/:sessionId', auth, (req, res) => {
         });
 });
 
-// Webhook handler for Stripe events
-const webhookHandler = async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    
-    try {
-        const event = stripe.webhooks.constructEvent(
-            req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-        
-        await stripeService.handleWebhook(event);
-        res.json({ received: true });
-    } catch (error) {
-        console.error('Webhook error:', error);
-        res.status(400).json({ message: error.message });
-    }
-};
-
-router.post('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
-
 module.exports = router;

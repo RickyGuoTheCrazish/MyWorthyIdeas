@@ -2,96 +2,13 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../db/userModel');
 const Transaction = require('../db/transactionModel');
 const StripeConnect = require('../db/stripeConnectModel');
-const Idea = require('../db/ideaModel'); // Import Idea model
-const mongoose = require('mongoose'); // Import mongoose
+const Idea = require('../db/ideaModel');
+const mongoose = require('mongoose');
 
 class StripeService {
     constructor() {
         if (!process.env.STRIPE_SECRET_KEY) {
             throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
-        }
-    }
-
-    /**
-     * Create a payment intent for deposit
-     * @param {number} amount Amount in USD
-     * @param {string} userId User ID
-     * @returns {Promise<{clientSecret: string, paymentIntentId: string}>}
-     */
-    async createPaymentIntent(amount, userId) {
-        try {
-            // Convert amount to cents for Stripe
-            const amountInCents = Math.round(amount * 100);
-            
-            const paymentIntent = await stripe.paymentIntents.create({
-                amount: amountInCents,
-                currency: 'usd',
-                metadata: {
-                    userId,
-                    type: 'deposit'
-                },
-                automatic_payment_methods: {
-                    enabled: true,
-                }
-            });
-
-            // Create a pending transaction
-            await Transaction.create({
-                userId,
-                type: 'deposit',
-                amount,
-                status: 'pending',
-                paymentMethod: 'stripe',
-                paymentDetails: {
-                    stripePaymentId: paymentIntent.id
-                }
-            });
-
-            return {
-                clientSecret: paymentIntent.client_secret,
-                paymentIntentId: paymentIntent.id
-            };
-        } catch (error) {
-            console.error('Error creating payment intent:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Create a payout for withdrawal
-     * @param {number} amount Amount in USD
-     * @param {string} userId User ID
-     * @param {string} accountId Stripe connected account ID
-     * @returns {Promise<Transaction>}
-     */
-    async createPayout(amount, userId, accountId) {
-        try {
-            const transfer = await stripe.transfers.create({
-                amount: amount * 100, // Convert to cents
-                currency: 'usd',
-                destination: accountId,
-                metadata: {
-                    userId,
-                    type: 'withdrawal'
-                }
-            });
-
-            // Create a completed transaction
-            const transaction = await Transaction.create({
-                userId,
-                type: 'withdrawal',
-                amount,
-                status: 'completed',
-                paymentMethod: 'stripe',
-                paymentDetails: {
-                    stripeTransferId: transfer.id
-                }
-            });
-
-            return transaction;
-        } catch (error) {
-            console.error('Error creating payout:', error);
-            throw error;
         }
     }
 
@@ -131,14 +48,12 @@ class StripeService {
             const stripeAccount = await stripe.accounts.retrieve(sellerStripeConnect.stripeAccountId);
             console.log('Stripe Account Details:', JSON.stringify({
                 id: stripeAccount.id?.substring(0, 10) + '...',
-                businessType: stripeAccount.business_type,
                 chargesEnabled: stripeAccount.charges_enabled,
                 payoutsEnabled: stripeAccount.payouts_enabled,
                 detailsSubmitted: stripeAccount.details_submitted,
                 businessProfile: {
                     name: stripeAccount.business_profile?.name,
-                    url: stripeAccount.business_profile?.url,
-                    productDescription: stripeAccount.business_profile?.product_description
+                    url: stripeAccount.business_profile?.url
                 },
                 capabilities: stripeAccount.capabilities,
                 requirementsDisabled: stripeAccount.requirements?.disabled_reason,
@@ -238,7 +153,10 @@ class StripeService {
             
             // Retrieve the session using the connected account
             const session = await stripe.checkout.sessions.retrieve(
-                sessionId
+                sessionId,
+                {
+                    stripeAccount: connectedAccountId
+                }
             );
 
             console.log('Retrieved session:', JSON.stringify({
@@ -262,11 +180,15 @@ class StripeService {
                 ideaId,
                 buyerId,
                 sellerId,
-                amount: parseFloat(amount),
-                platformFee: parseFloat(platformFee),
+                userId: buyerId, // The buyer is the user making the transaction
+                amountAUD: parseFloat(amount),
+                platformFeeAUD: parseFloat(platformFee),
                 stripeSessionId: session.id,
                 status: 'completed',
-                paymentIntentId: session.payment_intent
+                paymentDetails: {
+                    stripePaymentIntentId: session.payment_intent
+                },
+                type: 'idea_purchase'
             });
 
             await transaction.save();
@@ -283,38 +205,30 @@ class StripeService {
         }
     }
 
-    /**
-     * Handle Stripe webhook events
-     * @param {Object} event Stripe webhook event
-     * @returns {Promise<void>}
-     */
     async handleWebhookEvent(event) {
         try {
+            console.log('Processing webhook event:', event.type, event.id);
+            
             switch (event.type) {
-                case 'account.updated': {
-                    const account = event.data.object;
-                    
-                    // Update seller's account status
-                    await StripeConnect.findOneAndUpdate(
-                        { stripeAccountId: account.id },
-                        {
-                            accountStatus: account.charges_enabled ? 'active' : 'pending',
-                            payoutsEnabled: account.payouts_enabled,
-                            chargesEnabled: account.charges_enabled,
-                            detailsSubmitted: account.details_submitted
-                        }
-                    );
+                case 'checkout.session.completed': {
+                    const session = event.data.object;
+                    await this.handleSuccessfulPayment(session.id, session.metadata.connectedAccountId);
                     break;
                 }
-                
-                case 'payment_intent.succeeded':
-                    await this.handlePaymentSuccess(event.data.object);
+                case 'payment_intent.succeeded': {
+                    const paymentIntent = event.data.object;
+                    if (paymentIntent.metadata.type === 'idea_purchase') {
+                        // Already handled by checkout.session.completed
+                        console.log('Skipping payment_intent.succeeded for idea purchase');
+                    }
                     break;
-                case 'payment_intent.failed':
-                    await this.handlePaymentFailure(event.data.object);
-                    break;
-                case 'checkout.session.completed':
-                    await this.handleSuccessfulPayment(event.data.object.id, event.data.object.metadata.connectedAccountId);
+                }
+                case 'charge.succeeded':
+                case 'charge.updated':
+                case 'payment_intent.created':
+                case 'application_fee.created':
+                    // These events are informational and don't require specific handling
+                    console.log('Received informational event:', event.type);
                     break;
                 default:
                     console.log('Unhandled event type:', event.type);
@@ -322,38 +236,6 @@ class StripeService {
         } catch (error) {
             console.error('Error handling webhook event:', error);
             throw error;
-        }
-    }
-
-    /**
-     * Handle successful payment
-     * @param {Object} paymentIntent Stripe payment intent object
-     * @returns {Promise<void>}
-     */
-    async handlePaymentSuccess(paymentIntent) {
-        const transaction = await Transaction.findOne({
-            'paymentDetails.stripePaymentId': paymentIntent.id
-        });
-
-        if (transaction) {
-            transaction.status = 'completed';
-            await transaction.save();
-        }
-    }
-
-    /**
-     * Handle failed payment
-     * @param {Object} paymentIntent Stripe payment intent object
-     * @returns {Promise<void>}
-     */
-    async handlePaymentFailure(paymentIntent) {
-        const transaction = await Transaction.findOne({
-            'paymentDetails.stripePaymentId': paymentIntent.id
-        });
-
-        if (transaction) {
-            transaction.status = 'failed';
-            await transaction.save();
         }
     }
 }
