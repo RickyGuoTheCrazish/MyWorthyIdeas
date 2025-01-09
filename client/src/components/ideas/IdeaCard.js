@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCoins, FaStar } from 'react-icons/fa';
+import { FaCoins, FaStar, FaDollarSign } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import styles from './IdeaCard.module.css';
 
@@ -50,7 +50,13 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     console.log('Destructured idea properties:', { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt });
 
     const formatPrice = (price) => {
-        return typeof price === 'number' ? price.toFixed(2) : '0.00';
+        if (typeof price !== 'number' || isNaN(price)) {
+            return '0.00';
+        }
+        return price.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     };
 
     const formatDate = (dateString) => {
@@ -79,18 +85,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     };
 
     const formatRating = (rating) => {
-        console.log('formatRating input:', rating, typeof rating);
-        if (!rating || rating === 0) return 'N/A';
-        
-        try {
-            // Ensure we have a number
-            const numRating = Number(rating);
-            if (isNaN(numRating)) return 'N/A';
-            return numRating.toFixed(1);
-        } catch (error) {
-            console.error('Error formatting rating:', error);
-            return 'N/A';
-        }
+        return typeof rating === 'number' ? rating.toFixed(1) : '0.0';
     };
 
     return (
@@ -100,8 +95,8 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
             }
         }}>
             <div className={styles.priceTag}>
-                <FaCoins className={styles.priceIcon} />
-                {formatPrice(price)}
+                <FaDollarSign className={styles.currencyIcon} />
+                <span className={styles.amount}>{formatPrice(price)}</span>
             </div>
             <h3 className={styles.title}>{title}</h3>
 
@@ -131,18 +126,8 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
 
             {showRating && (
                 <div className={styles.rating}>
-                    <span>{rating || 0}</span>
-                    <div className={styles.stars}>
-                        {[1, 2, 3, 4, 5].map((star) => (
-                            <span 
-                                key={star} 
-                                className={styles.star}
-                                style={{ color: star <= (rating || 0) ? '#ffd700' : '#ccc' }}
-                            >
-                                ★
-                            </span>
-                        ))}
-                    </div>
+                    <FaStar className={styles.starIcon} />
+                    <span>{formatRating(rating)}</span>
                 </div>  
             )}
             <div className={styles.footer}>

@@ -19,24 +19,25 @@
 
 .priceTag {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #007bff;
-    opacity: 0.8;
+    top: 10px;
+    right: 10px;
+    background-color: #007bffcb;
     color: white;
     padding: 4px 8px;
     border-radius: 12px;
-    font-weight: 500;
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.85em;
+    font-size: 0.85rem;
     z-index: 1;
 }
 
-.priceIcon {
-    color: #ffd700;
-    font-size: 0.9em;
+.currencyIcon {
+    font-size: 0.8rem;
+}
+
+.amount {
+    font-weight: 500;
 }
 
 .idTag{
@@ -120,9 +121,9 @@
 .rating {
     display: flex;
     align-items: center;
-    gap: 6px;
-    color: #666;
-    font-size: 0.9em;
+    gap: 4px;
+    color: #ffd700;
+    font-size: 0.9rem;
 }
 
 .stars {
@@ -132,6 +133,10 @@
 
 .star {
     font-size: 0.9em;
+}
+
+.starIcon {
+    font-size: 0.9rem;
 }
 
 .creatorInfo {
@@ -162,11 +167,6 @@
     padding: 2px 8px;
     background: #f8f8f8;
     border-radius: 12px;
-}
-
-.starIcon {
-    color: #ffd700;
-    font-size: 0.9em;
 }
 
 .footer {
