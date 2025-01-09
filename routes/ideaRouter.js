@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const Idea = require("../db/ideaModel");
 const User = require("../db/userModel");
-const { auth, sellerAuth, buyerAuth } = require("../middlewares/auth");
+const { auth, sellerAuth, buyerAuth, optionalAuth } = require("../middlewares/auth");
 const stripeService = require("../services/stripeService");
 const { mongoose } = require("../db/connection");
 const { ideaCreationLimiter, ideaPurchaseLimiter } = require("../middlewares/rateLimiter");
@@ -358,21 +358,9 @@ router.post("/:ideaId/buy", auth, buyerAuth, ideaPurchaseLimiter, async (req, re
  * GET /ideas/:ideaId
  * Public endpoint - returns basic info for everyone, full content for creator/buyer
  */
-router.get("/:ideaId", async (req, res) => {
+router.get("/:ideaId", optionalAuth, async (req, res) => {
   try {
     const ideaId = req.params.ideaId;
-    let userId = null;
-    
-    // Check for authentication token
-    const token = req.headers.authorization?.split(' ')[1];
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        userId = decoded.userId;
-      } catch (err) {
-        console.log('Invalid token, proceeding as unauthenticated user');
-      }
-    }
     
     // Populate the creator => postedIdeas => rating, also the buyer if needed
     const idea = await Idea.findById(ideaId)
@@ -411,38 +399,43 @@ router.get("/:ideaId", async (req, res) => {
       categories: idea.categories,
       createdAt: idea.createdAt,
       updatedAt: idea.updatedAt,
-      rating: idea.rating
+      rating: idea.rating || null
     };
 
     // If user is not authenticated, return only public info
-    if (!userId) {
-      return res.json({ idea: baseIdea });
+    if (!req.user) {
+      return res.json({ 
+        message: "Idea fetched successfully",
+        idea: baseIdea 
+      });
     }
 
     // Check if user is creator or buyer
-    const isCreator = idea.creator._id.toString() === userId;
-    const isBuyer = idea.buyer && idea.buyer._id.toString() === userId;
+    const isCreator = idea.creator._id.toString() === req.userId;
+    const isBuyer = idea.buyer && idea.buyer._id.toString() === req.userId;
 
     // If user is creator or buyer, include full content
     if (isCreator || isBuyer) {
       return res.json({
+        message: "Idea fetched successfully",
         idea: {
           ...baseIdea,
           contentHtml: idea.contentHtml,
           buyer: sanitizeUser(idea.buyer),
           boughtAt: idea.boughtAt,
-          coverImage: idea.coverImage,
           contentImages: idea.contentImages
         }
       });
     }
 
     // For authenticated users who are not creator/buyer, return public info
-    return res.json({ idea: baseIdea });
-    
+    return res.json({ 
+      message: "Idea fetched successfully",
+      idea: baseIdea 
+    });
   } catch (error) {
-    console.error('Error in GET /:ideaId:', error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Error fetching idea:', error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

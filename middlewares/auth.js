@@ -146,4 +146,52 @@ const buyerAuth = async (req, res, next) => {
     }
 };
 
-module.exports = { auth, sellerAuth, buyerAuth };
+/**
+ * Optional authentication middleware
+ * Verifies JWT token if present, but doesn't require it
+ */
+const optionalAuth = async (req, res, next) => {
+    try {
+        // Get token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            // No token, proceed as unauthenticated
+            req.user = null;
+            return next();
+        }
+
+        const token = authHeader.split(' ')[1];
+        if (!token) {
+            req.user = null;
+            return next();
+        }
+
+        try {
+            // Verify token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            if (!decoded || !decoded.userId) {
+                req.user = null;
+                return next();
+            }
+
+            // Get user info
+            const user = await getUserInfo(decoded.userId);
+            
+            // Attach token and user info to request
+            req.token = token;
+            req.userId = decoded.userId;
+            req.user = user;
+        } catch (error) {
+            // Token verification failed, proceed as unauthenticated
+            req.user = null;
+        }
+        next();
+    } catch (error) {
+        console.error("Optional auth middleware error:", error);
+        // For optional auth, we'll still proceed even if there's an error
+        req.user = null;
+        next();
+    }
+};
+
+module.exports = { auth, sellerAuth, buyerAuth, optionalAuth };
