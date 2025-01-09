@@ -737,15 +737,18 @@ router.put("/:ideaId", auth, sellerAuth, validateIdeaFields, async (req, res) =>
     if (req.body.title !== undefined) idea.title = req.body.title;
     if (req.body.preview !== undefined) idea.preview = req.body.preview;
     if (req.body.priceAUD !== undefined) {
-      if (req.body.priceAUD < 0) {
-        return res.status(400).json({ error: 'Price cannot be negative' });
+      const price = parseFloat(req.body.priceAUD);
+      if (isNaN(price)) {
+        return res.status(400).json({ error: "Price must be a valid number" });
       }
-      idea.priceAUD = req.body.priceAUD;
+      if (price < 0) {
+        return res.status(400).json({ error: "Price must be a positive number" });
+      }
+      idea.priceAUD = price;
     }
 
     if (req.body.categories !== undefined) {
       idea.categories = req.body.categories || [];
-      // This will trigger the custom validation for sub if it doesn't match the main
     }
 
     await idea.save();
@@ -763,15 +766,15 @@ router.put("/:ideaId", auth, sellerAuth, validateIdeaFields, async (req, res) =>
         title: idea.title,
         preview: idea.preview,
         priceAUD: idea.priceAUD,
-        categories: idea.categories, // [{ main, sub }]
+        categories: idea.categories,
         creator: sanitizedCreator
       },
     });
   } catch (error) {
-    // If sub doesn't match main, you'll get a Mongoose validation error
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }
+    console.error('Error updating idea:', error);
     return res.status(500).json({ error: error.message });
   }
 });

@@ -352,11 +352,11 @@ const EditIdea = () => {
             const updateData = {
                 title: formData.title,
                 preview: formData.brief,
-                price: formData.price,
+                priceAUD: parseFloat(formData.price),
                 categories: categories
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}/edit`, {
+            const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {
@@ -438,9 +438,6 @@ const EditIdea = () => {
                                 />
                                 <span className={styles.currencyCode}>AUD</span>
                             </div>
-                            <p className={styles.helperText}>
-                                Set your idea's price in Australian Dollars. Platform fee: 10%
-                            </p>
                         </div>
                         <div className={styles.inputGroup}>
                             <label>Category:</label>
