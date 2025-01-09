@@ -482,7 +482,16 @@ router.get("/:userId/posted-ideas", auth, async (req, res) => {
     limit = parseInt(limit) || 12;
     const skip = (page - 1) * limit;
 
-    const user = await User.findById(userId).populate({
+    // Get user with averageRating
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Get user's average rating
+    const averageRating = await User.getAverageRating(userId);
+    
+    const userWithIdeas = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: false },  // Only get unsold ideas
       select: "title preview priceAUD thumbnailImage rating categories isSold createdAt",
@@ -493,10 +502,6 @@ router.get("/:userId/posted-ideas", auth, async (req, res) => {
       },
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
     const actualCount = await User.aggregate([
       { $match: { _id: user._id } },
       { $project: { postedCount: { $size: "$postedIdeas" } } },
@@ -505,12 +510,12 @@ router.get("/:userId/posted-ideas", auth, async (req, res) => {
     const totalPages = Math.ceil(totalPostedIdeas / limit);
 
     // Add seller information to each idea
-    const ideasWithSeller = user.postedIdeas.map(idea => ({
+    const ideasWithSeller = userWithIdeas.postedIdeas.map(idea => ({
       ...idea.toObject(),
       seller: {
         _id: user._id,
         username: user.username,
-        averageRating: user.averageRating || 0
+        averageRating: averageRating
       }
     }));
 
@@ -599,7 +604,16 @@ router.get("/:userId/sold-ideas", auth, async (req, res) => {
     limit = parseInt(limit) || 12;
     const skip = (page - 1) * limit;
 
-    const user = await User.findById(userId).populate({
+    // Get user with averageRating
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Get user's average rating
+    const averageRating = await User.getAverageRating(userId);
+
+    const userWithIdeas = await User.findById(userId).populate({
       path: "postedIdeas",
       match: { isSold: true },  // Only get sold ideas
       select: "title preview priceAUD thumbnailImage rating categories isSold createdAt",
@@ -609,10 +623,6 @@ router.get("/:userId/sold-ideas", auth, async (req, res) => {
         sort: { createdAt: -1 },
       },
     });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
 
     const actualCount = await User.aggregate([
       { $match: { _id: user._id } },
@@ -630,12 +640,12 @@ router.get("/:userId/sold-ideas", auth, async (req, res) => {
     const totalPages = Math.ceil(totalSoldIdeas / limit);
 
     // Add seller information to each idea
-    const ideasWithSeller = user.postedIdeas.map(idea => ({
+    const ideasWithSeller = userWithIdeas.postedIdeas.map(idea => ({
       ...idea.toObject(),
       seller: {
         _id: user._id,
         username: user.username,
-        averageRating: user.averageRating || 0
+        averageRating: averageRating
       }
     }));
 
