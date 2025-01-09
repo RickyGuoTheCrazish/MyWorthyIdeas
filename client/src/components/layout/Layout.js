@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
 import AuthModal from '../modals/AuthModal';
 import GuestModeIndicator from './WelcomeBack';
 import styles from './Layout.module.css';
-import { FaSearch, FaUser, FaCoins, FaCog, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import { FaSearch, FaUser, FaCoins, FaCog, FaSignOutAlt, FaChevronDown, FaShoppingBasket, FaCashRegister } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 const Layout = ({ children }) => {
@@ -115,7 +115,11 @@ const Layout = ({ children }) => {
             return (
                 <div className={styles.userSection}>
                     <div className={styles.credits}>
-                        <FaCoins className={styles.creditsIcon} />
+                        {userInfo.subscription === 'buyer' ? (
+                            <FaShoppingBasket className={styles.creditsIcon} />
+                        ) : (
+                            <FaCashRegister className={styles.creditsIcon} />
+                        )}
                         {userInfo.subscription === 'buyer' ? (
                             'buyer'
                         ) : (
@@ -124,8 +128,8 @@ const Layout = ({ children }) => {
                     </div>
                     <div className={styles.userInfo} ref={menuRef}>
                         <div className={styles.userName}>{userInfo.username}</div>
-                        <button 
-                            className={styles.userMenuButton} 
+                        <button
+                            className={styles.userMenuButton}
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                         >
                             <div className={styles.userAvatar}>
@@ -150,13 +154,13 @@ const Layout = ({ children }) => {
 
         return (
             <div className={styles.guestSection}>
-                <button 
+                <button
                     className={styles.loginButton}
                     onClick={() => handleAuthAction('login')}
                 >
                     Log In
                 </button>
-                <button 
+                <button
                     className={styles.signupButton}
                     onClick={() => handleAuthAction('signup')}
                 >
@@ -179,14 +183,14 @@ const Layout = ({ children }) => {
                         <input
                             type="text"
                             className={styles.searchInput}
-                            placeholder={searchType === 'title' 
-                                ? "Search ideas by title..." 
+                            placeholder={searchType === 'title'
+                                ? "Search ideas by title..."
                                 : "Search by ID (full ID or #XXXXXX format)"}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyPress={handleSearch}
                         />
-                        <select 
+                        <select
                             className={styles.searchType}
                             value={searchType}
                             onChange={(e) => setSearchType(e.target.value)}
@@ -202,7 +206,7 @@ const Layout = ({ children }) => {
                 </main>
             </div>
             {authModal.isOpen && (
-                <AuthModal 
+                <AuthModal
                     isOpen={authModal.isOpen}
                     mode={authModal.mode}
                     email={authModal.email}
