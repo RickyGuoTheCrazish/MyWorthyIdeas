@@ -28,6 +28,25 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
 
     const creatorRating = creator?.averageRating || 0;
 
+    // Get current user info from token
+    const token = localStorage.getItem('token');
+    let canEdit = false;
+
+    if (token) {
+        try {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const currentUserId = tokenPayload.userId;
+            const userType = tokenPayload.subscription;
+            
+            // Can edit if:
+            // 1. User is the creator/seller
+            // 2. User is a seller type
+            canEdit = (currentUserId === (creator?._id || seller?._id)) && userType === 'seller';
+        } catch (error) {
+            console.error('Error parsing token:', error);
+        }
+    }
+
     console.log('Destructured idea properties:', { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt });
 
     const formatPrice = (price) => {
@@ -103,6 +122,11 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                     <span>No Image</span>
                 </div>
                 <div className={styles.idTag}>{formatId(_id)}</div>
+                {boughtAt && (
+                    <div className={styles.purchaseDate}>
+                        {formatDate(boughtAt)}
+                    </div>
+                )}
             </div>
 
             {showRating && (
@@ -131,21 +155,26 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                         </div>
                     </div>
                 </div>
-                {mode === 'edit' && (
+                {canEdit ? (
                     <button 
-                        className={`${styles.actionButton} ${mode === 'edit' ? styles.editButton : styles.viewButton}`}
+                        className={`${styles.actionButton} ${styles.editButton}`}
                         onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/ideas/${_id}${mode === 'edit' ? '/edit' : ''}`);
+                            navigate(`/ideas/${_id}/edit`);
                         }}
                     >
-                        {mode === 'edit' ? 'Edit' : 'View'}
+                        Edit
                     </button>
-                )}
-                {_id && mode === 'view' && boughtAt && (
-                    <span className={styles.purchaseDate}>
-                        Purchased: {formatDate(boughtAt)}
-                    </span>
+                ) : (
+                    <button 
+                        className={`${styles.actionButton} ${styles.viewButton}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/ideas/${_id}`);
+                        }}
+                    >
+                        View
+                    </button>
                 )}
             </div>
         </div>

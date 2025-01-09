@@ -71,6 +71,8 @@
     padding-bottom: 100%; /* Creates 1:1 aspect ratio */
     border-radius: 4px;
     overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 12px;
 }
 
 .placeholder {
@@ -83,6 +85,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: #f5f5f5;
     color: #999;
     font-size: 0.9em;
     border-radius: 4px;
@@ -101,7 +104,17 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 4px;
+}
+
+.idTag {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    background-color: rgba(211, 211, 211, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 0px;
+    font-size: 0.8rem;
 }
 
 .rating {
@@ -186,8 +199,14 @@
 }
 
 .purchaseDate {
-    font-size: 0.8em;
-    color: #888;
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    background-color: rgba(211, 211, 211, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 0px;
+    font-size: 0.8rem;
 }
 
 .price {
