@@ -97,14 +97,14 @@ const ViewIdea = () => {
     }, [ideaId]);
 
     useEffect(() => {
-        // Check for Stripe success/cancel URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session_id');
         const success = urlParams.get('success');
         const canceled = urlParams.get('canceled');
 
-        if (sessionId && success === 'true') {
-            handlePaymentSuccess(sessionId);
+        if (success === 'true') {
+            // Just refresh the idea data and show success message
+            fetchIdea();
+            toast.success('Payment successful! The idea is now yours.');
         } else if (canceled === 'true') {
             toast.error('Payment was canceled.');
         }
@@ -115,22 +115,6 @@ const ViewIdea = () => {
             window.history.replaceState({}, '', newUrl);
         }
     }, []);
-
-    const handlePaymentSuccess = async (sessionId) => {
-        try {
-            const status = await getPaymentStatus(sessionId);
-            if (status.success) {
-                toast.success('Payment successful! The idea is now yours.');
-                // Refresh idea data to show updated status
-                fetchIdea();
-            } else {
-                toast.error('There was an issue with your payment. Please contact support.');
-            }
-        } catch (error) {
-            console.error('Error checking payment status:', error);
-            toast.error('Failed to verify payment status.');
-        }
-    };
 
     const handlePurchaseClick = () => {
         if (!isAuthenticated) {

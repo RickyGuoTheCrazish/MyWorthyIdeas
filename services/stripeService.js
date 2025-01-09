@@ -178,11 +178,10 @@ class StripeService {
             // Create transaction record
             const transaction = new Transaction({
                 ideaId,
-                buyerId,
-                sellerId,
                 userId: buyerId, // The buyer is the user making the transaction
                 amountAUD: parseFloat(amount),
                 platformFeeAUD: parseFloat(platformFee),
+                sellerId,
                 stripeSessionId: session.id,
                 status: 'completed',
                 paymentDetails: {
@@ -193,9 +192,12 @@ class StripeService {
 
             await transaction.save();
 
-            // Update idea status
-            await Idea.findByIdAndUpdate(ideaId, {
-                $set: { status: 'sold', buyerId }
+            // Update idea status to sold
+            await Idea.findByIdAndUpdate(ideaId, { 
+                isSold: true,
+                soldTo: buyerId,
+                soldAt: new Date(),
+                soldPrice: parseFloat(amount)
             });
 
             return transaction;

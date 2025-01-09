@@ -55,19 +55,4 @@ router.post('/create-checkout-session', auth, (req, res) => {
         });
 });
 
-// Get payment status
-router.get('/payment-status/:sessionId', auth, (req, res) => {
-    const { sessionId } = req.params;
-    
-    stripe.checkout.sessions.retrieve(sessionId)
-        .then(session => {
-            const success = session.payment_status === 'paid';
-            res.json({ success });
-        })
-        .catch(error => {
-            console.error('Error getting payment status:', error);
-            res.status(500).json({ message: error.message });
-        });
-});
-
 module.exports = router;
