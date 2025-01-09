@@ -11,6 +11,7 @@ import { FaCoins, FaEdit, FaShoppingCart, FaLock, FaStar, FaSignInAlt, FaTimes }
 import toast, { Toaster } from 'react-hot-toast';
 import 'react-quill/dist/quill.snow.css';
 import 'react-quill/dist/quill.bubble.css';
+import { createCheckoutSession, getPaymentStatus } from '../services/stripeService';
 
 const ViewIdea = () => {
     const { ideaId } = useParams();
@@ -19,9 +20,10 @@ const ViewIdea = () => {
     const [idea, setIdea] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [buyLoading, setBuyLoading] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+    const [processingPayment, setProcessingPayment] = useState(false);
+    const [buyLoading, setBuyLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [purchaseError, setPurchaseError] = useState(false);
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -30,8 +32,38 @@ const ViewIdea = () => {
     const [ratingLoading, setRatingLoading] = useState(false);
 
     const [userInfo, setUserInfo] = useState(null);
+    const fetchIdea = async () => {
+        try {
+            const headers = {};
+            const token = localStorage.getItem('token');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
+            const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
+                headers
+            });
 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch idea');
+            }
+
+            const data = await response.json();
+            console.log('Fetched idea:', data.idea);
+            setIdea(data.idea);
+            
+            if (token && data.idea.rating) {
+                console.log('Current rating:', data.idea.rating);
+                setUserRating(data.idea.rating);
+            }
+        } catch (error) {
+            console.error('Error fetching idea:', error);
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
     const fetchUserInfo = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -59,41 +91,75 @@ const ViewIdea = () => {
     }, []);
 
     useEffect(() => {
-        const fetchIdea = async () => {
-            try {
-                const headers = {};
-                const token = localStorage.getItem('token');
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
-                    headers
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to fetch idea');
-                }
-
-                const data = await response.json();
-                console.log('Fetched idea:', data.idea);
-                setIdea(data.idea);
-                
-                if (token && data.idea.rating) {
-                    console.log('Current rating:', data.idea.rating);
-                    setUserRating(data.idea.rating);
-                }
-            } catch (error) {
-                console.error('Error fetching idea:', error);
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+       
 
         fetchIdea();
     }, [ideaId]);
+
+    useEffect(() => {
+        // Check for Stripe success/cancel URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        const success = urlParams.get('success');
+        const canceled = urlParams.get('canceled');
+
+        if (sessionId && success === 'true') {
+            handlePaymentSuccess(sessionId);
+        } else if (canceled === 'true') {
+            toast.error('Payment was canceled.');
+        }
+
+        // Remove URL parameters
+        if (success || canceled) {
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+    }, []);
+
+    const handlePaymentSuccess = async (sessionId) => {
+        try {
+            const status = await getPaymentStatus(sessionId);
+            if (status.success) {
+                toast.success('Payment successful! The idea is now yours.');
+                // Refresh idea data to show updated status
+                fetchIdea();
+            } else {
+                toast.error('There was an issue with your payment. Please contact support.');
+            }
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            toast.error('Failed to verify payment status.');
+        }
+    };
+
+    const handlePurchaseClick = () => {
+        if (!isAuthenticated) {
+            toast.error('Please log in to purchase ideas');
+            setShowAuthModal(true);
+            return;
+        }
+
+        if (!userInfo || userInfo.subscription !== 'buyer') {
+            toast.error('Only buyers can purchase ideas. Please upgrade your account to buyer status.');
+            return;
+        }
+
+        setShowPurchaseModal(true);
+    };
+
+    const handlePurchaseConfirm = async (totalAmount) => {
+        try {
+            setProcessingPayment(true);
+            const session = await createCheckoutSession(ideaId, totalAmount);
+            
+            // Redirect to Stripe Checkout
+            window.location.href = session.url;
+        } catch (error) {
+            console.error('Error creating checkout session:', error);
+            toast.error(error.message || 'Failed to initiate payment');
+            setProcessingPayment(false);
+        }
+    };
 
     const handleBuy = async () => {
         if (!isAuthenticated) {
@@ -267,13 +333,6 @@ const ViewIdea = () => {
         );
     }
 
-    // Access level checks
-    // const isCreator = isAuthenticated && user?.userId === idea.creator._id;
-    // const isBuyer = isAuthenticated && idea.buyer && idea.buyer._id === user?.userId;
-    // const hasFullAccess = isCreator || isBuyer;
-    // const isIdeaSold = idea.isSold || !!idea.buyer;
-    // const canBuy = isAuthenticated && !isCreator && !isBuyer && user?.subscription === 'buyer' && !isIdeaSold;
-
     const isCreator = isAuthenticated && userInfo && idea?.creator._id === userInfo._id;
     const isBuyer = isAuthenticated && userInfo && idea?.buyer && idea.buyer._id === userInfo._id;
     const hasFullAccess = isCreator || isBuyer;
@@ -307,7 +366,7 @@ const ViewIdea = () => {
                     idea={idea}
                     userCredits={userInfo?.credits || 0}
                     onClose={() => setShowPurchaseModal(false)}
-                    onConfirm={handleBuy}
+                    onConfirm={handlePurchaseConfirm}
                 />
             )}
             {purchaseError && (
@@ -478,26 +537,30 @@ const ViewIdea = () => {
             </div>
 
             <div className={styles.actionContainer}>
-                {!isCreator && !isIdeaSold && (
-                    isAuthenticated ? (
-                        canBuy && (
-                            <button
-                                className={`${styles.actionButton} ${styles.buyButton}`}
-                                onClick={handleBuyClick}
-                                disabled={buyLoading}
-                            >
-                                <FaShoppingCart />
-                                {buyLoading ? 'Processing...' : 'Buy Now'}
-                            </button>
-                        )
-                    ) : (
-                        <button
-                            className={`${styles.actionButton} ${styles.loginButton}`}
-                            onClick={handleLogin}
-                        >
-                            <FaSignInAlt /> Login to Buy
-                        </button>
-                    )
+                {!isCreator && !isIdeaSold && 
+                 idea.creator._id !== userInfo?._id && 
+                 userInfo?.subscription === 'buyer' && (
+                    <button
+                        className={`${styles.actionButton} ${styles.buyButton}`}
+                        onClick={handlePurchaseClick}
+                        disabled={processingPayment}
+                    >
+                        {processingPayment ? 'Processing...' : 'Buy Now'}
+                    </button>
+                )}
+                {!isAuthenticated && (
+                    <button
+                        className={`${styles.actionButton} ${styles.loginButton}`}
+                        onClick={handleLogin}
+                    >
+                        <FaSignInAlt /> Login to Buy
+                    </button>
+                )}
+                {isAuthenticated && 
+                 userInfo?.subscription !== 'buyer' && (
+                    <div className={styles.upgradeBanner}>
+                        <p>Upgrade to buyer status to purchase ideas</p>
+                    </div>
                 )}
             </div>
         </div>

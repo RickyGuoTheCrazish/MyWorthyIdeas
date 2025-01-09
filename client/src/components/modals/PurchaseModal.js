@@ -1,26 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './PurchaseModal.module.css';
-import { FaCoins, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaTimes, FaDollarSign } from 'react-icons/fa';
 
-const PurchaseModal = ({ idea, userCredits, onClose, onConfirm }) => {
-    const [termsAccepted, setTermsAccepted] = useState(false);
+const PLATFORM_FEE_PERCENTAGE = 3;
 
-    const handleConfirm = () => {
-        if (!termsAccepted) {
-            return;
-        }
-        onConfirm();
-    };
+const PurchaseModal = ({ idea, onClose, onConfirm }) => {
+    if (!idea) return null;
 
     const formatPrice = (price) => {
         return typeof price === 'number' ? price.toFixed(2) : '0.00';
     };
 
+    const calculatePlatformFee = (price) => {
+        return (price * PLATFORM_FEE_PERCENTAGE) / 100;
+    };
+
+    const basePrice = parseFloat(idea.priceAUD) || 0;
+    const platformFee = calculatePlatformFee(basePrice);
+    const totalPrice = basePrice + platformFee;
+
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
-                    <h2>Purchase Idea</h2>
+                    <h2>Confirm Purchase</h2>
                     <button className={styles.closeButton} onClick={onClose}>
                         <FaTimes />
                     </button>
@@ -28,80 +31,43 @@ const PurchaseModal = ({ idea, userCredits, onClose, onConfirm }) => {
 
                 <div className={styles.modalContent}>
                     <div className={styles.ideaInfo}>
-                        {idea.thumbnailImage && (
-                            <img 
-                                src={idea.thumbnailImage} 
-                                alt={idea.title} 
-                                className={styles.coverImage}
-                            />
-                        )}
                         <h3>{idea.title}</h3>
                         <p className={styles.preview}>{idea.preview}</p>
                     </div>
 
-                    <div className={styles.priceInfo}>
+                    <div className={styles.priceBreakdown}>
                         <div className={styles.priceRow}>
-                            <span>Price:</span>
+                            <span>Base Price:</span>
                             <span className={styles.price}>
-                                <FaCoins /> {formatPrice(idea.price)}
+                                ${formatPrice(basePrice)} AUD
                             </span>
                         </div>
                         <div className={styles.priceRow}>
-                            <span>Your Credits:</span>
-                            <span className={styles.credits}>
-                                <FaCoins /> {formatPrice(userCredits)}
+                            <span>Platform Fee (3%):</span>
+                            <span className={styles.price}>
+                                ${formatPrice(platformFee)} AUD
                             </span>
                         </div>
-                        <div className={styles.priceRow}>
-                            <span>Remaining Credits:</span>
-                            <span className={styles.remaining}>
-                                <FaCoins /> {formatPrice(userCredits - idea.price)}
+                        <div className={styles.totalRow}>
+                            <span>Total:</span>
+                            <span className={styles.totalPrice}>
+                                ${formatPrice(totalPrice)} AUD
                             </span>
                         </div>
                     </div>
 
-                    <div className={styles.terms}>
-                        <h4>Terms and Conditions</h4>
-                        <div className={styles.termsContent}>
-                            <p>By purchasing this idea, you agree to the following terms:</p>
-                            <ul>
-                                <li>The purchase is final and non-refundable</li>
-                                <li>You will have immediate access to the full idea content</li>
-                                <li>Upon purchase, you acquire full intellectual property rights to the idea</li>
-                                <li>You may freely use, modify, resell, or redistribute the idea content</li>
-                                <li>The original creator relinquishes all rights to the idea upon sale</li>
-                                <li>You agree to provide a fair rating after reviewing the idea</li>
-                            </ul>
-                        </div>
-                        <label className={styles.termsCheckbox}>
-                            <input
-                                type="checkbox"
-                                checked={termsAccepted}
-                                onChange={(e) => setTermsAccepted(e.target.checked)}
-                            />
-                            I agree to the terms and conditions
-                        </label>
-                    </div>
-
-                    <div className={styles.modalActions}>
+                    <div className={styles.actions}>
                         <button 
                             className={styles.cancelButton} 
                             onClick={onClose}
                         >
                             Cancel
                         </button>
-                        <button
-                            className={`${styles.confirmButton} ${!termsAccepted ? styles.disabled : ''}`}
-                            onClick={handleConfirm}
-                            disabled={!termsAccepted}
+                        <button 
+                            className={styles.confirmButton} 
+                            onClick={() => onConfirm(totalPrice)}
                         >
-                            {!termsAccepted ? (
-                                'Please accept terms to continue'
-                            ) : (
-                                <>
-                                    <FaCheck /> Confirm Purchase
-                                </>
-                            )}
+                            Proceed to Payment
                         </button>
                     </div>
                 </div>

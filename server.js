@@ -12,6 +12,7 @@ const { globalLimiter } = require("./middlewares/rateLimiter");
 const userRouter = require('./routes/userRouter');
 const ideaRouter = require('./routes/ideaRouter');
 const stripeConnectRoutes = require('./routes/stripeConnectRoutes');
+const stripeRouter = require('./routes/stripeRouter');
 
 const app = express();
 
@@ -36,12 +37,15 @@ mongoose.connect(process.env.ATLAS_URL)
 
 // Create API router
 const apiRouter = express.Router();
-app.use('/api', apiRouter);
 
 // Mount routes on API router
 apiRouter.use('/users', userRouter);
 apiRouter.use('/ideas', ideaRouter);
 apiRouter.use('/stripe/connect', stripeConnectRoutes);
+apiRouter.use('/stripe', stripeRouter);
+
+// Mount API router
+app.use('/api', apiRouter);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
