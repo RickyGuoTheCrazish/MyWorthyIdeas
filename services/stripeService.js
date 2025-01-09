@@ -195,9 +195,13 @@ class StripeService {
             // Update idea status to sold
             await Idea.findByIdAndUpdate(ideaId, { 
                 isSold: true,
-                soldTo: buyerId,
-                soldAt: new Date(),
-                soldPrice: parseFloat(amount)
+                buyer: buyerId,
+                boughtAt: new Date()
+            });
+
+            // Update buyer's boughtIdeas array
+            await User.findByIdAndUpdate(buyerId, {
+                $addToSet: { boughtIdeas: ideaId }
             });
 
             return transaction;
