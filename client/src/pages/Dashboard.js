@@ -150,6 +150,7 @@ const Dashboard = () => {
                             creator: idea.seller // Map seller info to creator
                         }}
                         showStatus={true}
+                        showRating={true}
                     />
                 ))}
             </div>

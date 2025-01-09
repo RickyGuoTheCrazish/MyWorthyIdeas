@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCoins, FaStar, FaDollarSign } from 'react-icons/fa';
+import { FaCoins, FaStar, FaRegStar, FaStarHalfAlt, FaDollarSign } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import styles from './IdeaCard.module.css';
 
@@ -88,6 +88,25 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         return typeof rating === 'number' ? rating.toFixed(1) : '0.0';
     };
 
+    const renderStars = (rating) => {
+        const stars = [];
+        const roundedRating = Math.round(rating * 2) / 2; // Round to nearest 0.5
+        
+        for (let i = 1; i <= 5; i++) {
+            if (roundedRating >= i) {
+                // Full star
+                stars.push(<FaStar key={i} className={styles.starIcon} />);
+            } else if (roundedRating === i - 0.5) {
+                // Half star
+                stars.push(<FaStarHalfAlt key={i} className={styles.starIcon} />);
+            } else {
+                // Empty star
+                stars.push(<FaRegStar key={i} className={styles.starIcon} />);
+            }
+        }
+        return stars;
+    };
+
     return (
         <div className={styles.ideaCard} onClick={(e) => {
             if (_id && e.target.closest(`.${styles.actionButton}`) === null) {
@@ -126,7 +145,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
 
             {showRating && (
                 <div className={styles.rating}>
-                    <FaStar className={styles.starIcon} />
+                    {renderStars(rating)}
                     <span>{formatRating(rating)}</span>
                 </div>  
             )}
@@ -135,7 +154,7 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                     <div className={styles.sellerName}>
                         {(seller?.username || creator?.username) || 'Unknown Seller'}
                         <div className={styles.creatorRating}>
-                            <FaStar className={styles.starIcon} />
+                            <FaStar className={styles.starIconAverageRating} />
                             <span>{formatRating(creatorRating)}</span>
                         </div>
                     </div>
