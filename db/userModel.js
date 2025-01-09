@@ -66,9 +66,7 @@ const userSchema = new mongoose.Schema({
         }
     }
 }, {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    timestamps: true
 });
 
 // Pre-save middleware to hash password
@@ -86,24 +84,29 @@ userSchema.methods.comparePassword = function(candidatePassword) {
     return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
-// Virtual: averageRating
-userSchema.virtual("averageRating").get(function() {
-    if (!this.postedIdeas || this.postedIdeas.length === 0) {
+// Static method to get average rating
+userSchema.statics.getAverageRating = async function(userId) {
+    try {
+        const ideas = await mongoose.model('Idea').find({
+            creator: userId,
+            rating: { $exists: true, $ne: null }
+        }).select('rating');
+
+        if (!ideas || ideas.length === 0) {
+            return 0;
+        }
+
+        const sum = ideas.reduce((acc, idea) => acc + idea.rating, 0);
+        return Number((sum / ideas.length).toFixed(1));
+    } catch (error) {
+        console.error('Error calculating average rating:', error);
         return 0;
     }
+};
 
-    let sum = 0;
-    let count = 0;
-
-    this.postedIdeas.forEach(idea => {
-        if (idea.rating != null) {
-            sum += idea.rating;
-            count++;
-        }
-    });
-
-    return count > 0 ? sum / count : 0;
-});
+// Configure toJSON to include virtuals
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 const User = mongoose.model('User', userSchema);
 

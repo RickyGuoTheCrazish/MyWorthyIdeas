@@ -60,8 +60,18 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
     };
 
     const formatRating = (rating) => {
+        console.log('formatRating input:', rating, typeof rating);
         if (!rating || rating === 0) return 'N/A';
-        return rating.toFixed(1);
+        
+        try {
+            // Ensure we have a number
+            const numRating = Number(rating);
+            if (isNaN(numRating)) return 'N/A';
+            return numRating.toFixed(1);
+        } catch (error) {
+            console.error('Error formatting rating:', error);
+            return 'N/A';
+        }
     };
 
     return (

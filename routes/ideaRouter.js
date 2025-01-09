@@ -87,13 +87,26 @@ router.get("/by-category", async (req, res) => {
       .select("title preview priceAUD thumbnailImage rating categories creator createdAt")
       .populate({
         path: 'creator',
-        select: 'username averageRating'
+        select: 'username'
       })
+      .lean()
       .sort(sortOptions)
       .skip(skip)
       .limit(limit);
 
-    if (!ideas || ideas.length === 0) {
+    // Calculate average ratings for creators
+    const populatedIdeas = await Promise.all(ideas.map(async (idea) => {
+      const averageRating = await User.getAverageRating(idea.creator._id);
+      return {
+        ...idea,
+        creator: {
+          ...idea.creator,
+          averageRating
+        }
+      };
+    }));
+
+    if (!populatedIdeas || populatedIdeas.length === 0) {
       return res.status(404).json({ 
         message: "No ideas found",
         debug: {
@@ -106,8 +119,8 @@ router.get("/by-category", async (req, res) => {
     }
 
     // Transform ideas to include seller info
-    const transformedIdeas = ideas.map(idea => ({
-      ...idea.toObject(),
+    const transformedIdeas = populatedIdeas.map(idea => ({
+      ...idea,
       seller: {
         _id: idea.creator._id,
         username: idea.creator.username,
@@ -476,15 +489,28 @@ router.get("/", async (req, res) => {
           .sort(sortOptions)
           .skip(skip)
           .limit(limit)
-          .populate('creator', 'username averageRating');
+          .populate('creator', 'username')
+          .lean();
+
+      // Calculate average ratings for creators
+      const populatedIdeas = await Promise.all(ideas.map(async (idea) => {
+        const averageRating = await User.getAverageRating(idea.creator._id);
+        return {
+          ...idea,
+          creator: {
+            ...idea.creator,
+            averageRating
+          }
+        };
+      }));
 
       // Count total documents for pagination
       const totalIdeas = await Idea.countDocuments(query);
       const totalPages = Math.ceil(totalIdeas / limit);
 
       // Format response to match category route
-      const formattedIdeas = ideas.map(idea => ({
-          ...idea.toObject(),
+      const formattedIdeas = populatedIdeas.map(idea => ({
+          ...idea,
           seller: {
               _id: idea.creator._id,
               username: idea.creator.username,
