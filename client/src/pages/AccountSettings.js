@@ -100,15 +100,30 @@ const AccountSettings = () => {
                 <div className={styles.settingsSection}>
                     <h2>Account Settings</h2>
                     
-                    <div className={styles.profileInfo}>
-                        <p><strong>Username:</strong> {userData.username}</p>
-                        <p><strong>Email:</strong> {userData.email}</p>
-                        <p><strong>Account Type:</strong> {userData.subscription}</p>
+                    <div className={styles.profileCard}>
+                        <div className={styles.profileInfo}>
+                            <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Username</span>
+                                <span className={styles.infoValue}>{userData.username}</span>
+                            </div>
+                            <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Email</span>
+                                <span className={styles.infoValue}>{userData.email}</span>
+                            </div>
+                            <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Account Type</span>
+                                <span className={styles.infoValue}>
+                                    <span className={`${styles.accountBadge} ${styles[userData.subscription]}`}>
+                                        {userData.subscription}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {userData.subscription === 'seller' && (
                         <div className={styles.stripeConnectSection}>
-                            <h3>Stripe Connect</h3>
+                            {/* <h3>Stripe Connect</h3> */}
                             <StripeConnectSection />
                         </div>
                     )}
