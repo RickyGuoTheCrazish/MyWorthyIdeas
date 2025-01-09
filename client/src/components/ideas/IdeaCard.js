@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCoins } from 'react-icons/fa';
+import { FaCoins, FaStar } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import styles from './IdeaCard.module.css';
 
@@ -25,6 +25,8 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         thumbnailImage = '',
         boughtAt = null
     } = idea;
+
+    const creatorRating = creator?.averageRating || 0;
 
     console.log('Destructured idea properties:', { _id, title, rating, price, seller, creator, thumbnailImage, boughtAt });
 
@@ -57,6 +59,11 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
         }
     };
 
+    const formatRating = (rating) => {
+        if (!rating || rating === 0) return 'N/A';
+        return rating.toFixed(1);
+    };
+
     return (
         <div className={styles.ideaCard} onClick={(e) => {
             if (_id && e.target.closest(`.${styles.actionButton}`) === null) {
@@ -68,7 +75,6 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 {formatPrice(price)}
             </div>
             <h3 className={styles.title}>{title}</h3>
-            <div className={styles.idTag}>{formatId(_id)}</div>
 
             <div className={styles.imageContainer}>
                 {thumbnailImage ? (
@@ -86,7 +92,9 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 <div className={styles.placeholder} style={{ display: thumbnailImage ? 'none' : 'flex' }}>
                     <span>No Image</span>
                 </div>
+                <div className={styles.idTag}>{formatId(_id)}</div>
             </div>
+
             {showRating && (
                 <div className={styles.rating}>
                     <span>{rating || 0}</span>
@@ -104,17 +112,16 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                 </div>  
             )}
             <div className={styles.footer}>
-                <div className={styles.sellerInfo}>          
-                    <span className={styles.sellerName}>
+                <div className={styles.sellerInfo}>
+                    <div className={styles.sellerName}>
                         {(seller?.username || creator?.username) || 'Unknown Seller'}
-                    </span>
-                    {mode === 'view' && boughtAt && (
-                        <span className={styles.purchaseDate}>
-                            Purchased: {formatDate(boughtAt)}
-                        </span>
-                    )}
+                        <div className={styles.creatorRating}>
+                            <FaStar className={styles.starIcon} />
+                            <span>{formatRating(creatorRating)}</span>
+                        </div>
+                    </div>
                 </div>
-                {_id && (
+                {mode === 'edit' && (
                     <button 
                         className={`${styles.actionButton} ${mode === 'edit' ? styles.editButton : styles.viewButton}`}
                         onClick={(e) => {
@@ -124,6 +131,11 @@ const IdeaCard = ({ idea, mode = 'edit', showRating = false }) => {
                     >
                         {mode === 'edit' ? 'Edit' : 'View'}
                     </button>
+                )}
+                {_id && mode === 'view' && boughtAt && (
+                    <span className={styles.purchaseDate}>
+                        Purchased: {formatDate(boughtAt)}
+                    </span>
                 )}
             </div>
         </div>
