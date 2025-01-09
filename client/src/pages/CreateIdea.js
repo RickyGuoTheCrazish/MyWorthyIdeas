@@ -538,7 +538,12 @@ const CreateIdea = () => {
                                         <span className={styles.currencyCode}>AUD</span>
                                     </div>
                                 </div>
-                                <span className={styles.priceHint}>Enter whole numbers only</span>
+                                <div className={styles.feeInfo}>
+                                    <span className={styles.priceHint}>Enter whole numbers only</span>
+                                    <span className={styles.feeNote}>
+                                         *platform application fee & Stripe processing fees will be applied, please check T&Cs for details. 
+                                    </span>
+                                </div>
                             </div>
                             <div className={styles.inputGroup}>
                                 <label>Category:</label>

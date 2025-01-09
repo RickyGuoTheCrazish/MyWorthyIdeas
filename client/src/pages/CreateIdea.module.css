@@ -789,6 +789,24 @@
     margin-left: 4px;
 }
 
+.feeInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.feeNote {
+    font-size: 0.8em;
+    color: #666;
+    font-style: italic;
+}
+
+.priceHint {
+    font-size: 0.8em;
+    color: #666;
+}
+
 /* Add some breathing room for mobile devices */
 @media (max-width: 600px) {
     .navigation {
