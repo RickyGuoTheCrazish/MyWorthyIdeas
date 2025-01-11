@@ -127,56 +127,59 @@ const AccountSettings = () => {
 
     if (isLoading) {
         return (
-            <div className={styles.loadingContainer}>
-                <FaSpinner className={styles.spinnerIcon} />
+            <div className={styles.loading}>
+                <FaSpinner className={styles.spinner} />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className={styles.errorContainer}>
-                <p>Error loading account settings: {error}</p>
-            </div>
+            <div className={styles.error}>{error}</div>
         );
     }
 
     if (!userData) {
         return (
-            <div className={styles.loadingContainer}>
+            <div className={styles.loading}>
                 <p>Please log in to view account settings.</p>
             </div>
         );
     }
 
     return (
-        <div className={styles.accountSettingsContainer}>
-            <div className={styles.contentContainer}>
-                <div className={styles.settingsSection}>
-                    <h2>Account Settings</h2>
-                    
-                    <div className={styles.profileCard}>
+        <div className={styles.container}>
+            <h1 className={styles.pageTitle}>Account Settings</h1>
+            <div className={styles.content}>
+                {/* First Row: User Info and Password Change */}
+                <div className={styles.row}>
+                    {/* User Info Section */}
+                    <div className={styles.card}>
+                        <h2>Profile Information</h2>
                         <div className={styles.profileInfo}>
                             <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Username</span>
-                                <span className={styles.infoValue}>{userData.username}</span>
+                                <label>Username</label>
+                                <p>{userData?.username}</p>
                             </div>
                             <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Email</span>
-                                <span className={styles.infoValue}>{userData.email}</span>
+                                <label>Email</label>
+                                <p>{userData?.email}</p>
                             </div>
                             <div className={styles.infoItem}>
-                                <span className={styles.infoLabel}>Account Type</span>
-                                <span className={styles.infoValue}>
-                                    <span className={`${styles.accountBadge} ${styles[userData.subscription]}`}>
-                                        {userData.subscription}
-                                    </span>
-                                </span>
+                                <label>Account Type</label>
+                                <p className={styles.accountType}>
+                                    {userData?.subscription === 'seller' ? (
+                                        <span className={styles.sellerBadge}>Seller</span>
+                                    ) : (
+                                        <span className={styles.buyerBadge}>Buyer</span>
+                                    )}
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className={styles.passwordSection}>
+                    {/* Password Change Section */}
+                    <div className={styles.card}>
                         <h2>Change Password</h2>
                         <form onSubmit={handlePasswordChange} className={styles.passwordForm}>
                             <div className={styles.formGroup}>
@@ -217,14 +220,17 @@ const AccountSettings = () => {
                             </button>
                         </form>
                     </div>
-
-                    {userData.subscription === 'seller' && (
-                        <div className={styles.stripeConnectSection}>
-                            {/* <h3>Stripe Connect</h3> */}
-                            <StripeConnectSection />
-                        </div>
-                    )}
                 </div>
+
+                {/* Second Row: Payment Settings (for sellers only) */}
+                {userData?.subscription === 'seller' && (
+                    <div className={styles.row}>
+                        <div className={styles.card + ' ' + styles.fullWidth}>
+                            <h2>Payment Settings</h2>
+                            <StripeConnectSection userData={userData} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
