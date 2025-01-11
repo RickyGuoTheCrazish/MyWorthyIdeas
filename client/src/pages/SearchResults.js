@@ -72,12 +72,7 @@ const SearchResults = () => {
             ) : (
                 <div className={styles.resultsGrid}>
                     {results.map(idea => (
-                        <IdeaCard
-                            key={idea._id}
-                            idea={idea}
-                            mode="view"
-                            showRating={true}
-                        />
+                        <IdeaCard key={idea._id} idea={idea} />
                     ))}
                 </div>
             )}

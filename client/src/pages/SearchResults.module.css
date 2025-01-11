@@ -42,3 +42,67 @@
     border-radius: 8px;
     margin: 24px 0;
 }
+  
+
+.emptyStateImage {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 1.5rem;
+}
+
+.noResults h2 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.noResults p {
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.pageButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pageButton:hover {
+    background: #f8f9fa;
+    border-color: #aaa;
+}
+
+.activePage {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.activePage:hover {
+    background: #2980b9;
+    border-color: #2980b9;
+}
+
+@media (max-width: 768px) {
+    .searchResults {
+        padding: 1rem;
+    }
+
+    .ideasGrid {
+        gap: 1rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+}
