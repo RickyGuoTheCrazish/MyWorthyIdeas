@@ -7,12 +7,19 @@ import stripeConnectService from '../services/stripeConnectService';
 import { useLocation } from 'react-router-dom';
 
 const AccountSettings = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, userId } = useAuth();
     const [userData, setUserData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const location = useLocation();
     const processedCode = useRef(false);
+    
+    // Password change state
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -70,6 +77,54 @@ const AccountSettings = () => {
         }
     }, [location.search]);
 
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        
+        // Reset states
+        setPasswordError('');
+        setPasswordSuccess('');
+        
+        // Validate passwords match
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Passwords do not match');
+            return;
+        }
+        
+        // Validate password requirements
+        if (newPassword.length < 6 || !/[a-zA-Z]/.test(newPassword) || !/[\d_-]/.test(newPassword)) {
+            setPasswordError('Password must be at least 6 characters and contain a letter and a number/symbol');
+            return;
+        }
+
+        setIsChangingPassword(true);
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:6001/api/users/change-password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ newPassword })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to change password');
+            }
+
+            setPasswordSuccess('Password changed successfully! Please use your new password next time you log in.');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err) {
+            console.error('Error changing password:', err);
+            setPasswordError(err.message);
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className={styles.loadingContainer}>
@@ -119,6 +174,48 @@ const AccountSettings = () => {
                                 </span>
                             </div>
                         </div>
+                    </div>
+
+                    <div className={styles.passwordSection}>
+                        <h2>Change Password</h2>
+                        <form onSubmit={handlePasswordChange} className={styles.passwordForm}>
+                            <div className={styles.formGroup}>
+                                <label htmlFor="newPassword">New Password</label>
+                                <input
+                                    type="password"
+                                    id="newPassword"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className={styles.input}
+                                    required
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label htmlFor="confirmPassword">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className={styles.input}
+                                    required
+                                />
+                            </div>
+                            {passwordError && <div className={styles.error}>{passwordError}</div>}
+                            {passwordSuccess && <div className={styles.success}>{passwordSuccess}</div>}
+                            <button 
+                                type="submit" 
+                                className={styles.button}
+                                disabled={isChangingPassword}
+                            >
+                                {isChangingPassword ? (
+                                    <>
+                                        <FaSpinner className={styles.spinner} />
+                                        Changing Password...
+                                    </>
+                                ) : 'Change Password'}
+                            </button>
+                        </form>
                     </div>
 
                     {userData.subscription === 'seller' && (

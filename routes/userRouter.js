@@ -671,11 +671,10 @@ router.get("/:userId/sold-ideas", auth, async (req, res) => {
 
 /*
   11) CHANGE PASSWORD
-  PUT /users/:userId/change-password
+  PUT /users/change-password
 */
-router.put("/:userId/change-password", auth, async (req, res) => {
+router.put("/change-password", auth, async (req, res) => {
   try {
-    const userId = req.params.userId;
     const { newPassword } = req.body;
 
     if (!newPassword) {
@@ -688,14 +687,7 @@ router.put("/:userId/change-password", auth, async (req, res) => {
       });
     }
 
-    // Must be same user
-    if (userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        message: "Not authorized to change this user's password.",
-      });
-    }
-
-    const user = await User.findById(userId);
+    const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
