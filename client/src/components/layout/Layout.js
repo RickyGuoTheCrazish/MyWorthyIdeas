@@ -176,7 +176,7 @@ const Layout = ({ children }) => {
             <div className={styles.mainContent}>
                 <header className={styles.header}>
                     <div className={styles.logo}>
-                        <Link to="/">IdeasForce</Link>
+                        <Link to="/">MyWorthyIdeas</Link>
                     </div>
                     <div className={styles.searchContainer}>
                         <FaSearch className={styles.searchIcon} />

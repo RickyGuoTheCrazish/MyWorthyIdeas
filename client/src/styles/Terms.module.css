@@ -1,0 +1,125 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.pageTitle {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 2rem;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.section {
+    margin-bottom: 2rem;
+}
+
+.section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+.card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card h3 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #2c3e50;
+    margin: 1.5rem 0 1rem;
+}
+
+.card h3:first-child {
+    margin-top: 0;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+}
+
+.list li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    color: #4a4a4a;
+}
+
+.list li::before {
+    content: "•";
+    position: absolute;
+    left: 0.5rem;
+    color: #1976d2;
+}
+
+.link {
+    color: #1976d2;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+}
+
+.link:hover {
+    color: #1565c0;
+    text-decoration: underline;
+}
+
+.linkIcon {
+    font-size: 0.875rem;
+}
+
+.contact {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.contact h3 {
+    margin-top: 0;
+}
+
+.contact p {
+    color: #4a4a4a;
+    line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .card {
+        padding: 1.5rem;
+    }
+
+    .pageTitle {
+        font-size: 1.75rem;
+    }
+
+    .section h2 {
+        font-size: 1.25rem;
+    }
+
+    .card h3 {
+        font-size: 1.125rem;
+    }
+}

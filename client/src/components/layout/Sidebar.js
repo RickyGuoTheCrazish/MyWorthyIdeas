@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
+import { FaHome, FaSearch, FaPlus, FaCog, FaHistory, FaGavel } from 'react-icons/fa';
 
 // Import categories from ideaModel constants
 const CATEGORIES = {

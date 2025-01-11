@@ -12,6 +12,7 @@ import SearchResults from './pages/SearchResults';
 import AccountSettings from './pages/AccountSettings';
 import PaymentSuccess from './pages/PaymentSuccess';
 import StripeConnectCallback from './pages/StripeConnectCallback'; // Import StripeConnectCallback component
+import Terms from "./pages/Terms";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Protected Route component
@@ -100,6 +101,14 @@ const AppRoutes = () => {
             <SearchResults />
           </Layout>
         } 
+      />
+      <Route
+        path="/terms"
+        element={
+          <Layout>
+            <Terms />
+          </Layout>
+        }
       />
 
       {/* Protected routes with Layout */}
