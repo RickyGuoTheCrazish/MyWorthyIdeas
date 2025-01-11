@@ -41,7 +41,8 @@ const ViewIdea = () => {
             }
 
             const response = await fetch(`http://localhost:6001/api/ideas/${ideaId}`, {
-                headers
+                headers,
+                credentials: 'include'
             });
 
             if (!response.ok) {

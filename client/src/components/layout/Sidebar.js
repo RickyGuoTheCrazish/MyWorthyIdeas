@@ -56,40 +56,48 @@ const Sidebar = () => {
         }
     }, [isAuthenticated]);
 
-    useEffect(() => {
-        const fetchRecentIdeas = async () => {
-            if (!isAuthenticated) return;
-            
-            setRecentLoading(true);
-            setRecentError(null);
+    const fetchRecentIdeas = async () => {
+        if (!isAuthenticated) return;
+        
+        setRecentLoading(true);
+        setRecentError(null);
 
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:6001/api/ideas/recent', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: 'include' // Important: include cookies in request
-                });
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:6001/api/ideas/recent', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include' // Important: include cookies in request
+            });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch recent ideas');
-                }
-
-                const data = await response.json();
-                setRecentIdeas(data.ideas || []);
-            } catch (err) {
-                console.error('Error fetching recent ideas:', err);
-                setRecentError(err.message);
-            } finally {
-                setRecentLoading(false);
+            if (!response.ok) {
+                throw new Error('Failed to fetch recent ideas');
             }
-        };
 
+            const data = await response.json();
+            setRecentIdeas(data.ideas || []);
+        } catch (err) {
+            console.error('Error fetching recent ideas:', err);
+            setRecentError(err.message);
+        } finally {
+            setRecentLoading(false);
+        }
+    };
+
+    // Fetch recent ideas when the section is expanded
+    useEffect(() => {
         if (expandedCategories.recent) {
             fetchRecentIdeas();
         }
-    }, [expandedCategories.recent, isAuthenticated]);
+    }, [expandedCategories.recent]);
+
+    // Also fetch when location changes (i.e., when viewing a new idea)
+    useEffect(() => {
+        if (expandedCategories.recent) {
+            fetchRecentIdeas();
+        }
+    }, [location.pathname, expandedCategories.recent]);
 
     const isSeller = userInfo?.subscription === 'seller';
 

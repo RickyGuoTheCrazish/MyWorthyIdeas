@@ -508,7 +508,7 @@ router.get("/:ideaId", optionalAuth, async (req, res) => {
 
         // Add to recent ideas cookie if user is authenticated
         if (req.headers.authorization) {
-            const MAX_RECENT = 10;
+            const MAX_RECENT = 5;
             const recentIds = req.cookies.recentIdeas ? JSON.parse(req.cookies.recentIdeas) : [];
             
             // Remove if exists and add to front
