@@ -151,18 +151,47 @@ router.get("/by-category", async (req, res) => {
 // Search ideas by title or ID (must be before :ideaId routes)
 router.get("/search", auth, async (req, res) => {
   try {
-    const { type = 'title', query = '' } = req.query;
+    const { type = 'title', query = '', page = 1, limit = 12, sortBy = 'newest' } = req.query;
+    const skip = (page - 1) * parseInt(limit);
     
     if (!query.trim()) {
       return res.status(400).json({ message: "Search query is required" });
     }
+
+    // Build sort options
+    let sortOptions = {};
+    switch (sortBy) {
+      case 'price-low':
+        sortOptions = { priceAUD: 1 };
+        break;
+      case 'price-high':
+        sortOptions = { priceAUD: -1 };
+        break;
+      case 'rating':
+        sortOptions = { rating: -1 };
+        break;
+      case 'newest':
+      default:
+        sortOptions = { createdAt: -1 };
+    }
+
+    let searchQuery;
+    let totalCount;
+    let ideas;
 
     if (type === 'id') {
       // Clean up the ID by removing # and whitespace, and take last 6 characters
       const cleanId = query.replace('#', '').trim().toUpperCase().slice(-6);
       
       // Use aggregation pipeline to match the last 6 characters of the _id
-      const ideas = await Idea.aggregate([
+      const matchStage = {
+        $match: {
+          shortId: cleanId,
+          isSold: { $ne: true }
+        }
+      };
+
+      const pipeline = [
         {
           $addFields: {
             shortId: {
@@ -176,62 +205,95 @@ router.get("/search", auth, async (req, res) => {
             }
           }
         },
+        matchStage,
+        { $sort: sortOptions },
+        { $skip: skip },
+        { $limit: parseInt(limit) }
+      ];
+
+      // Get total count for pagination
+      totalCount = await Idea.aggregate([
         {
-          $match: {
-            shortId: cleanId,
-            isSold: { $ne: true }
+          $addFields: {
+            shortId: {
+              $toUpper: {
+                $substr: [
+                  { $toString: "$_id" },
+                  { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
+                  6
+                ]
+              }
+            }
           }
         },
-        {
-          $limit: 20
-        }
+        matchStage,
+        { $count: "total" }
       ]);
 
-      // Populate creator information
-      await Idea.populate(ideas, { path: 'creator', select: 'username averageRating' });
+      totalCount = totalCount[0]?.total || 0;
+      ideas = await Idea.aggregate(pipeline);
+      await Idea.populate(ideas, {
+        path: 'creator',
+        select: 'username'
+      });
 
-      // Map ideas to include only necessary fields
-      const sanitizedIdeas = ideas.map(idea => ({
-        _id: idea._id,
-        title: idea.title,
-        priceAUD: idea.priceAUD,
-        thumbnailImage: idea.thumbnailImage,
-        creator: {
-          username: idea.creator?.username,
-          averageRating: idea.creator?.averageRating
-        },
-        categories: idea.categories,
-        isSold: idea.isSold
-      }));
-
-      return res.json({ ideas: sanitizedIdeas });
     } else {
       // If searching by title, use case-insensitive partial match
-      const searchQuery = {
+      searchQuery = {
         title: new RegExp(query.trim(), 'i'),
         isSold: { $ne: true }
       };
 
-      const ideas = await Idea.find(searchQuery)
-        .populate('creator', 'username averageRating')
-        .limit(20);
+      // Get total count for pagination
+      totalCount = await Idea.countDocuments(searchQuery);
 
-      // Map ideas to include only necessary fields
-      const sanitizedIdeas = ideas.map(idea => ({
-        _id: idea._id,
-        title: idea.title,
-        priceAUD: idea.priceAUD,
-        thumbnailImage: idea.thumbnailImage,
-        creator: {
-          username: idea.creator?.username,
-          averageRating: idea.creator?.averageRating
-        },
-        categories: idea.categories,
-        isSold: idea.isSold
-      }));
-
-      return res.json({ ideas: sanitizedIdeas });
+      // Fetch ideas
+      ideas = await Idea.find(searchQuery)
+        .select("title preview priceAUD thumbnailImage rating categories creator createdAt")
+        .populate({
+          path: 'creator',
+          select: 'username'
+        })
+        .lean()
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(parseInt(limit));
     }
+
+    // Calculate average ratings for creators
+    const populatedIdeas = await Promise.all(ideas.map(async (idea) => {
+      const averageRating = await User.getAverageRating(idea.creator._id);
+      return {
+        ...idea,
+        creator: {
+          ...idea.creator,
+          averageRating
+        }
+      };
+    }));
+
+    // Transform ideas to include seller info
+    const transformedIdeas = populatedIdeas.map(idea => ({
+      ...idea,
+      seller: {
+        _id: idea.creator._id,
+        username: idea.creator.username,
+        averageRating: idea.creator.averageRating || 0
+      }
+    }));
+
+    const response = {
+      message: "Search completed successfully",
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / limit),
+        pageSize: parseInt(limit),
+        totalItems: totalCount,
+      },
+      ideas: transformedIdeas,
+    };
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error('Search error:', error);
     return res.status(500).json({ 
