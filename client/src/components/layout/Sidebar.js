@@ -20,6 +20,9 @@ const Sidebar = () => {
     const { isAuthenticated } = useAuth();
     const [expandedCategories, setExpandedCategories] = useState({});
     const [userInfo, setUserInfo] = useState(null);
+    const [recentIdeas, setRecentIdeas] = useState([]);
+    const [recentLoading, setRecentLoading] = useState(false);
+    const [recentError, setRecentError] = useState(null);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -52,6 +55,41 @@ const Sidebar = () => {
             setUserInfo(null);
         }
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        const fetchRecentIdeas = async () => {
+            if (!isAuthenticated) return;
+            
+            setRecentLoading(true);
+            setRecentError(null);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://localhost:6001/api/ideas/recent', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include' // Important: include cookies in request
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch recent ideas');
+                }
+
+                const data = await response.json();
+                setRecentIdeas(data.ideas || []);
+            } catch (err) {
+                console.error('Error fetching recent ideas:', err);
+                setRecentError(err.message);
+            } finally {
+                setRecentLoading(false);
+            }
+        };
+
+        if (expandedCategories.recent) {
+            fetchRecentIdeas();
+        }
+    }, [expandedCategories.recent, isAuthenticated]);
 
     const isSeller = userInfo?.subscription === 'seller';
 
@@ -125,7 +163,24 @@ const Sidebar = () => {
                 </button>
                 {expandedCategories.recent && (
                     <div className={styles.subMenu}>
-                        <Link to="/idea/3772" className={styles.subMenuItem}>Idea #3772</Link>
+                        {recentLoading ? (
+                            <div className={styles.subMenuItem}>Loading...</div>
+                        ) : recentError ? (
+                            <div className={styles.subMenuItem}>Error loading recent ideas</div>
+                        ) : recentIdeas.length === 0 ? (
+                            <div className={styles.subMenuItem}>No recent ideas</div>
+                        ) : (
+                            recentIdeas.map(idea => (
+                                <Link
+                                    key={idea._id}
+                                    to={`/ideas/${idea._id}`}
+                                    className={styles.subMenuItem}
+                                >
+                                    <span className={styles.icon}>💡</span>
+                                    {idea.title} 
+                                </Link>
+                            ))
+                        )}
                     </div>
                 )}
             </div>

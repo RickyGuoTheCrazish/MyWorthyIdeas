@@ -429,89 +429,161 @@ router.post("/:ideaId/buy", auth, buyerAuth, ideaPurchaseLimiter, async (req, re
 });
 
 /**
+ * GET RECENT IDEAS FROM COOKIES
+ * GET /ideas/recent
+ */
+router.get("/recent", auth, async (req, res) => {
+    try {
+        // Get recent IDs from cookie
+        const recentIdeasCookie = req.cookies.recentIdeas;
+        if (!recentIdeasCookie) {
+            return res.json({ ideas: [] });
+        }
+
+        let recentIds;
+        try {
+            recentIds = JSON.parse(recentIdeasCookie);
+            if (!Array.isArray(recentIds)) {
+                return res.json({ ideas: [] });
+            }
+        } catch (err) {
+            console.error('Error parsing recent ideas cookie:', err);
+            return res.json({ ideas: [] });
+        }
+
+        // Filter out invalid IDs
+        const validIds = recentIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+        if (!validIds.length) {
+            return res.json({ ideas: [] });
+        }
+
+        // Fetch ideas
+        const ideas = await Idea.find({
+            _id: { $in: validIds.map(id => mongoose.Types.ObjectId(id)) },
+            isSold: { $ne: true }
+        })
+        .select('title _id')
+        .lean();
+
+        // Sort in same order as cookie
+        const sortedIdeas = validIds
+            .map(id => ideas.find(idea => idea._id.toString() === id))
+            .filter(Boolean);
+
+        res.json({ ideas: sortedIdeas });
+    } catch (error) {
+        console.error('Error fetching recent ideas:', error);
+        res.status(500).json({ error: 'Failed to fetch recent ideas' });
+    }
+});
+
+/**
  * GET A SPECIFIC IDEA (with restricted content).
  * GET /ideas/:ideaId
  * Public endpoint - returns basic info for everyone, full content for creator/buyer
  */
 router.get("/:ideaId", optionalAuth, async (req, res) => {
-  try {
-    const ideaId = req.params.ideaId;
-    
-    // Populate the creator => postedIdeas => rating, also the buyer if needed
-    const idea = await Idea.findById(ideaId)
-      .populate({
-        path: "creator",
-        populate: {
-          path: "postedIdeas",
-          select: "rating",
-        },
-      })
-      .populate("buyer");
+    try {
+        const ideaId = req.params.ideaId;
 
-    if (!idea) {
-      return res.status(404).json({ message: "Idea not found" });
-    }
-
-    // Helper to sanitize user fields
-    const sanitizeUser = (userDoc) => {
-      if (!userDoc) return null;
-      return {
-        _id: userDoc._id,
-        username: userDoc.username,
-        averageRating: userDoc.averageRating || 0,
-      };
-    };
-
-    // Build base response with public information
-    const baseIdea = {
-      _id: idea._id,
-      title: idea.title,
-      preview: idea.preview,
-      priceAUD: idea.priceAUD,
-      creator: sanitizeUser(idea.creator),
-      isSold: idea.isSold,
-      thumbnailImage: idea.thumbnailImage,
-      categories: idea.categories,
-      createdAt: idea.createdAt,
-      updatedAt: idea.updatedAt,
-      rating: idea.rating || null
-    };
-
-    // If user is not authenticated, return only public info
-    if (!req.user) {
-      return res.json({ 
-        message: "Idea fetched successfully",
-        idea: baseIdea 
-      });
-    }
-
-    // Check if user is creator or buyer
-    const isCreator = idea.creator._id.toString() === req.userId;
-    const isBuyer = idea.buyer && idea.buyer._id.toString() === req.userId;
-
-    // If user is creator or buyer, include full content
-    if (isCreator || isBuyer) {
-      return res.json({
-        message: "Idea fetched successfully",
-        idea: {
-          ...baseIdea,
-          contentHtml: idea.contentHtml,
-          buyer: sanitizeUser(idea.buyer),
-          boughtAt: idea.boughtAt,
-          contentImages: idea.contentImages
+        // Validate ObjectId format first
+        if (!mongoose.Types.ObjectId.isValid(ideaId)) {
+            return res.status(400).json({ message: "Invalid idea ID format" });
         }
-      });
-    }
+        
+        // Populate the creator => postedIdeas => rating, also the buyer if needed
+        const idea = await Idea.findById(ideaId)
+            .populate({
+                path: "creator",
+                populate: {
+                    path: "postedIdeas",
+                    select: "rating",
+                },
+            })
+            .populate("buyer");
 
-    // For authenticated users who are not creator/buyer, return public info
-    return res.json({ 
-      message: "Idea fetched successfully",
-      idea: baseIdea 
-    });
-  } catch (error) {
-    console.error('Error fetching idea:', error);
-    return res.status(500).json({ error: error.message });
-  }
+        if (!idea) {
+            return res.status(404).json({ message: "Idea not found" });
+        }
+
+        // Add to recent ideas cookie if user is authenticated
+        if (req.headers.authorization) {
+            const MAX_RECENT = 10;
+            const recentIds = req.cookies.recentIdeas ? JSON.parse(req.cookies.recentIdeas) : [];
+            
+            // Remove if exists and add to front
+            const newRecentIds = [
+                idea._id.toString(),
+                ...recentIds.filter(id => id !== idea._id.toString())
+            ].slice(0, MAX_RECENT);
+
+            // Set cookie
+            res.cookie('recentIdeas', JSON.stringify(newRecentIds), {
+                path: '/',
+                httpOnly: false // Allow JavaScript access
+            });
+        }
+
+        // Helper to sanitize user fields
+        const sanitizeUser = (userDoc) => {
+            if (!userDoc) return null;
+            return {
+                _id: userDoc._id,
+                username: userDoc.username,
+                averageRating: userDoc.averageRating || 0,
+            };
+        };
+
+        // Build base response with public information
+        const baseIdea = {
+            _id: idea._id,
+            title: idea.title,
+            preview: idea.preview,
+            priceAUD: idea.priceAUD,
+            creator: sanitizeUser(idea.creator),
+            isSold: idea.isSold,
+            thumbnailImage: idea.thumbnailImage,
+            categories: idea.categories,
+            createdAt: idea.createdAt,
+            updatedAt: idea.updatedAt,
+            rating: idea.rating || null
+        };
+
+        // If user is not authenticated, return only public info
+        if (!req.user) {
+            return res.json({ 
+                message: "Idea fetched successfully",
+                idea: baseIdea 
+            });
+        }
+
+        // Check if user is creator or buyer
+        const isCreator = idea.creator._id.toString() === req.userId;
+        const isBuyer = idea.buyer && idea.buyer._id.toString() === req.userId;
+
+        // If user is creator or buyer, include full content
+        if (isCreator || isBuyer) {
+            return res.json({
+                message: "Idea fetched successfully",
+                idea: {
+                    ...baseIdea,
+                    contentHtml: idea.contentHtml,
+                    buyer: sanitizeUser(idea.buyer),
+                    boughtAt: idea.boughtAt,
+                    contentImages: idea.contentImages
+                }
+            });
+        }
+
+        // For authenticated users who are not creator/buyer, return public info
+        return res.json({ 
+            message: "Idea fetched successfully",
+            idea: baseIdea 
+        });
+    } catch (error) {
+        console.error('Error fetching idea:', error);
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 /**
