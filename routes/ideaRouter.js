@@ -148,158 +148,81 @@ router.get("/by-category", async (req, res) => {
   }
 });
 
-// Search ideas by title or ID (must be before :ideaId routes)
-router.get("/search", auth, async (req, res) => {
+/**
+ * SEARCH IDEAS
+ * GET /ideas/search
+ * Public endpoint with enhanced results for authenticated users
+ */
+router.get("/search", optionalAuth, async (req, res) => {
   try {
     const { type = 'title', query = '', page = 1, limit = 12, sortBy = 'newest' } = req.query;
     const skip = (page - 1) * parseInt(limit);
     
-    if (!query.trim()) {
-      return res.status(400).json({ message: "Search query is required" });
+    // Base search conditions
+    let searchConditions = {
+      isSold: false // Only show unsold ideas for public search
+    };
+
+    // Add search query condition based on type
+    if (type === 'title') {
+      searchConditions.title = { $regex: query, $options: 'i' };
+    } else if (type === 'category') {
+      searchConditions['categories.name'] = { $regex: query, $options: 'i' };
     }
 
-    // Build sort options
-    let sortOptions = {};
-    switch (sortBy) {
-      case 'price-low':
-        sortOptions = { priceAUD: 1 };
-        break;
-      case 'price-high':
-        sortOptions = { priceAUD: -1 };
-        break;
-      case 'rating':
-        sortOptions = { rating: -1 };
-        break;
-      case 'newest':
-      default:
-        sortOptions = { createdAt: -1 };
+    // If user is authenticated, include their purchased/created ideas
+    if (req.userId) {
+      const user = await User.findById(req.userId);
+      if (user) {
+        searchConditions = {
+          $or: [
+            { ...searchConditions }, // Public unsold ideas
+            { _id: { $in: user.purchasedIdeas } }, // User's purchased ideas
+            { creator: req.userId } // User's created ideas
+          ]
+        };
+      }
     }
 
-    let searchQuery;
-    let totalCount;
-    let ideas;
+    // Get paginated results
+    const ideas = await Idea.find(searchConditions)
+      .sort(sortBy === 'newest' ? { createdAt: -1 } : { priceAUD: 1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('creator', 'username');
 
-    if (type === 'id') {
-      // Clean up the ID by removing # and whitespace, and take last 6 characters
-      const cleanId = query.replace('#', '').trim().toUpperCase().slice(-6);
-      
-      // Use aggregation pipeline to match the last 6 characters of the _id
-      const matchStage = {
-        $match: {
-          shortId: cleanId,
-          isSold: { $ne: true }
-        }
-      };
+    // Get total count for pagination
+    const total = await Idea.countDocuments(searchConditions);
 
-      const pipeline = [
-        {
-          $addFields: {
-            shortId: {
-              $toUpper: {
-                $substr: [
-                  { $toString: "$_id" },
-                  { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
-                  6
-                ]
-              }
-            }
-          }
-        },
-        matchStage,
-        { $sort: sortOptions },
-        { $skip: skip },
-        { $limit: parseInt(limit) }
-      ];
-
-      // Get total count for pagination
-      totalCount = await Idea.aggregate([
-        {
-          $addFields: {
-            shortId: {
-              $toUpper: {
-                $substr: [
-                  { $toString: "$_id" },
-                  { $subtract: [{ $strLenCP: { $toString: "$_id" } }, 6] },
-                  6
-                ]
-              }
-            }
-          }
-        },
-        matchStage,
-        { $count: "total" }
-      ]);
-
-      totalCount = totalCount[0]?.total || 0;
-      ideas = await Idea.aggregate(pipeline);
-      await Idea.populate(ideas, {
-        path: 'creator',
-        select: 'username'
-      });
-
-    } else {
-      // If searching by title, use case-insensitive partial match
-      searchQuery = {
-        title: new RegExp(query.trim(), 'i'),
-        isSold: { $ne: true }
-      };
-
-      // Get total count for pagination
-      totalCount = await Idea.countDocuments(searchQuery);
-
-      // Fetch ideas
-      ideas = await Idea.find(searchQuery)
-        .select("title preview priceAUD thumbnailImage rating categories creator createdAt")
-        .populate({
-          path: 'creator',
-          select: 'username'
-        })
-        .lean()
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(parseInt(limit));
-    }
-
-    // Calculate average ratings for creators
-    const populatedIdeas = await Promise.all(ideas.map(async (idea) => {
-      const averageRating = await User.getAverageRating(idea.creator._id);
-      return {
-        ...idea,
-        creator: {
-          ...idea.creator,
-          averageRating
-        }
-      };
-    }));
-
-    // Transform ideas to include seller info
-    const transformedIdeas = populatedIdeas.map(idea => ({
-      ...idea,
-      seller: {
+    // Sanitize results
+    const sanitizedIdeas = ideas.map(idea => ({
+      _id: idea._id,
+      title: idea.title,
+      preview: idea.preview,
+      priceAUD: idea.priceAUD,
+      thumbnailImage: idea.thumbnailImage,
+      categories: idea.categories,
+      rating: idea.rating,
+      isSold: idea.isSold,
+      createdAt: idea.createdAt,
+      creator: {
         _id: idea.creator._id,
-        username: idea.creator.username,
-        averageRating: idea.creator.averageRating || 0
+        username: idea.creator.username
       }
     }));
 
-    const response = {
-      message: "Search completed successfully",
+    res.status(200).json({
+      ideas: sanitizedIdeas,
       pagination: {
         currentPage: parseInt(page),
-        totalPages: Math.ceil(totalCount / limit),
-        pageSize: parseInt(limit),
-        totalItems: totalCount,
-      },
-      ideas: transformedIdeas,
-    };
-
-    return res.status(200).json(response);
-  } catch (error) {
-    console.error('Search error:', error);
-    return res.status(500).json({ 
-      message: "Error searching ideas",
-      error: error.message
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalItems: total,
+        pageSize: parseInt(limit)
+      }
     });
+  } catch (error) {
+    console.error("Error in search endpoint:", error);
+    res.status(500).json({ message: "Error searching ideas" });
   }
 });
 

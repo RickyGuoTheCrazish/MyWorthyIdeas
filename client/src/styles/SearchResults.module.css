@@ -1,0 +1,97 @@
+.searchResults {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.header .title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 1.5rem;
+}
+
+.note {
+    color: #666;
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-left: 4px solid #1976d2;
+    margin-bottom: 1.5rem;
+}
+
+.loadingContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    color: #666;
+}
+
+.errorContainer {
+    color: #dc3545;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.noResults {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.pageButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.pageButton:hover {
+    background: #f8f9fa;
+}
+
+.pageButton.activePage {
+    background: #1976d2;
+    color: white;
+    border-color: #1976d2;
+}
+
+.pageButton.activePage:hover {
+    background: #1565c0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .searchResults {
+        padding: 1rem;
+    }
+
+    .header .title {
+        font-size: 1.5rem;
+    }
+
+    .grid {
+        gap: 1rem;
+    }
+}

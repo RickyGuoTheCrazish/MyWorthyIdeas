@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import IdeaCard from '../components/ideas/IdeaCard';
+import { useAuth } from '../context/AuthContext';
 import styles from './SearchResults.module.css';
 
 const SearchResults = () => {
@@ -10,6 +11,7 @@ const SearchResults = () => {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const { isAuthenticated } = useAuth();
 
     const searchType = searchParams.get('type') || 'title';
     const query = searchParams.get('query') || '';
@@ -38,7 +40,7 @@ const SearchResults = () => {
                     `http://localhost:6001/api/ideas/search?${queryParams}`,
                     {
                         headers: {
-                            'Authorization': token ? `Bearer ${token}` : ''
+                            ...(token && { 'Authorization': `Bearer ${token}` })
                         }
                     }
                 );
@@ -72,7 +74,16 @@ const SearchResults = () => {
     }
 
     if (error) {
-        return <div className={styles.error}>Error: {error}</div>;
+        return (
+            <div className={styles.error}>
+                <p>Error: {error}</p>
+                {!isAuthenticated && (
+                    <p className={styles.note}>
+                        Please try again, if this error persists, contact support.
+                    </p>
+                )}
+            </div>
+        );
     }
 
     return (
@@ -80,6 +91,11 @@ const SearchResults = () => {
             <h1 className={styles.title}>
                 Search Results for: {searchType === 'id' ? `ID ${query}` : `"${query}"`}
             </h1>
+            {!isAuthenticated && (
+                <p className={styles.note}>
+                    Kindly note: For full access to the platform, please login.
+                </p>
+            )}
             {results.length === 0 ? (
                 <div className={styles.noResults}>
                     No ideas found for your search.
