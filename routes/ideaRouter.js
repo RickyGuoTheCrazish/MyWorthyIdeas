@@ -184,7 +184,7 @@ router.get("/search", optionalAuth, async (req, res) => {
       }
     }
 
-    // Get paginated results
+    // Get paginated results with populated creator
     const ideas = await Idea.find(searchConditions)
       .sort(sortBy === 'newest' ? { createdAt: -1 } : { priceAUD: 1 })
       .skip(skip)
@@ -194,25 +194,29 @@ router.get("/search", optionalAuth, async (req, res) => {
     // Get total count for pagination
     const total = await Idea.countDocuments(searchConditions);
 
-    // Sanitize results
-    const sanitizedIdeas = ideas.map(idea => ({
-      _id: idea._id,
-      title: idea.title,
-      preview: idea.preview,
-      priceAUD: idea.priceAUD,
-      thumbnailImage: idea.thumbnailImage,
-      categories: idea.categories,
-      rating: idea.rating,
-      isSold: idea.isSold,
-      createdAt: idea.createdAt,
-      creator: {
-        _id: idea.creator._id,
-        username: idea.creator.username
-      }
+    // Get average ratings for all creators
+    const transformedIdeas = await Promise.all(ideas.map(async (idea) => {
+      const averageRating = await User.getAverageRating(idea.creator._id);
+      return {
+        _id: idea._id,
+        title: idea.title,
+        preview: idea.preview,
+        priceAUD: idea.priceAUD,
+        thumbnailImage: idea.thumbnailImage,
+        categories: idea.categories,
+        rating: idea.rating,
+        isSold: idea.isSold,
+        createdAt: idea.createdAt,
+        creator: {
+          _id: idea.creator._id,
+          username: idea.creator.username,
+          averageRating
+        }
+      };
     }));
 
     res.status(200).json({
-      ideas: sanitizedIdeas,
+      ideas: transformedIdeas,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / parseInt(limit)),
