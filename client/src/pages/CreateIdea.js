@@ -342,9 +342,13 @@ const CreateIdea = () => {
             const responseData = await createResponse.json();
 
             if (!createResponse.ok) {
-                if (responseData.message === "Please complete your Stripe Connect account verification to create ideas" || 
-                    responseData.message === "Stripe Connect account required") {
+                if (responseData.message === "Please complete your Stripe Connect account verification to create ideas"  
+                    ) {
                     toast.error("Please complete your Stripe Connect account setup including the verification on stripe");
+                    return;
+                }
+                else if(responseData.message === "Stripe Connect account required"){
+                    toast.error("Please setup your stripe connect account via account settings section first")
                     return;
                 }
                 throw new Error(responseData.message || 'Failed to create idea');
