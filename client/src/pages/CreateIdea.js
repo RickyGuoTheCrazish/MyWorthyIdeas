@@ -8,6 +8,8 @@ import { VALID_MAIN_CATEGORIES, SUBCATS_BY_MAIN } from '../utils/categories';
 import ImageCropper from '../components/common/ImageCropper';
 import RichTextEditor from '../components/editor/RichTextEditor';
 import ImagePicker from '../components/editor/ImagePicker';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CreateIdea = () => {
     const navigate = useNavigate();
@@ -311,7 +313,7 @@ const CreateIdea = () => {
         try {
             // Validate required fields
             if (!formData.title || !formData.brief || !formData.priceAUD || categories.length === 0) {
-                alert('Please fill in all required fields (title, brief, priceAUD) and select at least one category');
+                toast.error('Please fill in all required fields (title, brief, priceAUD) and select at least one category');
                 return;
             }
 
@@ -340,6 +342,11 @@ const CreateIdea = () => {
             const responseData = await createResponse.json();
 
             if (!createResponse.ok) {
+                if (responseData.message === "Stripe Connect account not fully setup" || 
+                    responseData.message === "Stripe Connect account required") {
+                    toast.error("Please complete your Stripe Connect account setup including the verification on stripe");
+                    return;
+                }
                 throw new Error(responseData.message || 'Failed to create idea');
             }
 
@@ -464,6 +471,7 @@ const CreateIdea = () => {
 
     return (
         <div className={styles.createIdea}>
+            <ToastContainer position="top-center" autoClose={5000} />
             {showSessionExpired && <SessionExpiredModal />}
             <div className={styles.container}>
                 <div className={styles.header}>
