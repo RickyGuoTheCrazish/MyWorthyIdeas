@@ -49,30 +49,34 @@ class StripeConnectService {
 
             console.log('Retrieved account details for:', connectedAccountId);
 
-            // Create or update the StripeConnect record
-            const stripeConnect = await StripeConnect.findOneAndUpdate(
-                { userId },
-                {
-                    stripeAccountId: connectedAccountId,
-                    accessToken: accessToken,
-                    accountStatus: account.charges_enabled ? 'active' : 'pending',
-                    payoutsEnabled: account.payouts_enabled,
-                    chargesEnabled: account.charges_enabled,
-                    detailsSubmitted: account.details_submitted,
-                    country: account.country
-                },
-                { upsert: true, new: true }
-            );
+            // Create or update both StripeConnect and User records
+            const [stripeConnect] = await Promise.all([
+                // Update StripeConnect record
+                StripeConnect.findOneAndUpdate(
+                    { userId },
+                    {
+                        stripeAccountId: connectedAccountId,
+                        accessToken: accessToken,
+                        accountStatus: account.charges_enabled ? 'active' : 'pending',
+                        payoutsEnabled: account.payouts_enabled,
+                        chargesEnabled: account.charges_enabled,
+                        detailsSubmitted: account.details_submitted,
+                        country: account.country
+                    },
+                    { upsert: true, new: true }
+                ),
+                // Update User record with Stripe Connect status
+                User.findByIdAndUpdate(userId, {
+                    stripeConnectAccountId: connectedAccountId,
+                    subscription: 'seller',
+                    'stripeConnectStatus.accountStatus': account.charges_enabled ? 'active' : 'pending',
+                    'stripeConnectStatus.payoutsEnabled': account.payouts_enabled,
+                    'stripeConnectStatus.chargesEnabled': account.charges_enabled,
+                    'stripeConnectStatus.detailsSubmitted': account.details_submitted
+                })
+            ]);
 
-            console.log('Updated StripeConnect record for user:', userId);
-
-            // Update the user's seller status
-            await User.findByIdAndUpdate(userId, {
-                stripeConnectAccountId: connectedAccountId,
-                subscription: 'seller'
-            });
-
-            console.log('Updated user record with Stripe Connect ID');
+            console.log('Updated StripeConnect and User records for user:', userId);
 
             return stripeConnect;
         } catch (error) {

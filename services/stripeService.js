@@ -236,6 +236,45 @@ class StripeService {
                     // These events are informational and don't require specific handling
                     console.log('Received informational event:', event.type);
                     break;
+                case 'account.updated': {
+                    const account = event.data.object;
+                    console.log('Processing account update for:', account.id);
+                    
+                    // Find the StripeConnect record for this account
+                    const stripeConnect = await StripeConnect.findOne({ stripeAccountId: account.id });
+                    if (!stripeConnect) {
+                        console.log('No StripeConnect record found for account:', account.id);
+                        break;
+                    }
+
+                    // Update both StripeConnect and User models
+                    await Promise.all([
+                        // Update StripeConnect model
+                        StripeConnect.findOneAndUpdate(
+                            { stripeAccountId: account.id },
+                            {
+                                accountStatus: account.charges_enabled ? 'active' : 'pending',
+                                payoutsEnabled: account.payouts_enabled,
+                                chargesEnabled: account.charges_enabled,
+                                detailsSubmitted: account.details_submitted,
+                                country: account.country
+                            }
+                        ),
+                        // Update User model
+                        User.findByIdAndUpdate(
+                            stripeConnect.userId,
+                            {
+                                'stripeConnectStatus.accountStatus': account.charges_enabled ? 'active' : 'pending',
+                                'stripeConnectStatus.payoutsEnabled': account.payouts_enabled,
+                                'stripeConnectStatus.chargesEnabled': account.charges_enabled,
+                                'stripeConnectStatus.detailsSubmitted': account.details_submitted
+                            }
+                        )
+                    ]);
+                    
+                    console.log('Updated StripeConnect and User records for account:', account.id);
+                    break;
+                }
                 default:
                     console.log('Unhandled event type:', event.type);
             }

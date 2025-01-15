@@ -72,20 +72,20 @@ const sellerAuth = async (req, res, next) => {
                 const user = await getUserInfo(req.userId);
 
                 if (user.subscription !== 'seller') {
-                    return res.status(403).json({ 
+                    return res.status(409).json({ 
                         message: "Only sellers can access this resource" 
                     });
                 }
 
                 if (!user.stripeConnectAccountId) {
-                    return res.status(403).json({ 
+                    return res.status(410).json({ 
                         message: "Stripe Connect account required" 
                     });
                 }
 
                 if (!user.stripeConnectStatus?.chargesEnabled) {
-                    return res.status(403).json({ 
-                        message: "Stripe Connect account not fully setup" 
+                    return res.status(411).json({ 
+                        message: "Please complete your Stripe Connect account verification to create ideas" 
                     });
                 }
 
