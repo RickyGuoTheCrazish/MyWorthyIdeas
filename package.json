@@ -3,8 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
+
     "scripts": {
-        "start": "node server.js",
+        "start": "NODE_ENV=production node --max-old-space-size=4096 server.js",
         "dev": "nodemon server.js",
         "heroku-postbuild": "cd client && npm install --only=dev && npm install && npm run build"
     },
