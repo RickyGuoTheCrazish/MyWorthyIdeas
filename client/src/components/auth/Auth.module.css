@@ -10,6 +10,11 @@
     color: #333;
 }
 
+.authForm h3 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
 .formGroup {
     margin-bottom: 1.5rem;
     position: relative;
@@ -62,6 +67,10 @@
     margin-bottom: 1rem;
     text-align: center;
     font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .success {
@@ -146,6 +155,20 @@
 
 .authLink:hover:not(:disabled) {
     color: #45a049;
+}
+
+.resendLink {
+    color: #1a73e8;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.resendLink:hover {
+    color: #1557b0;
 }
 
 .select {
