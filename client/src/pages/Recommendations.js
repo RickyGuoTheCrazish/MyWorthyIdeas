@@ -27,7 +27,7 @@ const Recommendations = () => {
                 });
                 
                 const response = await fetch(
-                    `http://localhost:6001/api/ideas?${queryParams}`, 
+                    `https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas?${queryParams}`, 
                     {
                         headers: {
                             'Accept': 'application/json',

@@ -93,7 +93,7 @@ const Signup = ({ onClose, onVerify, onModeChange }) => {
         setErrors({ username: '', email: '', password: '', confirmPassword: '', general: '' });
 
         try {
-            const response = await fetch('http://localhost:6001/api/users/register', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

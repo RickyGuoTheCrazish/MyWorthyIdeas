@@ -7,7 +7,7 @@ import ImageCropper from '../components/common/ImageCropper';
 import RichTextEditor from '../components/editor/RichTextEditor';
 import ImagePicker from '../components/editor/ImagePicker';
 
-const API_BASE_URL = 'http://localhost:6001';
+const API_BASE_URL = 'https://myworthyideas-257fec0e7d06.herokuapp.com';
 
 const EditIdea = () => {
     const navigate = useNavigate();

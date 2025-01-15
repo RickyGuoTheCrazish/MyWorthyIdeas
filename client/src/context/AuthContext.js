@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No token found');
 
-            const response = await fetch('http://localhost:6001/api/stripe/connect/checkout', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/stripe/connect/checkout', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = useCallback(async (email, password) => {
         try {
-            const response = await fetch('http://localhost:6001/api/users/login', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = useCallback(async (userData) => {
         try {
-            const response = await fetch('http://localhost:6001/api/users/register', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(async () => {
         try {
             // Call logout endpoint
-            const response = await fetch('http://localhost:6001/api/users/logout', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/logout', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -206,7 +206,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const response = await fetch('http://localhost:6001/api/users/check-auth', {
+                const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/check-auth', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

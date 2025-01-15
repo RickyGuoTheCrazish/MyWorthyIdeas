@@ -36,7 +36,7 @@ const CategoryPage = () => {
                     sortBy
                 });
 
-                const url = `http://localhost:6001/api/ideas/by-category?${queryParams}`;
+                const url = `https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/by-category?${queryParams}`;
                 const response = await fetch(url, {
                     headers: {
                         'Accept': 'application/json',

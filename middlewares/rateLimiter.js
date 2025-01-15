@@ -19,7 +19,7 @@ const createRateLimiter = (options) => {
     // Return a wrapper middleware
     return (req, res, next) => {
         // Ensure proper CORS headers are set
-        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+        res.setHeader('Access-Control-Allow-Origin', 'https://myworthyideas-257fec0e7d06.herokuapp.com');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
