@@ -29,7 +29,7 @@ const AccountSettings = () => {
                     throw new Error('No authentication token found');
                 }
 
-                const response = await fetch('http://localhost:6001/api/users/myinfo', {
+                const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/myinfo', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -100,7 +100,7 @@ const AccountSettings = () => {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:6001/api/users/change-password', {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/change-password', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
