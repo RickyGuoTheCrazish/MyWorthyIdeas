@@ -21,6 +21,11 @@ const AccountSettings = () => {
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+    // Email verification state
+    const [isResendingVerification, setIsResendingVerification] = useState(false);
+    const [verificationMessage, setVerificationMessage] = useState('');
+    const [verificationError, setVerificationError] = useState('');
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -125,6 +130,36 @@ const AccountSettings = () => {
         }
     };
 
+    const handleResendVerification = async () => {
+        if (isResendingVerification) return;
+
+        setIsResendingVerification(true);
+        setVerificationError('');
+        setVerificationMessage('');
+
+        try {
+            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: userData.email }),
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                setVerificationMessage('Verification email has been resent. Please check your inbox.');
+            } else {
+                setVerificationError(data.message || 'Failed to resend verification email');
+            }
+        } catch (err) {
+            setVerificationError('An error occurred. Please try again.');
+        } finally {
+            setIsResendingVerification(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className={styles.loading}>
@@ -163,7 +198,23 @@ const AccountSettings = () => {
                             </div>
                             <div className={styles.infoItem}>
                                 <label>Email</label>
-                                <p>{userData?.email}</p>
+                                <div className={styles.emailContainer}>
+                                    <p>{userData?.email}</p>
+                                    {!userData?.isVerified && (
+                                        <div className={styles.verificationSection}>
+                                            <span className={styles.unverifiedBadge}>Unverified</span>
+                                            <button 
+                                                onClick={handleResendVerification}
+                                                className={styles.resendButton}
+                                                disabled={isResendingVerification}
+                                            >
+                                                {isResendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                                            </button>
+                                            {verificationMessage && <div className={styles.success}>{verificationMessage}</div>}
+                                            {verificationError && <div className={styles.error}>{verificationError}</div>}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className={styles.infoItem}>
                                 <label>Account Type</label>

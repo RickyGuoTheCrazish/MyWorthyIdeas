@@ -1736,3 +1736,68 @@
         padding: 1.5rem;
     }
 }
+
+.button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Email verification styles */
+.emailContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.verificationSection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.unverifiedBadge {
+    display: inline-block;
+    background-color: #ffd7d7;
+    color: #d32f2f;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.resendButton {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.resendButton:hover:not(:disabled) {
+    background-color: #45a049;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.resendButton:disabled {
+    background-color: #357a38;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.error {
+    color: #f44336;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.success {
+    color: #4CAF50;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+}

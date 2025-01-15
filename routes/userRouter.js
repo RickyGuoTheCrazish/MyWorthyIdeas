@@ -344,11 +344,11 @@ router.get("/myinfo", auth, async (req, res) => {
     let user;
     if (!req.user) {
        user = await User.findById(req.userId)
-       .select('username email subscription')
+       .select('username email subscription isVerified')
       .lean();
     }else{
        user = await User.findById(req.user._id)
-      .select('username email subscription')
+      .select('username email subscription isVerified')
       .lean();
     }
     
