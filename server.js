@@ -18,7 +18,14 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: function(origin, callback) {
+        const allowedOrigins = [process.env.CLIENT_URL, 'https://www.myworthyideas.com', 'https://myworthyideas-257fec0e7d06.herokuapp.com'];
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
