@@ -18,16 +18,15 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowedOrigins = [process.env.CLIENT_URL, 'https://www.myworthyideas.com', 'https://myworthyideas-257fec0e7d06.herokuapp.com'];
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
+    origin: ['https://www.myworthyideas.com', 'https://myworthyideas-257fec0e7d06.herokuapp.com', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true,
+    maxAge: 86400 // 24 hours
 }));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors());
 
 // Stripe webhook must be before JSON parsing middleware
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
