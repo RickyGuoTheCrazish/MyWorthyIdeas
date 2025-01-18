@@ -26,8 +26,9 @@ const Recommendations = () => {
                     sortBy
                 });
                 
+                //ha
                 const response = await fetch(
-                    `https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas?${queryParams}`, 
+                    `/api/ideas?${queryParams}`, 
                     {
                         headers: {
                             'Accept': 'application/json',
