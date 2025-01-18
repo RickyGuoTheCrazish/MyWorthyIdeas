@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import IdeaCard from '../components/ideas/IdeaCard';
 import styles from './Recommendations.module.css';
+import { getApiUrl } from '../config/api';
 
 const Recommendations = () => {
     const [ideas, setIdeas] = useState([]);
@@ -27,8 +28,9 @@ const Recommendations = () => {
                 });
                 
                 const response = await fetch(
-                    `https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas?${queryParams}`, 
+                    getApiUrl(`ideas?${queryParams}`),
                     {
+                        credentials: 'include',
                         headers: {
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'

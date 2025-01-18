@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import stripeConnectService from '../services/stripeConnectService';
+import { getApiUrl } from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('No token found');
 
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/stripe/connect/checkout', {
+            const response = await fetch(getApiUrl('stripe/connect/checkout'), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -97,7 +98,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = useCallback(async (email, password) => {
         try {
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/login', {
+            const response = await fetch(getApiUrl('users/login'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -135,10 +136,9 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-
     const register = useCallback(async (userData) => {
         try {
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/register', {
+            const response = await fetch(getApiUrl('users/register'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     const logout = useCallback(async () => {
         try {
             // Call logout endpoint
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/logout', {
+            const response = await fetch(getApiUrl('users/logout'), {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -206,7 +206,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/check-auth', {
+                const response = await fetch(getApiUrl('users/check-auth'), {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
