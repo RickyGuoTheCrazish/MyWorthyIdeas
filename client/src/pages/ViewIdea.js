@@ -40,7 +40,7 @@ const ViewIdea = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${ideaId}`, {
+            const response = await fetch(`/api/ideas/${ideaId}`, {
                 headers,
                 credentials: 'include'
             });
@@ -68,7 +68,7 @@ const ViewIdea = () => {
     const fetchUserInfo = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/myinfo', {
+            const response = await fetch('/api/users/myinfo', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -156,7 +156,7 @@ const ViewIdea = () => {
             setBuyLoading(true);
             setPurchaseError(null);
             const token = localStorage.getItem('token');
-            const response = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${ideaId}/buy`, {
+            const response = await fetch(`/api/ideas/${ideaId}/buy`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -174,7 +174,7 @@ const ViewIdea = () => {
             setShowSuccessModal(true);
 
             // Fetch updated idea data
-            const updatedResponse = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${ideaId}`, {
+            const updatedResponse = await fetch(`/api/ideas/${ideaId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -204,7 +204,7 @@ const ViewIdea = () => {
         try {
             setRatingLoading(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${ideaId}/rate`, {
+            const response = await fetch(`/api/ideas/${ideaId}/rate`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

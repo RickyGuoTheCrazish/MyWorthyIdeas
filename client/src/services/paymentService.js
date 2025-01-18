@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { loadStripe } from '@stripe/stripe-js';
 
-const API_BASE_URL = 'https://myworthyideas-257fec0e7d06.herokuapp.com/api/users';
+const API_BASE_URL = '/api/users';
 const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Q5RUIAsYE98T3GkgOFSy5Qtd48bhQ5j9GDYL7Hv9OHJ3FNhn1kiBGWbBBrcruuCQv0NrdveXBZiOquWHAZpA8rV00di6ErAjb';
 
 /**

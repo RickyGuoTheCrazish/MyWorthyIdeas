@@ -14,7 +14,7 @@ const EmailVerification = ({ email, onClose }) => {
         setMessage('');
 
         try {
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/resend-verification', {
+            const response = await fetch('/api/users/resend-verification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

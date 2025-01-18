@@ -33,7 +33,7 @@ const Sidebar = () => {
                     throw new Error('No authentication token found');
                 }
 
-                const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/myinfo', {
+                const response = await fetch('/api/users/myinfo', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -65,7 +65,7 @@ const Sidebar = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/recent', {
+            const response = await fetch('/api/ideas/recent', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
