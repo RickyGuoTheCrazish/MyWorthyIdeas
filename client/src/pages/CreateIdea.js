@@ -329,7 +329,7 @@ const CreateIdea = () => {
 
             console.log('Sending data to create idea:', basicData); // Debug log
 
-            const createResponse = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/create', {
+            const createResponse = await fetch('/api/ideas/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -367,7 +367,7 @@ const CreateIdea = () => {
                     contentImagesFormData.append('images', file);
                 });
 
-                const imagesResponse = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${idea._id}/content-images`, {
+                const imagesResponse = await fetch(`/api/ideas/${idea._id}/content-images`, {
                     method: 'POST',
                     // credentials: 'include',
                     headers: {
@@ -407,7 +407,7 @@ const CreateIdea = () => {
                 const thumbnailFormData = new FormData();
                 thumbnailFormData.append('cover', thumbnailImage);
 
-                const thumbnailResponse = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${idea._id}/cover`, {
+                const thumbnailResponse = await fetch(`/api/ideas/${idea._id}/cover`, {
                     method: 'POST',
                     // credentials: 'include',
                     headers: {
@@ -423,7 +423,7 @@ const CreateIdea = () => {
 
             // Finally save the content with replaced URLs
             console.log('Content to save:', contentToSave.substring(0, 100)); // Debug log
-            const updateResponse = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/${idea._id}/content`, {
+            const updateResponse = await fetch(`/api/ideas/${idea._id}/content`, {
                 method: 'PUT',
                 // credentials: 'include',
                 headers: {

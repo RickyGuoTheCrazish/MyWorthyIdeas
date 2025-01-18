@@ -37,7 +37,7 @@ const SearchResults = () => {
                 });
 
                 const response = await fetch(
-                    `https://myworthyideas-257fec0e7d06.herokuapp.com/api/ideas/search?${queryParams}`,
+                    `/api/ideas/search?${queryParams}`,
                     {
                         headers: {
                             ...(token && { 'Authorization': `Bearer ${token}` })

@@ -31,7 +31,7 @@ const Dashboard = () => {
                     throw new Error('No token found');
                 }
 
-                const response = await fetch('https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/subscription-type', {
+                const response = await fetch('/api/users/subscription-type', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -83,7 +83,7 @@ const Dashboard = () => {
                     endpoint = `/api/users/${me}/bought-ideas`;
                 }
 
-                const response = await fetch(`https://myworthyideas-257fec0e7d06.herokuapp.com${endpoint}?page=${currentPage}&limit=12`, {
+                const response = await fetch(`${endpoint}?page=${currentPage}&limit=12`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

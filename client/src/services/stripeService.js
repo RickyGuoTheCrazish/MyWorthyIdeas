@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://myworthyideas-257fec0e7d06.herokuapp.com/api';
+const API_BASE_URL = '/api';
 
 export const createCheckoutSession = async (ideaId, totalAmount) => {
     try {

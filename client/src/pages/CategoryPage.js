@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import IdeaCard from '../components/ideas/IdeaCard';
 import styles from './CategoryPage.module.css';
-import { getApiUrl } from '../config/api';
 
 const CategoryPage = () => {
     const { category, subcategory } = useParams();
@@ -37,13 +36,13 @@ const CategoryPage = () => {
                     sortBy
                 });
 
-                const url = getApiUrl(`ideas/by-category?${queryParams}`);
+                const url = `/api/ideas/by-category?${queryParams}`;
                 const response = await fetch(url, {
-                    credentials: 'include',
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {

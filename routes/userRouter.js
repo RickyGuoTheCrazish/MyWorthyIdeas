@@ -136,7 +136,7 @@ router.post("/register", authLimiter, async (req, res) => {
 
     // Send verification email
     try {
-      const verifyUrl = `https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/verify-email?token=${newUserDoc.verificationToken}`;
+      const verifyUrl = `/api/users/verify-email?token=${newUserDoc.verificationToken}`;
       await sendMail(
         email,
         "Verify Your Email",
@@ -447,7 +447,7 @@ router.post("/resend-verification", authLimiter, async (req, res) => {
     user.lastVerificationSentAt = now;
     await user.save();
 
-    const verifyUrl = `https://myworthyideas-257fec0e7d06.herokuapp.com/api/users/verify-email?token=${newToken}`;
+    const verifyUrl = `/api/users/verify-email?token=${newToken}`;
     try {
       await sendMail(
         user.email,

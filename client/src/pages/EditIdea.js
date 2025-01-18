@@ -38,7 +38,7 @@ const EditIdea = () => {
         const fetchIdea = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}`, {
+                const response = await fetch(`/api/ideas/${ideaId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -268,7 +268,7 @@ const EditIdea = () => {
                 const thumbnailFormData = new FormData();
                 thumbnailFormData.append('cover-image', thumbnailImage);
 
-                const thumbnailResponse = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}/cover`, {
+                const thumbnailResponse = await fetch(`/api/ideas/${ideaId}/cover`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -293,7 +293,7 @@ const EditIdea = () => {
                     contentImagesFormData.append('content-images', file);
                 });
 
-                const imagesResponse = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}/content-images`, {
+                const imagesResponse = await fetch(`/api/ideas/${ideaId}/content-images`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -330,7 +330,7 @@ const EditIdea = () => {
             }
 
             // Update idea content
-            const contentResponse = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}/content`, {
+            const contentResponse = await fetch(`/api/ideas/${ideaId}/content`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {
@@ -356,7 +356,7 @@ const EditIdea = () => {
                 categories: categories
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}`, {
+            const response = await fetch(`/api/ideas/${ideaId}`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {

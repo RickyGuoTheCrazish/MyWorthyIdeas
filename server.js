@@ -18,7 +18,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: ['https://www.myworthyideas.com', 'https://myworthyideas-257fec0e7d06.herokuapp.com', 'http://localhost:3000'],
+    origin: ['https://www.myworthyideas.com', 'https://myworthyideas-257fec0e7d06.herokuapp.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     credentials: true,
