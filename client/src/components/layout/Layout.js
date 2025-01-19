@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AuthModal from '../modals/AuthModal';
 import GuestModeIndicator from './WelcomeBack';
@@ -19,6 +19,7 @@ const Layout = ({ children }) => {
     const menuRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
 
     // Get user info from token
     useEffect(() => {
@@ -73,6 +74,17 @@ const Layout = ({ children }) => {
             navigate(location.pathname, { replace: true });
         }
     }, [location.state, navigate]);
+
+    // Handle login parameter
+    useEffect(() => {
+        const shouldLogin = searchParams.get('login');
+        if (shouldLogin === 'true' && !isAuthenticated) {
+            setAuthModal({ isOpen: true, mode: 'login', email: '' });
+            // Remove the login parameter from URL
+            searchParams.delete('login');
+            navigate({ search: searchParams.toString() }, { replace: true });
+        }
+    }, [searchParams, isAuthenticated, navigate]);
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {

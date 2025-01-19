@@ -13,12 +13,9 @@ const EmailVerification = () => {
       try {
         await axios.get(`/api/users/verify-email?token=${token}`);
         setStatus('success');
-        // Navigate to home and trigger login modal after 3 seconds
+        // Navigate to home with login parameter after 3 seconds
         setTimeout(() => {
-          navigate('/', { 
-            state: { openAuthModal: true },
-            replace: true
-          });
+          window.location.href = 'https://myworthyideas.com?login=true';
         }, 3000);
       } catch (error) {
         setStatus('error');
@@ -62,7 +59,7 @@ const EmailVerification = () => {
                   Verification failed. The link may be expired or invalid.
                 </p>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => window.location.href = 'https://myworthyideas.com'}
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Go to Home
