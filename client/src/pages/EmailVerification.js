@@ -15,7 +15,7 @@ const EmailVerification = () => {
         setStatus('success');
         // Navigate to home and trigger login modal after 3 seconds
         setTimeout(() => {
-          navigate('/', { 
+          navigate('https://www.myworthyideas.com', { 
             state: { openAuthModal: true },
             replace: true
           });
@@ -62,7 +62,7 @@ const EmailVerification = () => {
                   Verification failed. The link may be expired or invalid.
                 </p>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('https://www.myworthyideas.com')}
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Go to Home
