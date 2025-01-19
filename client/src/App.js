@@ -12,6 +12,7 @@ import SearchResults from './pages/SearchResults';
 import AccountSettings from './pages/AccountSettings';
 import PaymentSuccess from './pages/PaymentSuccess';
 import StripeConnectCallback from './pages/StripeConnectCallback'; // Import StripeConnectCallback component
+import EmailVerification from './pages/EmailVerification';
 import Terms from "./pages/Terms";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -107,6 +108,15 @@ const AppRoutes = () => {
         element={
           <Layout>
             <Terms />
+          </Layout>
+        }
+      />
+      {/* Email verification route */}
+      <Route
+        path="/verify-email"
+        element={
+          <Layout>
+            <EmailVerification />
           </Layout>
         }
       />
