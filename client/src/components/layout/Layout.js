@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AuthModal from '../modals/AuthModal';
 import GuestModeIndicator from './WelcomeBack';
@@ -18,6 +18,7 @@ const Layout = ({ children }) => {
     const [userInfo, setUserInfo] = useState(null);
     const menuRef = useRef(null);
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Get user info from token
     useEffect(() => {
@@ -63,6 +64,15 @@ const Layout = ({ children }) => {
             setShowGuestIndicator(false);
         }
     }, [isAuthenticated]);
+
+    // Handle auth modal from navigation state
+    useEffect(() => {
+        if (location.state?.openAuthModal) {
+            setAuthModal({ isOpen: true, mode: 'login', email: '' });
+            // Clear the state so it doesn't reopen on subsequent navigations
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location.state, navigate]);
 
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {

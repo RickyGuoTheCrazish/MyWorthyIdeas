@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -13,9 +13,12 @@ const EmailVerification = () => {
       try {
         await axios.get(`/api/users/verify-email?token=${token}`);
         setStatus('success');
-        // Redirect to login after 3 seconds
+        // Navigate to home and trigger login modal after 3 seconds
         setTimeout(() => {
-          navigate('/login', { state: { verified: true } });
+          navigate('/', { 
+            state: { openAuthModal: true },
+            replace: true
+          });
         }, 3000);
       } catch (error) {
         setStatus('error');
@@ -49,7 +52,7 @@ const EmailVerification = () => {
                   Email verified successfully!
                 </p>
                 <p className="mt-2 text-gray-500">
-                  Redirecting you to login page...
+                  Redirecting you to login...
                 </p>
               </div>
             )}
@@ -59,10 +62,10 @@ const EmailVerification = () => {
                   Verification failed. The link may be expired or invalid.
                 </p>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/')}
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Go to Login
+                  Go to Home
                 </button>
               </div>
             )}
