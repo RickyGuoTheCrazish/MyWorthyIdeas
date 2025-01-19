@@ -136,7 +136,7 @@ router.post("/register", authLimiter, async (req, res) => {
 
     // Send verification email
     try {
-      const verifyUrl = `https://myworthyideas.com/api/users/verify-email?token=${newUserDoc.verificationToken}`;
+      const verifyUrl = `/api/users/verify-email?token=${newUserDoc.verificationToken}`;
       await sendMail(
         email,
         "Verify Your Email",
@@ -201,9 +201,8 @@ router.get("/verify-email", authLimiter, async (req, res) => {
     user.verificationTokenExp = null;
     await user.save();
 
-    return res.status(200).json({
-      message: "Email verified successfully. You can now log in.",
-    });
+    // Redirect to frontend after successful verification
+    res.redirect('https://myworthyideas.com/login?verified=true');
   } catch (error) {
     console.error("Error verifying email:", error);
     return res.status(500).json({ error: error.message });
@@ -447,7 +446,7 @@ router.post("/resend-verification", authLimiter, async (req, res) => {
     user.lastVerificationSentAt = now;
     await user.save();
 
-    const verifyUrl = `https://myworthyideas.com/api/users/verify-email?token=${newToken}`;
+    const verifyUrl = `/api/users/verify-email?token=${newToken}`;
     try {
       await sendMail(
         user.email,

@@ -81,17 +81,19 @@ apiRouter.use('/stripe', stripeRouter);
 // Mount API router
 app.use('/api', apiRouter);
 
-// Serve static files
+// Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve static files from React build and catch-all route AFTER API routes
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, "client", "build")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "client", "build", "index.html"));
+  });
+}
 
 // Start server
 const PORT = process.env.PORT || 6001;
-
-app.use(express.static(path.join(__dirname, "client", "build")));
-// Catch-all route to serve the React app
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "build", "index.html"));
-});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
