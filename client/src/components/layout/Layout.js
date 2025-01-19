@@ -86,16 +86,6 @@ const Layout = ({ children }) => {
         }
     }, [searchParams, isAuthenticated, navigate]);
 
-    // Check for login flag in localStorage
-    useEffect(() => {
-        const shouldShowLogin = localStorage.getItem('showLoginModal');
-        if (shouldShowLogin === 'true' && !isAuthenticated) {
-            setAuthModal({ isOpen: true, mode: 'login', email: '' });
-            // Remove the flag after showing modal
-            localStorage.removeItem('showLoginModal');
-        }
-    }, [isAuthenticated]);
-
     const handleSearch = (e) => {
         if (e.key === 'Enter' && searchQuery.trim()) {
             navigate(`/search?type=${searchType}&query=${encodeURIComponent(searchQuery.trim())}`);

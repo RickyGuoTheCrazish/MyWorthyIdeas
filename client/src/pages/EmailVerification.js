@@ -13,8 +13,7 @@ const EmailVerification = () => {
       try {
         await axios.get(`/api/users/verify-email?token=${token}`);
         setStatus('success');
-        // Set login flag in localStorage before redirecting
-        localStorage.setItem('showLoginModal', 'true');
+        // Navigate to home with login parameter after 3 seconds
         setTimeout(() => {
           window.location.href = 'https://myworthyideas.com';
         }, 3000);
@@ -50,7 +49,7 @@ const EmailVerification = () => {
                   Email verified successfully!
                 </p>
                 <p className="mt-2 text-gray-500">
-                  Redirecting you to login...
+                  Redirecting you to main page, please wait and re-login if necessary...
                 </p>
               </div>
             )}
